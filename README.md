@@ -32,13 +32,32 @@ Marsil Assistant is a powerful desktop coding assistant powered by **DeepSeek** 
 
 ## Running the Application
 
-To start both the frontend and backend servers concurrently, simply run:
+## Running the Application
 
-```bash
-npm start
-```
+### Method A: The Standard Developer Way (Recommended & 100% Safe)
+To completely bypass Windows SmartScreen/Defender notifications and run the application natively:
+1. Initialize the servers and install all dependencies:
+   ```bash
+   npm run install-all
+   ```
+2. Start both the frontend and backend concurrently:
+   ```bash
+   npm start
+   ```
 
-- The Frontend will run on `http://localhost:5173`
-- The Backend API will run on `http://localhost:3001`
+### Method B: Using Quick-Start Scripts (Windows Only)
+- Double-click `start.bat` to automatically install dependencies and run both servers.
+- Double-click `stop.bat` to surgically close the running servers.
 
-Open your browser and navigate to the frontend URL to start using Marsil Assistant!
+---
+
+## 🛡️ SmartScreen & Antivirus False Positives
+
+Since Marsil AI is a local developer tool that handles background terminal tasks (like managing ports, launching subprocesses, and git checkpoints), some antivirus systems or **Windows SmartScreen** may trigger a false positive warning (e.g., "Unknown Publisher" or "Unsafe Script") when running the `.bat` files directly after downloading the ZIP.
+
+### How to resolve:
+1. **Unblock the downloaded ZIP:** 
+   Right-click the downloaded `.zip` file -> Select **Properties** -> Check the **Unblock** box at the bottom -> Click **Apply** -> Extract the files.
+2. **Use Method A (Standard Terminal Commands):**
+   Simply run `npm run install-all` and `npm start` in your command line. Standard npm terminal commands do **not** trigger any security warnings and are 100% safe on all operating systems!
+

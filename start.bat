@@ -4,15 +4,10 @@ echo   MARSIL AI - SYSTEM INITIALIZATION
 echo ===================================================
 echo.
 
+:: Check local dependencies
 if not exist node_modules (
     echo Installing root dependencies...
     call npm install
-)
-
-call claude --version >nul 2>&1
-if %errorlevel% neq 0 (
-    echo Claude Code not found. Installing globally in the background...
-    start /B npm install -g @anthropic-ai/claude-code
 )
 
 if not exist backend\node_modules (
@@ -30,13 +25,11 @@ if not exist frontend\node_modules (
 )
 
 echo Starting Marsil Systems...
-
-:: Start servers in background, then open browser after delay
 start /B npm start
-timeout /t 3 /nobreak > nul
+timeout /t 4 /nobreak > nul
 start http://localhost:5173
 
 echo.
-echo Marsil is running! Browser should open automatically.
+echo Marsil is running successfully!
 echo Press Ctrl+C to stop.
 pause
