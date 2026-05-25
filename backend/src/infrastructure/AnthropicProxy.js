@@ -80,12 +80,12 @@ class AnthropicProxy {
                     }
                 })) || undefined;
 
-                // 3. Make Request to OpenAI / DeepSeek
+                // 3. Make Request to OpenAI / DeepSeek (Using stream: false for stable tool use translation)
                 const openaiReq = {
                     model: this.targetModel,
                     messages: openaiMessages,
                     tools: openaiTools,
-                    stream: anthropicReq.stream,
+                    stream: false,
                     temperature: anthropicReq.temperature || 0.7,
                     max_tokens: anthropicReq.max_tokens || 4000
                 };
@@ -110,68 +110,105 @@ class AnthropicProxy {
                     return res.status(response.status).json({ error: { message: errText } });
                 }
 
+                const data = await response.json();
+                const choice = data.choices?.[0]?.message || { content: '' };
+
                 // 4. Translate Response back to Anthropic
                 if (anthropicReq.stream) {
                     res.setHeader('Content-Type', 'text/event-stream');
                     res.setHeader('Cache-Control', 'no-cache');
                     res.setHeader('Connection', 'keep-alive');
                     
-                    res.write(`event: message_start\ndata: ${JSON.stringify({ type: 'message_start', message: { id: 'msg_1', type: 'message', role: 'assistant', content: [], model: this.targetModel } })}\n\n`);
+                    // 1. message_start
+                    res.write(`event: message_start\ndata: ${JSON.stringify({ 
+                        type: 'message_start', 
+                        message: { id: 'msg_' + Date.now(), type: 'message', role: 'assistant', content: [], model: this.targetModel } 
+                    })}\n\n`);
 
-                    let buffer = '';
-                    response.body.on('data', chunk => {
-                        buffer += chunk.toString();
-                        let lines = buffer.split('\n');
-                        buffer = lines.pop();
+                    // 2. Text delta if content exists
+                    if (choice.content) {
+                        res.write(`event: content_block_start\ndata: ${JSON.stringify({
+                            type: 'content_block_start',
+                            index: 0,
+                            content_block: { type: 'text', text: '' }
+                        })}\n\n`);
 
-                        for (const line of lines) {
-                            if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-                                try {
-                                    const data = JSON.parse(line.slice(6));
-                                    const delta = data.choices[0]?.delta;
-                                    
-                                    if (delta?.content) {
-                                        res.write(`event: content_block_delta\ndata: ${JSON.stringify({
-                                            type: 'content_block_delta',
-                                            index: 0,
-                                            delta: { type: 'text_delta', text: delta.content }
-                                        })}\n\n`);
-                                    }
-                                    
-                                    // Handle Tool Calls in streaming (simplified)
-                                    // Full proxying of tool calls in streaming is complex, but DeepSeek usually returns tool_calls in chunks.
-                                    // For simplicity in this proxy, we handle basic text streaming.
-                                } catch (e) {}
-                            }
+                        res.write(`event: content_block_delta\ndata: ${JSON.stringify({
+                            type: 'content_block_delta',
+                            index: 0,
+                            delta: { type: 'text_delta', text: choice.content }
+                        })}\n\n`);
+
+                        res.write(`event: content_block_stop\ndata: ${JSON.stringify({
+                            type: 'content_block_stop',
+                            index: 0
+                        })}\n\n`);
+                    }
+
+                    // 3. Tool use start/delta/stop if tool_calls exist
+                    if (choice.tool_calls) {
+                        let blockIndex = choice.content ? 1 : 0;
+                        for (const tc of choice.tool_calls) {
+                            let parsedInput = {};
+                            try {
+                                parsedInput = JSON.parse(tc.function.arguments);
+                            } catch (e) {}
+
+                            res.write(`event: content_block_start\ndata: ${JSON.stringify({
+                                type: 'content_block_start',
+                                index: blockIndex,
+                                content_block: { 
+                                    type: 'tool_use', 
+                                    id: tc.id, 
+                                    name: tc.function.name, 
+                                    input: parsedInput 
+                                }
+                            })}\n\n`);
+
+                            res.write(`event: content_block_stop\ndata: ${JSON.stringify({
+                                type: 'content_block_stop',
+                                index: blockIndex
+                            })}\n\n`);
+
+                            blockIndex++;
                         }
-                    });
+                    }
 
-                    response.body.on('end', () => {
-                        res.write(`event: message_stop\ndata: {"type":"message_stop"}\n\n`);
-                        res.end();
-                    });
+                    // 4. message_delta & message_stop
+                    res.write(`event: message_delta\ndata: ${JSON.stringify({
+                        type: 'message_delta',
+                        delta: { stop_reason: choice.tool_calls ? 'tool_use' : 'end_turn', stop_sequence: null },
+                        usage: {
+                            output_tokens: data.usage?.completion_tokens || 0
+                        }
+                    })}\n\n`);
+
+                    res.write(`event: message_stop\ndata: ${JSON.stringify({ type: 'message_stop' })}\n\n`);
+                    res.end();
 
                 } else {
-                    const data = await response.json();
-                    const choice = data.choices[0].message;
-                    
                     const content = [];
                     if (choice.content) {
                         content.push({ type: 'text', text: choice.content });
                     }
                     if (choice.tool_calls) {
                         for (const tc of choice.tool_calls) {
+                            let parsedInput = {};
+                            try {
+                                parsedInput = JSON.parse(tc.function.arguments);
+                            } catch (e) {}
+
                             content.push({
                                 type: 'tool_use',
                                 id: tc.id,
                                 name: tc.function.name,
-                                input: JSON.parse(tc.function.arguments)
+                                input: parsedInput
                             });
                         }
                     }
 
                     res.json({
-                        id: 'msg_1',
+                        id: 'msg_' + Date.now(),
                         type: 'message',
                         role: 'assistant',
                         model: this.targetModel,
