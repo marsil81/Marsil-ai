@@ -90,7 +90,12 @@ class AnthropicProxy {
                     max_tokens: anthropicReq.max_tokens || 4000
                 };
 
-                const response = await fetch(`${this.targetBaseUrl}/v1/chat/completions`, {
+                let cleanUrl = this.targetBaseUrl || 'https://api.deepseek.com';
+                if (cleanUrl.endsWith('/v1')) {
+                    cleanUrl = cleanUrl.slice(0, -3);
+                }
+
+                const response = await fetch(`${cleanUrl}/v1/chat/completions`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

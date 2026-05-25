@@ -8,6 +8,7 @@ const claudeCode = require('../infrastructure/ClaudeCodeAdapter');
 const gitAdapter = require('../infrastructure/GitAdapter');
 const agentService = require('../application/AgentService');
 const webSocketHandler = require('./WebSocketHandler');
+const anthropicProxy = require('../infrastructure/AnthropicProxy');
 
 const app = express();
 app.use(cors());
@@ -32,9 +33,12 @@ async function loadConfig() {
         const data = await fs.readFile(CONFIG_PATH, 'utf-8');
         const config = { ...DEFAULT_CONFIG, ...JSON.parse(data) };
         claudeCode.setProviderConfig(config);
+        anthropicProxy.setTarget(config.baseUrl, config.apiKey, config.model);
         return config;
     } catch {
-        return { ...DEFAULT_CONFIG };
+        const config = { ...DEFAULT_CONFIG };
+        anthropicProxy.setTarget(config.baseUrl, config.apiKey, config.model);
+        return config;
     }
 }
 
@@ -66,6 +70,7 @@ app.post('/api/config', async (req, res) => {
     };
     await fs.writeFile(CONFIG_PATH, JSON.stringify(newConfig, null, 2));
     claudeCode.setProviderConfig(newConfig);
+    anthropicProxy.setTarget(newConfig.baseUrl, newConfig.apiKey, newConfig.model);
     res.json({ success: true });
 });
 
@@ -142,6 +147,11 @@ wss.on('connection', (ws) => {
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, async () => {
     await loadConfig();
+    try {
+        await anthropicProxy.start(3002);
+    } catch (err) {
+        console.error('Failed to start local Anthropic-to-OpenAI proxy on port 3002:', err.message);
+    }
     const status = claudeCode.isAvailable()
         ? `Claude Code ${claudeCode.version} ✓`
         : `Claude Code NOT FOUND — install with: npm i -g @anthropic-ai/claude-code`;

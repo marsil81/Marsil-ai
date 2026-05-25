@@ -41,23 +41,18 @@ class ClaudeCodeAdapter {
         };
     }
 
-    /**
-     * Build the environment variables to inject into the Claude Code process.
-     * This is what makes Claude Code use any AI provider transparently.
-     */
     _buildEnv() {
         const env = { ...process.env };
 
-        if (this.config.apiKey) {
-            env.ANTHROPIC_API_KEY = this.config.apiKey;
-        }
-
-        // Override the base URL if not using native Anthropic
-        if (this.config.baseUrl) {
-            env.ANTHROPIC_BASE_URL = this.config.baseUrl;
-        } else {
-            // Clean up any previously injected override
+        if (this.config.provider === 'anthropic') {
+            if (this.config.apiKey) {
+                env.ANTHROPIC_API_KEY = this.config.apiKey;
+            }
             delete env.ANTHROPIC_BASE_URL;
+        } else {
+            // For OpenAI-compatible providers, we route Claude Code through our local proxy
+            env.ANTHROPIC_API_KEY = 'sk-ant-dummy-key-for-local-proxy';
+            env.ANTHROPIC_BASE_URL = 'http://localhost:3002';
         }
 
         return env;
