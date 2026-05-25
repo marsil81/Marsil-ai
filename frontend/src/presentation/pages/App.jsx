@@ -293,37 +293,39 @@ function App() {
       </div>
 
       {/* ═══ BOTTOM CENTER PANEL: SYSTEM DIRECTIVES (Swapped to bottom center wide) ═══ */}
-      <div className="bottom-chat-panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>
-          <span style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
-          <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>AWAITING COMMANDS</span>
-        </div>
-        <div className="chat-msgs" style={{ maxHeight: '70px', overflowY: 'auto' }}>
-          {chatHistory.length === 0 && (
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.52rem', letterSpacing: '1px' }}>{t("placeholder_command")}</div>
-          )}
-          {chatHistory.map((msg, i) => (
-            <div key={i} className={`chat-msg ${msg.role === 'user' ? 'user' : 'agent'}`}>
-              <div className="chat-tag">{msg.role === 'user' ? t("you") : t("ironman")}</div>
-              <div>{msg.content}</div>
-            </div>
-          ))}
-        </div>
-        <div className="chat-input-row" style={{ alignItems: 'center' }}>
-          {/* Micro microphone toggle */}
-          <button className="hud-btn hud-btn-icon" onClick={toggleListening} style={{
-            borderColor: isListening ? 'var(--accent)' : 'var(--border)',
-            color: isListening ? 'var(--accent)' : 'var(--text-dim)'
-          }}>
-            {isListening ? <Mic size={12} className="thinking" /> : <MicOff size={12} />}
-          </button>
-          
-          <input className="chat-input" value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleSend()}
-            placeholder={t("placeholder_command")} />
-          
-          <button className="hud-btn hud-btn-icon" onClick={handleSend}><SendHorizontal size={11} /></button>
+      <div className="bottom-chat-container">
+        <div className="bottom-chat-panel">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px', marginBottom: '6px' }}>
+            <span style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
+            <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>AWAITING COMMANDS</span>
+          </div>
+          <div className="chat-msgs">
+            {chatHistory.length === 0 && (
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.52rem', letterSpacing: '1px' }}>{t("placeholder_command")}</div>
+            )}
+            {chatHistory.map((msg, i) => (
+              <div key={i} className={`chat-msg ${msg.role === 'user' ? 'user' : 'agent'}`}>
+                <div className="chat-tag">{msg.role === 'user' ? t("you") : t("ironman")}</div>
+                <div>{msg.content}</div>
+              </div>
+            ))}
+          </div>
+          <div className="chat-input-row" style={{ alignItems: 'center', marginTop: '6px' }}>
+            {/* Micro microphone toggle */}
+            <button className="hud-btn hud-btn-icon" onClick={toggleListening} style={{
+              borderColor: isListening ? 'var(--accent)' : 'var(--border)',
+              color: isListening ? 'var(--accent)' : 'var(--text-dim)'
+            }}>
+              {isListening ? <Mic size={12} className="thinking" /> : <MicOff size={12} />}
+            </button>
+            
+            <input className="chat-input" value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSend()}
+              placeholder={t("placeholder_command")} />
+            
+            <button className="hud-btn hud-btn-icon" onClick={handleSend}><SendHorizontal size={11} /></button>
+          </div>
         </div>
       </div>
 

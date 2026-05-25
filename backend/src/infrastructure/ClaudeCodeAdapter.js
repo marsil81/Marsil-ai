@@ -65,6 +65,7 @@ class ClaudeCodeAdapter {
         return new Promise((resolve, reject) => {
             const args = [
                 '--print',
+                '--verbose',
                 '--output-format', 'stream-json',
                 '--no-session-persistence',
                 '--model', this.config.model,
@@ -74,6 +75,7 @@ class ClaudeCodeAdapter {
             const proc = spawn('claude', args, {
                 cwd: cwd || process.cwd(),
                 shell: true,
+                stdio: ['ignore', 'pipe', 'pipe'],
                 env: this._buildEnv()
             });
 
