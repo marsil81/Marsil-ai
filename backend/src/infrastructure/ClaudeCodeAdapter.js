@@ -97,7 +97,12 @@ class ClaudeCodeAdapter {
 
                         if (event.type === 'assistant' && event.message?.content) {
                             for (const block of event.message.content) {
-                                if (block.type === 'text') fullResponse += block.text;
+                                if (block.type === 'text') {
+                                    fullResponse += block.text;
+                                    if (ws) {
+                                        ws.send(JSON.stringify({ type: 'chat_delta', text: block.text }));
+                                    }
+                                }
                             }
                         }
                         if (event.type === 'content_block_delta' && event.delta?.text) {
@@ -107,7 +112,12 @@ class ClaudeCodeAdapter {
                             }
                         }
                         if (event.type === 'result') {
-                            if (event.result && !fullResponse) fullResponse = String(event.result);
+                            if (event.result && !fullResponse) {
+                                fullResponse = String(event.result);
+                                if (ws) {
+                                    ws.send(JSON.stringify({ type: 'chat_delta', text: String(event.result) }));
+                                }
+                            }
                             tokensIn  = event.total_tokens_in  || 0;
                             tokensOut = event.total_tokens_out || 0;
                             if (ws) {
