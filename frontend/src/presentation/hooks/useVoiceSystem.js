@@ -11,23 +11,45 @@ export function useVoiceSystem(onTranscript) {
       const rec = new SpeechRecognition();
       rec.continuous = false;
       rec.interimResults = false;
-      rec.lang = 'ar-SA'; // Standard Arabic for highest precision recognition
+      rec.lang = 'ar'; // General Arabic model to intelligently adapt to Gulf, Levantine, Egyptian dialects
 
       rec.onstart = () => setIsListening(true);
       rec.onend = () => setIsListening(false);
-      rec.onerror = () => setIsListening(false);
+      rec.onerror = (e) => {
+        console.warn("Speech recognition error:", e);
+        setIsListening(false);
+      };
       rec.onresult = (e) => {
-        const result = e.results[0][0];
-        const text = result.transcript;
-        const confidence = result.confidence || 1.0;
-        
-        // Ignore extremely low confidence results (which are usually background noises/clicks)
-        if (confidence < 0.4) {
-          console.warn("Speech discarded due to extremely low confidence:", text, confidence);
+        let compiledTranscript = '';
+        let totalConfidence = 0;
+        let count = 0;
+
+        for (let i = e.resultIndex; i < e.results.length; ++i) {
+          const alternative = e.results[i][0];
+          if (alternative) {
+            compiledTranscript += alternative.transcript + ' ';
+            totalConfidence += alternative.confidence || 1.0;
+            count++;
+          }
+        }
+
+        const finalTranscript = compiledTranscript.trim();
+        const avgConfidence = count > 0 ? (totalConfidence / count) : 1.0;
+
+        // Adaptive noise/accidental trigger filtering
+        if (finalTranscript.length < 2) {
+          console.log("Speech discarded: too short to be meaningful");
           return;
         }
-        
-        if (onTranscript) onTranscript(text);
+
+        if (avgConfidence < 0.35) {
+          console.warn("Speech discarded: extremely low confidence (likely background noise):", finalTranscript, avgConfidence);
+          return;
+        }
+
+        if (onTranscript) {
+          onTranscript(finalTranscript);
+        }
       };
       recognitionRef.current = rec;
     }
@@ -36,7 +58,7 @@ export function useVoiceSystem(onTranscript) {
   const startListening = () => {
     if (!recognitionRef.current) return;
     try {
-      recognitionRef.current.lang = document.body.dir === 'rtl' ? 'ar-SA' : 'en-US';
+      recognitionRef.current.lang = document.body.dir === 'rtl' ? 'ar' : 'en-US';
       recognitionRef.current.start();
     } catch (e) {
       console.log("Speech recognition start error (might already be running):", e);
