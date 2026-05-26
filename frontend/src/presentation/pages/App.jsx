@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings, SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid } from 'lucide-react';
+import { Settings, SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid, Radio } from 'lucide-react';
 import '../styles/App.css';
 import { ParticleReactor } from '../components/ParticleReactor';
 import { SettingsModal, estimateCost } from '../components/SettingsModal';
@@ -72,10 +72,16 @@ function App() {
 
   const { playChirp, playTick } = useSoundEffects(agentStatus);
 
+  const [handsFreeMode, setHandsFreeMode] = useState(false);
+  const handsFreeModeRef = useRef(false);
+
   // Hook into voice system (STT & TTS)
-  const { isListening, toggleListening, speak } = useVoiceSystem((text) => {
+  const { isListening, toggleListening, startListening, stopListening, speak } = useVoiceSystem((text) => {
     setChatInput(text);
     playChirp(1200, 0.1);
+    if (handsFreeModeRef.current) {
+      handleSend(text);
+    }
   });
 
   useEffect(() => { document.body.dir = i18n.language === 'ar' ? 'rtl' : 'ltr'; }, [i18n.language]);
@@ -157,7 +163,15 @@ function App() {
       const lastIndex = chatHistory.length - 1;
       const lastMsg = chatHistory[lastIndex];
       if (lastMsg.role === 'assistant' && lastSpokenIndexRef.current < lastIndex) {
-        speak(lastMsg.content);
+        speak(lastMsg.content, () => {
+          // Speak onEnd callback
+          if (handsFreeModeRef.current) {
+            setTimeout(() => {
+              playChirp(1100, 0.05);
+              startListening();
+            }, 300);
+          }
+        });
         lastSpokenIndexRef.current = lastIndex;
       }
     }
@@ -176,15 +190,35 @@ function App() {
     }
   };
 
+  const toggleHandsFree = () => {
+    playChirp(1000, 0.08);
+    const newVal = !handsFreeMode;
+    setHandsFreeMode(newVal);
+    handsFreeModeRef.current = newVal;
+    
+    if (newVal) {
+      setVoiceEnabled(true);
+      speak(i18n.language === 'ar' ? 'تم تفعيل الاتصال المباشر. أنا أستمع إليك الآن.' : 'Hands-free dialog active. I am listening.', () => {
+        if (handsFreeModeRef.current) {
+          startListening();
+        }
+      });
+    } else {
+      stopListening();
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    }
+  };
+
   const toggleLang = () => {
     playChirp(1000, 0.05);
     i18n.changeLanguage(i18n.language === 'en' ? 'ar' : 'en');
   };
 
-  const handleSend = () => {
-    if (chatInput.trim()) {
+  const handleSend = (textOverride) => {
+    const textToSend = typeof textOverride === 'string' ? textOverride : chatInput;
+    if (textToSend.trim()) {
       playChirp(1300, 0.08);
-      sendCommand(chatInput);
+      sendCommand(textToSend);
       setChatInput('');
     }
   };
@@ -221,8 +255,8 @@ function App() {
           <div className="nav-btns">
             <button className="nav-btn active">CONSOLE</button>
             <button className="nav-btn" onClick={() => setShowSettings(true)}>SETTINGS</button>
-            <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} style={{ color: voiceEnabled ? 'var(--accent)' : 'var(--text-dim)' }}>
-              VOICE: {voiceEnabled ? 'ACTIVE' : 'MUTED'}
+            <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} style={{ color: voiceEnabled ? (handsFreeMode ? '#00ffd5' : 'var(--accent)') : 'var(--text-dim)' }}>
+              VOICE: {voiceEnabled ? (handsFreeMode ? 'HANDS-FREE' : 'ACTIVE') : 'MUTED'}
             </button>
             <button className="nav-btn" onClick={toggleLang}>LANG</button>
             <button className="nav-btn" onClick={abortAgent} style={{ color: '#ff5555' }}>{t("emergency_stop")}</button>
@@ -410,16 +444,24 @@ function App() {
             </button>
 
             {/* Microphone Voice Input Button */}
-            <button className={`hud-btn hud-btn-icon ${isListening ? 'active' : ''}`} 
+            <button className={`hud-btn hud-btn-icon ${isListening && !handsFreeMode ? 'active' : ''}`} 
                     onClick={toggleListening}
+                    disabled={handsFreeMode}
                     title={isListening ? "Stop Recording" : "Record Voice"}>
-              {isListening ? <Mic size={12} className="thinking" /> : <MicOff size={12} />}
+              {isListening && !handsFreeMode ? <Mic size={12} className="thinking" /> : <MicOff size={12} />}
+            </button>
+
+            {/* Hands-Free Dialog Mode Button */}
+            <button className={`hud-btn hud-btn-icon ${handsFreeMode ? 'active' : ''}`} 
+                    onClick={toggleHandsFree}
+                    title={handsFreeMode ? "Disable Hands-Free Dialog" : "Enable Hands-Free Dialog"}>
+              <Radio size={12} className={handsFreeMode ? "thinking" : ""} />
             </button>
             
             <input className="chat-input" value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder={t("placeholder_command")} />
+              placeholder={handsFreeMode ? (i18n.language === 'ar' ? 'يتنصت الآن تلقائياً...' : 'Listening hands-free...') : t("placeholder_command")} />
             
             <button className="hud-btn hud-btn-icon" onClick={handleSend}><SendHorizontal size={11} /></button>
           </div>
