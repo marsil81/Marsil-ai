@@ -10,38 +10,208 @@ import { useAgentConnection } from '../../application/useAgentConnection';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useVoiceSystem } from '../hooks/useVoiceSystem';
 
-function MiniRadar() {
+function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
   const canvasRef = useRef(null);
-  useEffect(() => {
-    const c = canvasRef.current, ctx = c.getContext('2d');
-    let angle = 0, id;
-    function draw() {
-      ctx.clearRect(0, 0, 90, 90);
-      const cx = 45, cy = 45;
-      
-      ctx.strokeStyle = 'rgba(0,184,255,0.15)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.arc(cx, cy, 40, 0, Math.PI * 2); ctx.stroke();
-      ctx.beginPath(); ctx.arc(cx, cy, 25, 0, Math.PI * 2); ctx.stroke();
-      
-      ctx.beginPath(); ctx.moveTo(cx - 40, cy); ctx.lineTo(cx + 40, cy); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx, cy - 40); ctx.lineTo(cx, cy + 40); ctx.stroke();
+  const audioCtxRef = useRef(null);
+  const analyserRef = useRef(null);
+  const streamRef = useRef(null);
 
-      angle += 0.025;
-      ctx.strokeStyle = 'rgba(0,255,213,0.5)'; ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(cx, cy);
-      ctx.lineTo(cx + Math.cos(angle) * 40, cy + Math.sin(angle) * 40);
-      ctx.stroke();
-      
-      ctx.fillStyle = 'rgba(0,255,213,0.8)';
-      ctx.beginPath(); ctx.arc(cx + 18, cy - 15, 2.5, 0, Math.PI * 2); ctx.fill();
-      
-      id = requestAnimationFrame(draw);
+  // Initialize real microphone input if listening
+  useEffect(() => {
+    if (isListening) {
+      let active = true;
+      const initAudio = async () => {
+        try {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContextClass) return;
+          const ctx = new AudioContextClass();
+          audioCtxRef.current = ctx;
+
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          if (!active) {
+            stream.getTracks().forEach(t => t.stop());
+            return;
+          }
+          streamRef.current = stream;
+
+          const source = ctx.createMediaStreamSource(stream);
+          const analyser = ctx.createAnalyser();
+          analyser.fftSize = 64;
+          source.connect(analyser);
+          analyserRef.current = analyser;
+        } catch (e) {
+          console.warn("Microphone access denied or failed for visualizer, using simulation mode:", e);
+        }
+      };
+      initAudio();
+      return () => {
+        active = false;
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(t => t.stop());
+        }
+        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+          audioCtxRef.current.close();
+        }
+        analyserRef.current = null;
+      };
     }
+  }, [isListening]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let id;
+    let phase = 0;
+
+    const draw = () => {
+      ctx.clearRect(0, 0, 90, 90);
+      const cx = 45;
+      const cy = 45;
+
+      // Outer cybernetic circle boundary
+      ctx.strokeStyle = 'rgba(0, 184, 255, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(cx, cy, 42, 0, Math.PI * 2);
+      ctx.stroke();
+
+      phase += 0.15;
+
+      if (isListening) {
+        // --- 1. USER SPEAKING (REAL-TIME MIC CAPTURE OR SIMULATION) ---
+        let voiceLevels = [];
+        if (analyserRef.current) {
+          const bufferLength = analyserRef.current.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyserRef.current.getByteFrequencyData(dataArray);
+          // Map to 12 bars around the circle
+          for (let i = 0; i < 12; i++) {
+            voiceLevels.push(dataArray[i % bufferLength] / 255.0);
+          }
+        } else {
+          // Simulation fallback (simulated speech values)
+          for (let i = 0; i < 12; i++) {
+            voiceLevels.push(0.15 + Math.sin(phase + i) * Math.cos(phase * 0.7 + i) * 0.4);
+          }
+        }
+
+        // Draw an pulsing arc reactor / circular voice spectrogram
+        ctx.strokeStyle = 'rgba(0, 255, 213, 0.6)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 12; i++) {
+          const angle = (i / 12) * Math.PI * 2 + (phase * 0.05);
+          const level = Math.max(0.1, voiceLevels[i]);
+          const startR = 20;
+          const endR = 20 + level * 20;
+          
+          const x1 = cx + Math.cos(angle) * startR;
+          const y1 = cy + Math.sin(angle) * startR;
+          const x2 = cx + Math.cos(angle) * endR;
+          const y2 = cy + Math.sin(angle) * endR;
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+
+        // Central glowing core pulsing with average voice level
+        const avgLevel = voiceLevels.reduce((a, b) => a + b, 0) / voiceLevels.length;
+        ctx.fillStyle = `rgba(0, 255, 213, ${0.3 + avgLevel * 0.5})`;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 10 + avgLevel * 8, 0, Math.PI * 2);
+        ctx.fill();
+
+      } else if (isSpeaking) {
+        // --- 2. AI SPEAKING (MULTI-FREQUENCY Siri-style SINE WAVES) ---
+        ctx.lineWidth = 1.5;
+        const waves = [
+          { freq: 0.2, amp: 14, color: 'rgba(0, 184, 255, 0.7)', speed: 0.15 },
+          { freq: 0.35, amp: 8, color: 'rgba(0, 255, 213, 0.6)', speed: 0.25 },
+          { freq: 0.15, amp: 18, color: 'rgba(138, 43, 226, 0.5)', speed: 0.1 }
+        ];
+
+        waves.forEach(w => {
+          ctx.strokeStyle = w.color;
+          ctx.beginPath();
+          for (let x = 10; x <= 80; x++) {
+            // Sine wave centered vertically, scaling down at edges
+            const scale = Math.sin(((x - 10) / 70) * Math.PI); // 0 at edges, 1 at center
+            const y = cy + Math.sin(x * w.freq + phase * w.speed * 10) * w.amp * scale;
+            if (x === 10) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+          }
+          ctx.stroke();
+        });
+
+      } else if (agentStatus === 'thinking' || agentStatus === 'executing_tool') {
+        // --- 3. AI THINKING (CALCULATING HUDS / RADAR SWEEP WITH GRID WAVE) ---
+        // Draw crosshair lines
+        ctx.strokeStyle = 'rgba(0, 184, 255, 0.15)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx - 38, cy); ctx.lineTo(cx + 38, cy);
+        ctx.moveTo(cx, cy - 38); ctx.lineTo(cx, cy + 38);
+        ctx.stroke();
+
+        // Draw scanline grid
+        ctx.strokeStyle = 'rgba(0, 255, 213, 0.4)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        for (let i = -3; i <= 3; i++) {
+          const offset = Math.sin(phase + i) * 6;
+          ctx.moveTo(cx - 30, cy + i * 8 + offset);
+          ctx.lineTo(cx + 30, cy + i * 8 + offset);
+        }
+        ctx.stroke();
+
+        // Outer rotating ticks
+        ctx.strokeStyle = 'rgba(0, 184, 255, 0.5)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, 35, phase, phase + 0.4);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx, cy, 35, phase + Math.PI, phase + Math.PI + 0.4);
+        ctx.stroke();
+
+      } else {
+        // --- 4. IDLE STANDBY (FLAT LINE WITH HEARTBEAT BASSELINE RIPPLE) ---
+        ctx.strokeStyle = 'rgba(0, 184, 255, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        for (let x = 10; x <= 80; x++) {
+          let ripple = 0;
+          // Create a periodic heartbeat pulse in the center
+          const distToCenter = Math.abs(x - cx);
+          if (distToCenter < 18) {
+            const scale = Math.cos((distToCenter / 18) * (Math.PI / 2));
+            // Heartbeat peak function
+            ripple = Math.sin(phase * 0.4 + x * 0.3) * 2.5 * scale;
+          }
+          const y = cy + ripple;
+          if (x === 10) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+
+      id = requestAnimationFrame(draw);
+    };
+
     draw();
     return () => cancelAnimationFrame(id);
-  }, []);
-  return <canvas ref={canvasRef} width={90} height={90} style={{ width: '90px', height: '90px' }} />;
+  }, [isListening, isSpeaking, agentStatus]);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      width={90} 
+      height={90} 
+      style={{ width: '90px', height: '90px', display: 'block', margin: '0 auto' }} 
+    />
+  );
 }
 
 function App() {
@@ -76,7 +246,7 @@ function App() {
   const handsFreeModeRef = useRef(false);
 
   // Hook into voice system (STT & TTS)
-  const { isListening, toggleListening, startListening, stopListening, speak } = useVoiceSystem((text) => {
+  const { isListening, isSpeaking, toggleListening, startListening, stopListening, speak } = useVoiceSystem((text) => {
     setChatInput(text);
     playChirp(1200, 0.1);
     if (handsFreeModeRef.current) {
@@ -311,9 +481,13 @@ function App() {
         <div className="sys-row"><span>03. GATEWAY</span><span className="val">CONNECTED</span></div>
       </div>
 
-      {/* RIGHT: MINI RADAR */}
+      {/* RIGHT: VOICE PULSE SPECTROMETER */}
       <div className="tech-panel radar-container-panel">
-        <MiniRadar />
+        <VoicePulseVisualizer 
+          isListening={isListening} 
+          isSpeaking={isSpeaking} 
+          agentStatus={agentStatus} 
+        />
       </div>
 
       {/* RIGHT: RESOURCE METRICS */}

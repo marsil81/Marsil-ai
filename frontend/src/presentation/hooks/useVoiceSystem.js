@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 
 export function useVoiceSystem(onTranscript) {
   const [isListening, setIsListening] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
@@ -10,7 +11,7 @@ export function useVoiceSystem(onTranscript) {
       const rec = new SpeechRecognition();
       rec.continuous = false;
       rec.interimResults = false;
-      rec.lang = 'ar-EG'; // default Arabic, supports switching
+      rec.lang = 'ar-SA'; // Standard Arabic for highest precision recognition
 
       rec.onstart = () => setIsListening(true);
       rec.onend = () => setIsListening(false);
@@ -26,7 +27,7 @@ export function useVoiceSystem(onTranscript) {
   const startListening = () => {
     if (!recognitionRef.current) return;
     try {
-      recognitionRef.current.lang = document.body.dir === 'rtl' ? 'ar-EG' : 'en-US';
+      recognitionRef.current.lang = document.body.dir === 'rtl' ? 'ar-SA' : 'en-US';
       recognitionRef.current.start();
     } catch (e) {
       console.log("Speech recognition start error (might already be running):", e);
@@ -80,14 +81,17 @@ export function useVoiceSystem(onTranscript) {
     const isArabic = document.body.dir === 'rtl';
     utterance.lang = isArabic ? 'ar-SA' : 'en-US';
 
-    if (onEnd) {
-      utterance.onend = () => {
-        onEnd();
-      };
-      utterance.onerror = () => {
-        onEnd();
-      };
-    }
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+    };
+
+    const handleSpeechEnd = () => {
+      setIsSpeaking(false);
+      if (onEnd) onEnd();
+    };
+
+    utterance.onend = handleSpeechEnd;
+    utterance.onerror = handleSpeechEnd;
 
     // 2. Select a premium assistant voice if available
     const voices = window.speechSynthesis.getVoices();
@@ -97,20 +101,26 @@ export function useVoiceSystem(onTranscript) {
         const name = v.name.toLowerCase();
         const lang = v.lang.toLowerCase();
         if (isArabic) {
-          return lang.startsWith('ar') && (name.includes('google') || name.includes('hoda') || name.includes('natural'));
+          return lang.startsWith('ar') && (name.includes('google') || name.includes('hoda') || name.includes('natural') || name.includes('naayf') || name.includes('shakir'));
         } else {
           return lang.startsWith('en') && (name.includes('google') || name.includes('natural') || name.includes('zira') || name.includes('david'));
         }
       });
-      if (premiumVoice) utterance.voice = premiumVoice;
+      if (premiumVoice) {
+        utterance.voice = premiumVoice;
+      } else {
+        // Fallback to any voice matches lang
+        const fallbackVoice = voices.find(v => v.lang.toLowerCase().startsWith(isArabic ? 'ar' : 'en'));
+        if (fallbackVoice) utterance.voice = fallbackVoice;
+      }
     }
 
-    utterance.volume = 0.85;
-    utterance.rate = isArabic ? 1.0 : 1.08; // slightly faster sci-fi rate for English
-    utterance.pitch = isArabic ? 1.0 : 0.95; // slightly deep cybernetic tone
+    utterance.volume = 0.95; // slightly louder for clear audibility
+    utterance.rate = isArabic ? 0.98 : 1.05; // natural rate for Arabic, slightly faster for English
+    utterance.pitch = isArabic ? 1.0 : 0.95; // natural Arabic pitch, cybernetic English pitch
 
     window.speechSynthesis.speak(utterance);
   };
 
-  return { isListening, toggleListening, startListening, stopListening, speak };
+  return { isListening, isSpeaking, toggleListening, startListening, stopListening, speak };
 }
