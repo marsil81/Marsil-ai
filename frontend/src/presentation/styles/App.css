@@ -124,11 +124,11 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   resize: both;
   overflow: hidden;
   
-  /* Flex bounds limits to exactly half screen as user asked */
-  min-width: 400px;
-  min-height: 140px;
-  max-width: 50vw;
-  max-height: 50vh;
+  /* Flexible sizing limits for ultimate control */
+  min-width: 300px;
+  min-height: 100px;
+  max-width: 85vw;
+  max-height: 85vh;
 }
 .bottom-chat-panel::before, .bottom-chat-panel::after {
   content: ''; position: absolute; width: 10px; height: 10px;

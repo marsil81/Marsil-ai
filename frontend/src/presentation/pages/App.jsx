@@ -88,15 +88,33 @@ function App() {
     tick(); const id = setInterval(tick, 50); return () => clearInterval(id);
   }, []);
 
-  // Voice Readout on new Agent response
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const lastSpokenIndexRef = useRef(-1);
+
+  // Voice Readout on completed Agent response
   useEffect(() => {
-    if (chatHistory.length > 0) {
-      const lastMsg = chatHistory[chatHistory.length - 1];
-      if (lastMsg.role === 'assistant') {
+    if (voiceEnabled && agentStatus === 'idle' && chatHistory.length > 0) {
+      const lastIndex = chatHistory.length - 1;
+      const lastMsg = chatHistory[lastIndex];
+      if (lastMsg.role === 'assistant' && lastSpokenIndexRef.current < lastIndex) {
         speak(lastMsg.content);
+        lastSpokenIndexRef.current = lastIndex;
       }
     }
-  }, [chatHistory]);
+  }, [chatHistory, agentStatus, voiceEnabled]);
+
+  const toggleVoice = () => {
+    playChirp(900, 0.06);
+    const newVal = !voiceEnabled;
+    setVoiceEnabled(newVal);
+    if (newVal) {
+      setTimeout(() => {
+        speak(i18n.language === 'ar' ? 'تم تنشيط المساعد الصوتي.' : 'Voice system online.');
+      }, 80);
+    } else {
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+    }
+  };
 
   const toggleLang = () => {
     playChirp(1000, 0.05);
@@ -143,6 +161,9 @@ function App() {
           <div className="nav-btns">
             <button className="nav-btn active">CONSOLE</button>
             <button className="nav-btn" onClick={() => setShowSettings(true)}>SETTINGS</button>
+            <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} style={{ color: voiceEnabled ? 'var(--accent)' : 'var(--text-dim)' }}>
+              VOICE: {voiceEnabled ? 'ACTIVE' : 'MUTED'}
+            </button>
             <button className="nav-btn" onClick={toggleLang}>LANG</button>
             <button className="nav-btn" onClick={abortAgent} style={{ color: '#ff5555' }}>{t("emergency_stop")}</button>
           </div>

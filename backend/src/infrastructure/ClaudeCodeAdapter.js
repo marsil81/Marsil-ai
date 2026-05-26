@@ -83,6 +83,18 @@ class ClaudeCodeAdapter {
             let buffer = '';
             let tokensIn = 0;
             let tokensOut = 0;
+            let assistantTextBuffer = '';
+            let hasDeltas = false;
+
+            const finalizeText = () => {
+                if (!hasDeltas && assistantTextBuffer) {
+                    fullResponse += assistantTextBuffer;
+                    if (ws) {
+                        ws.send(JSON.stringify({ type: 'chat_delta', text: assistantTextBuffer }));
+                    }
+                    assistantTextBuffer = '';
+                }
+            };
 
             proc.stdout.on('data', (data) => {
                 buffer += data.toString();
@@ -98,20 +110,19 @@ class ClaudeCodeAdapter {
                         if (event.type === 'assistant' && event.message?.content) {
                             for (const block of event.message.content) {
                                 if (block.type === 'text') {
-                                    fullResponse += block.text;
-                                    if (ws) {
-                                        ws.send(JSON.stringify({ type: 'chat_delta', text: block.text }));
-                                    }
+                                    assistantTextBuffer += block.text;
                                 }
                             }
                         }
                         if (event.type === 'content_block_delta' && event.delta?.text) {
+                            hasDeltas = true;
                             fullResponse += event.delta.text;
                             if (ws) {
                                 ws.send(JSON.stringify({ type: 'chat_delta', text: event.delta.text }));
                             }
                         }
                         if (event.type === 'result') {
+                            finalizeText();
                             if (event.result && !fullResponse) {
                                 fullResponse = String(event.result);
                                 if (ws) {
@@ -142,6 +153,7 @@ class ClaudeCodeAdapter {
             });
 
             proc.on('close', () => {
+                finalizeText();
                 if (ws) ws.send(JSON.stringify({ type: 'agent_status', status: 'idle' }));
                 resolve(fullResponse || 'Done.');
             });
