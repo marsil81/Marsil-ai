@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings, SendHorizontal, Mic, MicOff, Volume2 } from 'lucide-react';
+import { Settings, SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid } from 'lucide-react';
 import '../styles/App.css';
 import { ParticleReactor } from '../components/ParticleReactor';
 import { SettingsModal, estimateCost } from '../components/SettingsModal';
@@ -70,7 +70,7 @@ function App() {
     }
   }, [showSettings]);
 
-  const { playChirp } = useSoundEffects(agentStatus);
+  const { playChirp, playTick } = useSoundEffects(agentStatus);
 
   // Hook into voice system (STT & TTS)
   const { isListening, toggleListening, speak } = useVoiceSystem((text) => {
@@ -88,8 +88,68 @@ function App() {
     tick(); const id = setInterval(tick, 50); return () => clearInterval(id);
   }, []);
 
+  const [chatLayout, setChatLayout] = useState('bottom'); // 'bottom' or 'side'
+  const [chatWidth, setChatWidth] = useState(450); // width in side layout
+  const isDraggingRef = useRef(false);
+
+  const handleMouseDown = (e) => {
+    isDraggingRef.current = true;
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+    playTick();
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (!isDraggingRef.current) return;
+      const margin = 30;
+      let newWidth = window.innerWidth - e.clientX - margin;
+      
+      // If Arabic (RTL), resize works in reverse direction
+      if (document.body.dir === 'rtl') {
+        newWidth = e.clientX - margin;
+      }
+      
+      const maxWidth = Math.floor(window.innerWidth / 2);
+      if (newWidth < 320) newWidth = 320;
+      if (newWidth > maxWidth) newWidth = maxWidth;
+      setChatWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false;
+        document.body.style.cursor = 'default';
+        document.body.style.userSelect = 'auto';
+        playTick();
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [playTick]);
+
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const lastSpokenIndexRef = useRef(-1);
+
+  // Play mechanical ticking typing sounds on streaming character changes
+  const prevStreamLengthRef = useRef(0);
+  useEffect(() => {
+    const lastMsg = chatHistory[chatHistory.length - 1];
+    if (lastMsg && lastMsg.role === 'agent' && lastMsg.isStreaming) {
+      const len = lastMsg.content.length;
+      if (len > prevStreamLengthRef.current) {
+        playTick();
+        prevStreamLengthRef.current = len;
+      }
+    } else {
+      prevStreamLengthRef.current = 0;
+    }
+  }, [chatHistory, playTick]);
 
   // Voice Readout on completed Agent response
   useEffect(() => {
@@ -135,7 +195,7 @@ function App() {
   const dateStr = new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
 
   return (
-    <div className="hud-root">
+    <div className={`hud-root ${chatLayout === 'side' ? 'layout-side-active' : ''}`}>
       <div className="scan-line"></div>
       
       {/* Conditionally hide reactor if file is open, or render editor above it */}
@@ -218,7 +278,7 @@ function App() {
       </div>
 
       {/* RIGHT: MINI RADAR */}
-      <div className="tech-panel" style={{ top: '120px', right: '290px', padding: '8px' }}>
+      <div className="tech-panel radar-container-panel">
         <MiniRadar />
       </div>
 
@@ -315,7 +375,10 @@ function App() {
 
       {/* ═══ BOTTOM CENTER PANEL: SYSTEM DIRECTIVES (Swapped to bottom center wide) ═══ */}
       <div className="bottom-chat-container">
-        <div className="bottom-chat-panel">
+        <div className="bottom-chat-panel" style={chatLayout === 'side' ? { width: `${chatWidth}px` } : {}}>
+          {chatLayout === 'side' && (
+            <div className="chat-resize-handle" onMouseDown={handleMouseDown} />
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px', marginBottom: '6px' }}>
             <span style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
             <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>AWAITING COMMANDS</span>
@@ -332,11 +395,24 @@ function App() {
             ))}
           </div>
           <div className="chat-input-row" style={{ alignItems: 'center', marginTop: '6px' }}>
-            {/* Micro microphone toggle */}
-            <button className="hud-btn hud-btn-icon" onClick={toggleListening} style={{
-              borderColor: isListening ? 'var(--accent)' : 'var(--border)',
-              color: isListening ? 'var(--accent)' : 'var(--text-dim)'
-            }}>
+            {/* Layout Toggle Button */}
+            <button className={`hud-btn hud-btn-icon ${chatLayout === 'side' ? 'active' : ''}`} 
+                    onClick={() => { playTick(); setChatLayout(l => l === 'bottom' ? 'side' : 'bottom'); }}
+                    title={chatLayout === 'bottom' ? "Dock to Side" : "Dock to Bottom"}>
+              {chatLayout === 'bottom' ? <Columns size={12} /> : <LayoutGrid size={12} />}
+            </button>
+
+            {/* Voice Response Toggle Button */}
+            <button className={`hud-btn hud-btn-icon ${voiceEnabled ? 'active' : ''}`} 
+                    onClick={toggleVoice}
+                    title={voiceEnabled ? "Mute Voice Response" : "Unmute Voice Response"}>
+              {voiceEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
+            </button>
+
+            {/* Microphone Voice Input Button */}
+            <button className={`hud-btn hud-btn-icon ${isListening ? 'active' : ''}`} 
+                    onClick={toggleListening}
+                    title={isListening ? "Stop Recording" : "Record Voice"}>
               {isListening ? <Mic size={12} className="thinking" /> : <MicOff size={12} />}
             </button>
             

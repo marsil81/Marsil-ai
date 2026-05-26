@@ -342,3 +342,129 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,184,255,0.15); border-radius: 2px; }
+
+/* ═══ DOCK TO SIDEBAR DYNAMIC LAYOUT ═══ */
+
+/* Mini radar container styled helper */
+.radar-container-panel {
+  position: absolute;
+  top: 120px;
+  right: 290px;
+  padding: 8px;
+  z-index: 10;
+}
+
+/* Chat container positioning when side docked */
+.layout-side-active .bottom-chat-container {
+  position: absolute;
+  top: 120px;
+  right: 30px;
+  bottom: 30px;
+  left: auto;
+  width: auto;
+  height: auto;
+  display: block;
+  pointer-events: none;
+  z-index: 15;
+}
+
+/* RTL overrides for docked chat container */
+[dir="rtl"].layout-side-active .bottom-chat-container,
+[dir="rtl"] .layout-side-active .bottom-chat-container {
+  right: auto;
+  left: 30px;
+}
+
+.layout-side-active .bottom-chat-panel {
+  pointer-events: auto;
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: auto;
+  height: 100% !important;
+  max-height: none !important;
+  min-height: none !important;
+  resize: none; /* using our custom drag handle */
+  display: flex;
+  flex-direction: column;
+}
+
+[dir="rtl"].layout-side-active .bottom-chat-panel,
+[dir="rtl"] .layout-side-active .bottom-chat-panel {
+  right: auto;
+  left: 0;
+}
+
+/* Resize Handle styles */
+.chat-resize-handle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+  background: transparent;
+  z-index: 25;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+.chat-resize-handle:hover {
+  background: rgba(0, 255, 213, 0.25);
+  box-shadow: 0 0 10px var(--accent);
+}
+
+/* In RTL, the resize handle should be on the right edge */
+[dir="rtl"] .chat-resize-handle {
+  left: auto;
+  right: 0;
+}
+
+/* Shift right panels to the left in LTR sidebar layout */
+.layout-side-active .priority-panel {
+  left: 410px;
+  right: auto;
+  width: 240px;
+}
+.layout-side-active .data-panel {
+  left: 410px;
+  right: auto;
+  width: 240px;
+}
+.layout-side-active .resource-panel-right {
+  left: 410px;
+  right: auto;
+  width: 280px;
+  top: 460px;
+  bottom: 30px;
+}
+.layout-side-active .radar-container-panel {
+  left: 710px;
+  right: auto;
+}
+
+/* Shift left panels to the right in RTL sidebar layout */
+[dir="rtl"].layout-side-active .priority-panel,
+[dir="rtl"] .layout-side-active .priority-panel {
+  right: 410px;
+  left: auto;
+  width: 240px;
+}
+[dir="rtl"].layout-side-active .data-panel,
+[dir="rtl"] .layout-side-active .data-panel {
+  right: 410px;
+  left: auto;
+  width: 240px;
+}
+[dir="rtl"].layout-side-active .resource-panel-right,
+[dir="rtl"] .layout-side-active .resource-panel-right {
+  right: 410px;
+  left: auto;
+  width: 280px;
+  top: 460px;
+  bottom: 30px;
+}
+[dir="rtl"].layout-side-active .radar-container-panel,
+[dir="rtl"] .layout-side-active .radar-container-panel {
+  right: 710px;
+  left: auto;
+}
