@@ -55,6 +55,9 @@ export function useVoiceSystem(onTranscript) {
     }
   }, [onTranscript]);
 
+  const utteranceRef = useRef(null);
+  const safetyTimeoutRef = useRef(null);
+
   const startListening = () => {
     if (!recognitionRef.current) return;
     try {
@@ -89,6 +92,13 @@ export function useVoiceSystem(onTranscript) {
       if (onEnd) onEnd();
       return;
     }
+
+    // Clear any previous safety timeouts
+    if (safetyTimeoutRef.current) {
+      clearTimeout(safetyTimeoutRef.current);
+      safetyTimeoutRef.current = null;
+    }
+
     window.speechSynthesis.cancel(); // stop current reading
 
     // 1. Clean markdown and COMPLETELY strip out code blocks and inline code
@@ -109,6 +119,8 @@ export function useVoiceSystem(onTranscript) {
     const briefText = sentences.slice(0, 2).join('. ') + '.';
 
     const utterance = new SpeechSynthesisUtterance(briefText);
+    utteranceRef.current = utterance; // CRITICAL: Save reference to prevent Chrome Garbage Collection bug!
+
     const isArabic = document.body.dir === 'rtl';
     utterance.lang = isArabic ? 'ar-SA' : 'en-US';
 
@@ -117,12 +129,23 @@ export function useVoiceSystem(onTranscript) {
     };
 
     const handleSpeechEnd = () => {
+      if (safetyTimeoutRef.current) {
+        clearTimeout(safetyTimeoutRef.current);
+        safetyTimeoutRef.current = null;
+      }
       setIsSpeaking(false);
       if (onEnd) onEnd();
     };
 
     utterance.onend = handleSpeechEnd;
     utterance.onerror = handleSpeechEnd;
+
+    // Safety Timeout fallback (130ms per char + 2.5s padding) to prevent hanging
+    const estimateMs = (briefText.length * 130) + 2500;
+    safetyTimeoutRef.current = setTimeout(() => {
+      console.warn("SpeechSynthesis onend safety fallback triggered to prevent hang.");
+      handleSpeechEnd();
+    }, estimateMs);
 
     // 2. Select a premium assistant voice if available
     const voices = window.speechSynthesis.getVoices();
