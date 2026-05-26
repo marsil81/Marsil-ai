@@ -11,7 +11,7 @@ export function useVoiceSystem(onTranscript) {
       const rec = new SpeechRecognition();
       rec.continuous = false;
       rec.interimResults = false;
-      rec.lang = 'ar'; // General Arabic model to intelligently adapt to Gulf, Levantine, Egyptian dialects
+      rec.lang = 'ar-SA'; // Standard Arabic BCP-47 language tag for guaranteed browser compatibility
 
       rec.onstart = () => setIsListening(true);
       rec.onend = () => setIsListening(false);
@@ -21,29 +21,18 @@ export function useVoiceSystem(onTranscript) {
       };
       rec.onresult = (e) => {
         let compiledTranscript = '';
-        let totalConfidence = 0;
-        let count = 0;
 
         for (let i = e.resultIndex; i < e.results.length; ++i) {
           const alternative = e.results[i][0];
           if (alternative) {
             compiledTranscript += alternative.transcript + ' ';
-            totalConfidence += alternative.confidence || 1.0;
-            count++;
           }
         }
 
         const finalTranscript = compiledTranscript.trim();
-        const avgConfidence = count > 0 ? (totalConfidence / count) : 1.0;
 
-        // Adaptive noise/accidental trigger filtering
-        if (finalTranscript.length < 2) {
-          console.log("Speech discarded: too short to be meaningful");
-          return;
-        }
-
-        if (avgConfidence < 0.35) {
-          console.warn("Speech discarded: extremely low confidence (likely background noise):", finalTranscript, avgConfidence);
+        // Discard only empty or single character junk triggers
+        if (finalTranscript.length < 1) {
           return;
         }
 
