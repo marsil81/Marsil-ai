@@ -17,7 +17,16 @@ export function useVoiceSystem(onTranscript) {
       rec.onend = () => setIsListening(false);
       rec.onerror = () => setIsListening(false);
       rec.onresult = (e) => {
-        const text = e.results[0][0].transcript;
+        const result = e.results[0][0];
+        const text = result.transcript;
+        const confidence = result.confidence || 1.0;
+        
+        // Ignore extremely low confidence results (which are usually background noises/clicks)
+        if (confidence < 0.4) {
+          console.warn("Speech discarded due to extremely low confidence:", text, confidence);
+          return;
+        }
+        
         if (onTranscript) onTranscript(text);
       };
       recognitionRef.current = rec;

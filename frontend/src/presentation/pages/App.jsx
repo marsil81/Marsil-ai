@@ -247,10 +247,24 @@ function App() {
 
   // Hook into voice system (STT & TTS)
   const { isListening, isSpeaking, toggleListening, startListening, stopListening, speak } = useVoiceSystem((text) => {
-    setChatInput(text);
+    // SECURITY GUARD: If the Agent is already busy thinking, running tools, or speaking,
+    // we absolutely discard any background murmurs or accidental captures.
+    if (agentStatus !== 'idle' || isSpeaking) {
+      console.log("Discarded transcript because Agent is busy/speaking:", text);
+      return;
+    }
+    
+    // Ignore extremely short garbage words (e.g. less than 2 characters unless it's an Arabic word)
+    const trimmed = text.trim();
+    if (trimmed.length < 2) {
+      console.log("Discarded very short accidental capture:", trimmed);
+      return;
+    }
+
+    setChatInput(trimmed);
     playChirp(1200, 0.1);
     if (handsFreeModeRef.current) {
-      handleSend(text);
+      handleSend(trimmed);
     }
   });
 
@@ -332,7 +346,7 @@ function App() {
     if (voiceEnabled && agentStatus === 'idle' && chatHistory.length > 0) {
       const lastIndex = chatHistory.length - 1;
       const lastMsg = chatHistory[lastIndex];
-      if (lastMsg.role === 'assistant' && lastSpokenIndexRef.current < lastIndex) {
+      if (lastMsg.role === 'agent' && lastSpokenIndexRef.current < lastIndex) {
         speak(lastMsg.content, () => {
           // Speak onEnd callback
           if (handsFreeModeRef.current) {
@@ -388,6 +402,7 @@ function App() {
     const textToSend = typeof textOverride === 'string' ? textOverride : chatInput;
     if (textToSend.trim()) {
       playChirp(1300, 0.08);
+      stopListening(); // SECURITY GATING: Shut down Speech Recognition IMMEDIATELY upon sending to prevent overlap loops
       sendCommand(textToSend);
       setChatInput('');
     }
