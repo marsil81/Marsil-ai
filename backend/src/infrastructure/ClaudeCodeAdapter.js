@@ -61,7 +61,7 @@ class ClaudeCodeAdapter {
     /**
      * Run Claude Code in non-interactive print mode with streaming JSON output.
      */
-    async run(prompt, cwd, ws) {
+    async run(prompt, cwd, ws, isAutonomous = false) {
         return new Promise((resolve, reject) => {
             const args = [
                 '--print',
@@ -78,22 +78,25 @@ class ClaudeCodeAdapter {
                 env: this._buildEnv()
             });
 
-            // Securely pass the prompt via stdin to completely avoid Windows shell encoding corruption
-            // which destroys Unicode/Arabic characters when passed as command line arguments.
             proc.stdin.write(prompt + "\n");
             proc.stdin.end();
 
             let fullResponse = '';
             let buffer = '';
+            let autoBuffer = '';
             let tokensIn = 0;
             let tokensOut = 0;
             let assistantTextBuffer = '';
             let hasDeltas = false;
 
             const finalizeText = () => {
+                if (isAutonomous && autoBuffer.trim() && ws) {
+                    ws.send(JSON.stringify({ type: 'log', message: `💭 ${autoBuffer}` }));
+                    autoBuffer = '';
+                }
                 if (!hasDeltas && assistantTextBuffer) {
                     fullResponse += assistantTextBuffer;
-                    if (ws) {
+                    if (ws && !isAutonomous) {
                         ws.send(JSON.stringify({ type: 'chat_delta', text: assistantTextBuffer }));
                     }
                     assistantTextBuffer = '';
@@ -129,14 +132,23 @@ class ClaudeCodeAdapter {
                             hasDeltas = true;
                             fullResponse += event.delta.text;
                             if (ws) {
-                                ws.send(JSON.stringify({ type: 'chat_delta', text: event.delta.text }));
+                                if (isAutonomous) {
+                                    autoBuffer += event.delta.text;
+                                    const aLines = autoBuffer.split('\n');
+                                    autoBuffer = aLines.pop();
+                                    for (const al of aLines) {
+                                        if (al.trim()) ws.send(JSON.stringify({ type: 'log', message: `💭 ${al}` }));
+                                    }
+                                } else {
+                                    ws.send(JSON.stringify({ type: 'chat_delta', text: event.delta.text }));
+                                }
                             }
                         }
                         if (event.type === 'result') {
                             finalizeText();
                             if (event.result && !fullResponse) {
                                 fullResponse = String(event.result);
-                                if (ws) {
+                                if (ws && !isAutonomous) {
                                     ws.send(JSON.stringify({ type: 'chat_delta', text: String(event.result) }));
                                 }
                             }

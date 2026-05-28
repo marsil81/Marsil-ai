@@ -32,7 +32,7 @@ class AgentService {
         }
     }
 
-    async processUserMessage(userMessage) {
+    async processUserMessage(userMessage, isAutonomous = false) {
         // Intercept Evolution Commands
         if (userMessage.startsWith('/EVOLUTION_TOGGLE')) {
             const state = userMessage.split(' ')[1] === 'true';
@@ -70,8 +70,8 @@ class AgentService {
             }
 
             this._send('agent_status', { status: 'thinking' });
-            const injectedMessage = `${MARSIL_CORE_DIRECTIVES}\n\nUSER REQUEST:\n${userMessage}`;
-            const response = await claudeCode.run(injectedMessage, process.cwd(), this.wsClient);
+            const injectedMessage = isAutonomous ? userMessage : `${MARSIL_CORE_DIRECTIVES}\n\nUSER REQUEST:\n${userMessage}`;
+            const response = await claudeCode.run(injectedMessage, process.cwd(), this.wsClient, isAutonomous);
             this._send('agent_status', { status: 'idle' });
             this.isWorking = false;
 
@@ -99,8 +99,8 @@ class AgentService {
     async runAutonomousCycle() {
         if (this.isWorking) return;
         this._send('log', { message: '🌌 Initiating Autonomous Evolutionary Cycle...' });
-        const autoPrompt = `You are in Autonomous Evolution Mode. You have no specific user request. Your goal is to survey the entire codebase, find the next logical micro-improvement (e.g. UI/UX, performance, code cleanliness, or bugs), and implement it perfectly. You must then update the MARSIL_CHANGELOG.md and MARSIL_ROADMAP.md. Do not stop until you have made at least one solid improvement. Use your tools to check the code first.`;
-        await this.processUserMessage(autoPrompt);
+        const autoPrompt = `${MARSIL_CORE_DIRECTIVES}\n\nYou are in Autonomous Evolution Mode. You have no specific user request. Your goal is to survey the entire codebase, find the next logical micro-improvement (e.g. UI/UX, performance, code cleanliness, or bugs), and implement it perfectly. You must then update the MARSIL_CHANGELOG.md and MARSIL_ROADMAP.md. Do not stop until you have made at least one solid improvement. Use your tools to check the code first.`;
+        await this.processUserMessage(autoPrompt, true);
     }
 
     abortCurrentTask() {
