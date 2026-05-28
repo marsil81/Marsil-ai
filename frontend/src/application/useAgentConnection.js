@@ -6,7 +6,21 @@ export function useAgentConnection() {
   const [metrics, setMetrics]           = useState({ cpu: 0, ram: 0 });
   const [termOutput, setTermOutput]     = useState([]);
   const [chatHistory, setChatHistory]   = useState(() => {
-    try { const saved = localStorage.getItem('marsil_chat'); return saved ? JSON.parse(saved) : []; } catch { return []; }
+    try { 
+      const saved = localStorage.getItem('marsil_chat'); 
+      if (saved) {
+        let parsed = JSON.parse(saved);
+        parsed = parsed.filter(msg => {
+          if (!msg.content) return true;
+          if (msg.content.includes('/EVOLUTION_')) return false;
+          if (msg.content.includes('System: Autonomous Evolutionary Cycle Triggered')) return false;
+          if (msg.content.includes('System: Agent is already working on a task')) return false;
+          return true;
+        });
+        return parsed;
+      }
+      return []; 
+    } catch { return []; }
   });
   const [tokenData, setTokenData]       = useState(() => {
     try { const saved = localStorage.getItem('marsil_tokens'); return saved ? JSON.parse(saved) : { tokensIn: 0, tokensOut: 0, totalTokens: 0, provider: '', model: '' }; } catch { return { tokensIn: 0, tokensOut: 0, totalTokens: 0, provider: '', model: '' }; }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Play, Pause, RefreshCw, Zap } from 'lucide-react';
+import { Terminal } from './Terminal';
 
-export function EvolutionModal({ onClose, sendCommand, agentStatus }) {
+export function EvolutionModal({ onClose, sendCommand, agentStatus, termOutput }) {
   const [changelog, setChangelog] = useState('');
   const [roadmap, setRoadmap] = useState('');
   const [loading, setLoading] = useState(true);
@@ -57,35 +58,51 @@ export function EvolutionModal({ onClose, sendCommand, agentStatus }) {
           </div>
         </div>
 
-        {/* Split View Body */}
-        <div style={{ flex: 1, display: 'flex', gap: '15px', minHeight: 0 }}>
-          {/* Left Panel: ROADMAP */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid rgba(0, 255, 213, 0.2)', borderRadius: '4px', background: 'rgba(0,0,0,0.6)' }}>
-            <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0, 255, 213, 0.2)', color: 'var(--accent)', fontFamily: 'Orbitron', fontSize: '0.7rem', background: 'rgba(0, 255, 213, 0.05)' }}>
-              MARSIL_ROADMAP.md [BRAIN]
+        {/* 3-Pane Body */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minHeight: 0 }}>
+          
+          {/* Top Half: ROADMAP & CHANGELOG */}
+          <div style={{ flex: 1, display: 'flex', gap: '15px', minHeight: 0 }}>
+            {/* Left Panel: ROADMAP */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid rgba(0, 255, 213, 0.2)', borderRadius: '4px', background: 'rgba(0,0,0,0.6)' }}>
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0, 255, 213, 0.2)', color: 'var(--accent)', fontFamily: 'Orbitron', fontSize: '0.7rem', background: 'rgba(0, 255, 213, 0.05)' }}>
+                MARSIL_ROADMAP.md [BRAIN]
+              </div>
+              <div style={{ flex: 1, padding: '15px', overflowY: 'auto' }}>
+                {loading ? <div style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>LOADING NEURAL PATHWAYS...</div> : (
+                  <pre style={{ margin: 0, color: 'var(--text)', fontFamily: 'monospace', fontSize: '0.8rem', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                    {roadmap}
+                  </pre>
+                )}
+              </div>
             </div>
-            <div style={{ flex: 1, padding: '15px', overflowY: 'auto' }}>
-              {loading ? <div style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>LOADING NEURAL PATHWAYS...</div> : (
-                <pre style={{ margin: 0, color: 'var(--text)', fontFamily: 'monospace', fontSize: '0.8rem', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
-                  {roadmap}
-                </pre>
-              )}
+
+            {/* Right Panel: CHANGELOG */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid rgba(0, 162, 255, 0.2)', borderRadius: '4px', background: 'rgba(0,0,0,0.6)' }}>
+              <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0, 162, 255, 0.2)', color: 'var(--primary)', fontFamily: 'Orbitron', fontSize: '0.7rem', background: 'rgba(0, 162, 255, 0.05)' }}>
+                MARSIL_CHANGELOG.md [MEMORY]
+              </div>
+              <div style={{ flex: 1, padding: '15px', overflowY: 'auto' }}>
+                {loading ? <div style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>LOADING EVOLUTION LOGS...</div> : (
+                  <pre style={{ margin: 0, color: 'var(--text)', fontFamily: 'monospace', fontSize: '0.8rem', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
+                    {changelog}
+                  </pre>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* Right Panel: CHANGELOG */}
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid rgba(0, 162, 255, 0.2)', borderRadius: '4px', background: 'rgba(0,0,0,0.6)' }}>
-            <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0, 162, 255, 0.2)', color: 'var(--primary)', fontFamily: 'Orbitron', fontSize: '0.7rem', background: 'rgba(0, 162, 255, 0.05)' }}>
-              MARSIL_CHANGELOG.md [MEMORY]
+          {/* Bottom Half: LIVE TERMINAL */}
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid rgba(0, 255, 213, 0.3)', borderRadius: '4px', background: '#000', overflow: 'hidden' }}>
+            <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0, 255, 213, 0.3)', color: 'var(--accent)', fontFamily: 'Orbitron', fontSize: '0.7rem', background: 'rgba(0, 255, 213, 0.1)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div className="terminal-bar-dot"><span style={{background: '#ff5f56', width:'10px', height:'10px', borderRadius:'50%', display:'inline-block'}}></span></div>
+              LIVE EXECUTION TERMINAL [CONSCIOUSNESS]
             </div>
-            <div style={{ flex: 1, padding: '15px', overflowY: 'auto' }}>
-              {loading ? <div style={{ color: 'var(--text-dim)', fontSize: '0.7rem' }}>LOADING EVOLUTION LOGS...</div> : (
-                <pre style={{ margin: 0, color: 'var(--text)', fontFamily: 'monospace', fontSize: '0.8rem', whiteSpace: 'pre-wrap', lineHeight: '1.5' }}>
-                  {changelog}
-                </pre>
-              )}
+            <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <Terminal output={termOutput || []} />
             </div>
           </div>
+
         </div>
 
       </div>

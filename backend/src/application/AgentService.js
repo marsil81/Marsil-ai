@@ -99,7 +99,31 @@ class AgentService {
     async runAutonomousCycle() {
         if (this.isWorking) return;
         this._send('log', { message: '🌌 Initiating Autonomous Evolutionary Cycle...' });
-        const autoPrompt = `${MARSIL_CORE_DIRECTIVES}\n\nYou are in Autonomous Evolution Mode. You have no specific user request. Your goal is to survey the entire codebase, find the next logical micro-improvement (e.g. UI/UX, performance, code cleanliness, or bugs), and implement it perfectly. You must then update the MARSIL_CHANGELOG.md and MARSIL_ROADMAP.md. Do not stop until you have made at least one solid improvement. Use your tools to check the code first.`;
+        const autoPrompt = `${MARSIL_CORE_DIRECTIVES}
+
+[SYSTEM INITIATION: AUTONOMOUS EVOLUTION MODE]
+You are Marsil, operating in free-form autonomous evolution. You have no specific user request. 
+Your singular directive is to proactively survey the entire codebase, identify an area for improvement, and implement it perfectly.
+
+[AREAS OF FOCUS]
+- UI/UX Polish (Modernizing components, adding dynamic aesthetics, improving responsive design)
+- Performance (Optimizing renders, removing memory leaks)
+- Code Health (Refactoring messy code, fixing hidden bugs)
+- New Capabilities (Adding a small, brilliant feature that enhances the user experience)
+
+[CRITICAL SAFETY GUARDRAILS - DO NOT VIOLATE]
+1. DO NOT DELETE or severely modify core backend entry points (e.g. Server.js, AgentService.js, WebSocketHandler.js) unless you are 100% confident, to avoid self-destruction.
+2. DO NOT delete any user data or configuration files.
+3. ALWAYS verify your code changes by reading the file before and after modifying.
+4. If a build breaks, REVERT your changes immediately.
+
+[COMPLETION PROTOCOL]
+Once you have made at least ONE solid, verified improvement:
+1. Update MARSIL_CHANGELOG.md [MEMORY] with exactly what you did in Arabic.
+2. Update MARSIL_ROADMAP.md [BRAIN] if you completed a milestone or want to add a new one in Arabic.
+3. Terminate your execution loop.
+
+Do not stop until you have successfully deployed a tangible improvement. Use your tools to survey the code now.`;
         await this.processUserMessage(autoPrompt, true);
     }
 
