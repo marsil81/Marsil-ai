@@ -7,6 +7,7 @@ import { ParticleReactor } from '../components/ParticleReactor';
 import { SettingsModal, estimateCost } from '../components/SettingsModal';
 import { FileTreeHUD } from '../components/FileTreeHUD';
 import { CodeEditor } from '../components/CodeEditor';
+import { Terminal } from '../components/Terminal';
 import { useAgentConnection } from '../../application/useAgentConnection';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useVoiceSystem } from '../hooks/useVoiceSystem';
@@ -217,8 +218,9 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
 
 function App() {
   const { t, i18n } = useTranslation();
-  const { agentStatus, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens } = useAgentConnection();
+  const { agentStatus, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
   const [showSettings, setShowSettings] = useState(false);
+  const [showConsole, setShowConsole] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [clock, setClock] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -439,7 +441,7 @@ function App() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
           <div className="nav-btns">
-            <button className="nav-btn active">CONSOLE</button>
+            <button className={`nav-btn ${showConsole ? 'active' : ''}`} onClick={() => setShowConsole(true)}>CONSOLE</button>
             <button className="nav-btn" onClick={() => setShowSettings(true)}>SETTINGS</button>
             <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} style={{ color: voiceEnabled ? (handsFreeMode ? '#00ffd5' : 'var(--accent)') : 'var(--text-dim)' }}>
               VOICE: {voiceEnabled ? (handsFreeMode ? 'HANDS-FREE' : 'ACTIVE') : 'MUTED'}
@@ -607,9 +609,14 @@ function App() {
           {chatLayout === 'side' && (
             <div className="chat-resize-handle" onMouseDown={handleMouseDown} />
           )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px', marginBottom: '6px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px', marginBottom: '6px', cursor: 'default' }} onPointerDown={e => e.stopPropagation()}>
             <span style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
-            <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>AWAITING COMMANDS</span>
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              {chatHistory.length > 0 && (
+                <button onClick={clearChat} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace' }}>CLEAR</button>
+              )}
+              <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>AWAITING COMMANDS</span>
+            </div>
           </div>
           <div className="chat-msgs">
             {chatHistory.length === 0 && (
@@ -663,6 +670,20 @@ function App() {
       </motion.div>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      
+      {showConsole && (
+        <div className="modal-overlay" onClick={() => setShowConsole(false)} style={{ zIndex: 100 }}>
+          <div className="modal-box" onClick={e => e.stopPropagation()} style={{ width: '85%', height: '85%', maxWidth: '1200px', display: 'flex', flexDirection: 'column', background: 'rgba(5, 10, 20, 0.95)', border: '1px solid var(--accent)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
+              <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Orbitron', fontSize: '1.2rem', letterSpacing: '2px' }}>SYSTEM CONSOLE</h2>
+              <button onClick={() => setShowConsole(false)} className="hud-btn hud-btn-icon"><X size={16} /></button>
+            </div>
+            <div style={{ flex: 1, minHeight: 0, border: '1px solid rgba(0, 255, 213, 0.2)', background: '#000', borderRadius: '4px', overflow: 'hidden' }}>
+              <Terminal output={termOutput} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,16 +5,17 @@ export function useAgentConnection() {
   const [agentStatus, setAgentStatus]   = useState('idle');
   const [metrics, setMetrics]           = useState({ cpu: 0, ram: 0 });
   const [termOutput, setTermOutput]     = useState([]);
-  const [chatHistory, setChatHistory]   = useState([]);
-  const [tokenData, setTokenData]       = useState({
-    tokensIn:    0,
-    tokensOut:   0,
-    totalTokens: 0,
-    provider:    '',
-    model:       ''
+  const [chatHistory, setChatHistory]   = useState(() => {
+    try { const saved = localStorage.getItem('marsil_chat'); return saved ? JSON.parse(saved) : []; } catch { return []; }
+  });
+  const [tokenData, setTokenData]       = useState(() => {
+    try { const saved = localStorage.getItem('marsil_tokens'); return saved ? JSON.parse(saved) : { tokensIn: 0, tokensOut: 0, totalTokens: 0, provider: '', model: '' }; } catch { return { tokensIn: 0, tokensOut: 0, totalTokens: 0, provider: '', model: '' }; }
   });
   const [client, setClient] = useState(null);
   const bottomRef = useRef(null);
+
+  useEffect(() => { localStorage.setItem('marsil_chat', JSON.stringify(chatHistory)); }, [chatHistory]);
+  useEffect(() => { localStorage.setItem('marsil_tokens', JSON.stringify(tokenData)); }, [tokenData]);
 
   useEffect(() => {
     const wsClient = new AgentWebSocketClient();
@@ -82,11 +83,12 @@ export function useAgentConnection() {
 
   const abortAgent  = () => { if (client) client.sendAbort(); };
   const clearTokens = () => setTokenData({ tokensIn: 0, tokensOut: 0, totalTokens: 0, provider: '', model: '' });
+  const clearChat   = () => { setChatHistory([]); setTermOutput([]); localStorage.removeItem('marsil_chat'); };
 
   return {
     agentStatus, metrics, termOutput, chatHistory,
     sendCommand, abortAgent,
-    tokenData, clearTokens,
+    tokenData, clearTokens, clearChat,
     // legacy alias so existing code using totalTokens doesn't break
     totalTokens: tokenData.totalTokens,
   };
