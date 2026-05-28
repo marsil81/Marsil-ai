@@ -111,6 +111,13 @@ class ClaudeCodeAdapter {
                         const event = JSON.parse(line);
                         this._handleEvent(event, ws);
 
+                        if (event.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
+                            if (ws) {
+                                ws.send(JSON.stringify({ type: 'log', message: `⚡ Executing Tool: ${event.content_block.name}` }));
+                                ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
+                            }
+                        }
+
                         if (event.type === 'assistant' && event.message?.content) {
                             for (const block of event.message.content) {
                                 if (block.type === 'text') {
@@ -153,7 +160,10 @@ class ClaudeCodeAdapter {
             });
 
             proc.stderr.on('data', (data) => {
-                if (ws) ws.send(JSON.stringify({ type: 'log', message: data.toString().trim() }));
+                const cleanMsg = data.toString().replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').trim();
+                if (cleanMsg && ws) {
+                    ws.send(JSON.stringify({ type: 'log', message: cleanMsg }));
+                }
             });
 
             proc.on('close', () => {
