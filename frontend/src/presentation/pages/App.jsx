@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 import { Settings, SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid, Radio } from 'lucide-react';
 import '../styles/App.css';
 import { ParticleReactor } from '../components/ParticleReactor';
@@ -453,7 +454,7 @@ function App() {
       </div>
 
       {/* LEFT: SYSTEM DETAILS */}
-      <div className="tech-panel sys-details-panel">
+      <motion.div drag dragMomentum={false} className="tech-panel sys-details-panel">
         <div className="tech-panel-header">
           <span>⌂ {t("system_engine")}</span>
           <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("sec")}</span>
@@ -466,47 +467,47 @@ function App() {
         <div className="sys-row"><span>{t("workspace")}</span><span className="val">D:\IRON MAN</span></div>
         
         {/* Holographic File Tree integrated natively */}
-        <div style={{ marginTop: '10px', borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
+        <div style={{ marginTop: '10px', borderTop: '1px solid var(--border)', paddingTop: '8px', cursor: 'default' }} onPointerDown={(e) => e.stopPropagation()}>
           <div style={{ fontSize: '0.45rem', color: 'var(--text-dim)', marginBottom: '5px', letterSpacing: '1px' }}>📁 LIVE WORKSPACE</div>
           <FileTreeHUD onFileSelect={setSelectedFile} />
         </div>
-      </div>
+      </motion.div>
 
       {/* LEFT: TELEMETRY */}
-      <div className="tech-panel telemetry-panel">
+      <motion.div drag dragMomentum={false} className="tech-panel telemetry-panel">
         <div className="tech-panel-header">
           <span>⌁ {t("system_metrics")}</span>
           <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("live")}</span>
         </div>
-        <div className="chat-msgs" style={{ height: 'calc(100% - 25px)' }}>
+        <div className="chat-msgs" style={{ height: 'calc(100% - 25px)', cursor: 'default' }} onPointerDown={(e) => e.stopPropagation()}>
           {termOutput.length === 0 && <div className="log-line">Marsil AI Terminal Operational...</div>}
           {termOutput.slice(-30).map((line, i) => (
             <div key={i} className="log-line">{line}</div>
           ))}
         </div>
-      </div>
+      </motion.div>
 
       {/* RIGHT: DEPLOYMENT PROTOCOLS */}
-      <div className="tech-panel priority-panel">
+      <motion.div drag dragMomentum={false} className="tech-panel priority-panel">
         <div className="tech-panel-header">
           <span>▸ {t("protocols")}</span>
         </div>
         <div className="sys-row"><span>01. ENGINE</span><span className="val">CLAUDE CODE</span></div>
         <div className="sys-row"><span>02. PROTOCOL</span><span className="val">WEBSOCKETS</span></div>
         <div className="sys-row"><span>03. GATEWAY</span><span className="val">CONNECTED</span></div>
-      </div>
+      </motion.div>
 
       {/* RIGHT: VOICE PULSE SPECTROMETER */}
-      <div className="tech-panel radar-container-panel">
+      <motion.div drag dragMomentum={false} className="tech-panel radar-container-panel">
         <VoicePulseVisualizer 
           isListening={isListening} 
           isSpeaking={isSpeaking} 
           agentStatus={agentStatus} 
         />
-      </div>
+      </motion.div>
 
       {/* RIGHT: RESOURCE METRICS */}
-      <div className="tech-panel data-panel">
+      <motion.div drag dragMomentum={false} className="tech-panel data-panel">
         <div className="tech-panel-header">
           <span>⚙ {t("gauges")}</span>
         </div>
@@ -525,18 +526,16 @@ function App() {
           <div className="data-bar-track"><div className="data-bar-fill" style={{ width: '48%' }}></div></div>
           <span className="data-bar-val">48%</span>
         </div>
-      </div>
+      </motion.div>
 
       {/* ═══ RIGHT PANEL: RESOURCE MONITORING (Swapped to bottom right) ═══ */}
-      <div className="tech-panel resource-panel-right" style={{ minHeight: '195px' }}>
+      <motion.div drag dragMomentum={false} className="tech-panel resource-panel-right" style={{ minHeight: '195px' }}>
         <div className="tech-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>◉ {t("monitor")}</span>
-          {tokenData.totalTokens > 0 && (
-            <button onClick={clearTokens} style={{
-              background: 'transparent', border: 'none', color: 'var(--accent)',
-              fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace'
-            }}>CLEAR</button>
-          )}
+          <button onPointerDown={(e) => e.stopPropagation()} onClick={clearTokens} style={{
+            background: 'transparent', border: 'none', color: 'var(--accent)',
+            fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace'
+          }}>CLEAR</button>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: 'calc(100% - 25px)', justifyContent: 'space-between' }}>
           <div>
@@ -594,10 +593,16 @@ function App() {
             })()}
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* ═══ BOTTOM CENTER PANEL: SYSTEM DIRECTIVES (Swapped to bottom center wide) ═══ */}
-      <div className="bottom-chat-container">
+      <motion.div 
+        drag={chatLayout === 'bottom'} 
+        dragMomentum={false} 
+        animate={chatLayout === 'side' ? { x: 0, y: 0 } : undefined}
+        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+        className="bottom-chat-container"
+      >
         <div className="bottom-chat-panel" style={chatLayout === 'side' ? { width: `${chatWidth}px` } : {}}>
           {chatLayout === 'side' && (
             <div className="chat-resize-handle" onMouseDown={handleMouseDown} />
@@ -655,7 +660,7 @@ function App() {
             <button className="hud-btn hud-btn-icon" onClick={handleSend}><SendHorizontal size={11} /></button>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
     </div>

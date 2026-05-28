@@ -30,10 +30,13 @@ export function useAgentConnection() {
     wsClient.onChatReply = (text) => {
       setChatHistory(prev => {
         const copy = [...prev];
-        const last = copy[copy.length - 1];
+        const lastIndex = copy.length - 1;
+        const last = copy[lastIndex];
         if (last && last.role === 'agent' && last.isStreaming) {
-          last.content = text;
-          delete last.isStreaming;
+          // Clone the object to avoid mutating previous state directly (fixes StrictMode duplication)
+          const newLast = { ...last, content: text };
+          delete newLast.isStreaming;
+          copy[lastIndex] = newLast;
           return copy;
         }
         return [...prev, { role: 'agent', content: text }];
@@ -43,9 +46,10 @@ export function useAgentConnection() {
     wsClient.onChatDelta = (delta) => {
       setChatHistory(prev => {
         const copy = [...prev];
-        const last = copy[copy.length - 1];
+        const lastIndex = copy.length - 1;
+        const last = copy[lastIndex];
         if (last && last.role === 'agent' && last.isStreaming) {
-          last.content += delta;
+          copy[lastIndex] = { ...last, content: last.content + delta };
         }
         return copy;
       });

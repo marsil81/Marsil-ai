@@ -278,16 +278,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
 [dir="rtl"] .resource-panel-right { right: auto !important; left: 30px !important; }
 [dir="rtl"] .radar-container-panel { right: auto !important; left: 290px !important; }
 [dir="rtl"] .chat-panel { right: auto !important; left: 30px !important; }
-[dir="rtl"] .chat-msg.user {
-  text-align: left;
-  border-left: 3px solid var(--primary);
-  border-right: none;
-}
-[dir="rtl"] .chat-msg.agent {
-  text-align: right;
-  border-right: 3px solid var(--accent);
-  border-left: none;
-}
+[dir="rtl"] .chat-msg.agent { text-align: right; }
 [dir="rtl"] .nav-btns { direction: ltr; }
 [dir="rtl"] .sys-row { font-family: 'Cairo', sans-serif; font-weight: 600; font-size: 0.72rem; }
 [dir="rtl"] .log-line { font-family: 'Cairo', sans-serif; font-weight: 600; direction: ltr; text-align: left; }
@@ -370,13 +361,6 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   z-index: 15;
 }
 
-/* RTL overrides for docked chat container */
-[dir="rtl"].layout-side-active .bottom-chat-container,
-[dir="rtl"] .layout-side-active .bottom-chat-container {
-  right: auto;
-  left: 30px;
-}
-
 .layout-side-active .bottom-chat-panel {
   pointer-events: auto;
   position: absolute;
@@ -390,12 +374,6 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   resize: none; /* using our custom drag handle */
   display: flex;
   flex-direction: column;
-}
-
-[dir="rtl"].layout-side-active .bottom-chat-panel,
-[dir="rtl"] .layout-side-active .bottom-chat-panel {
-  right: auto;
-  left: 0;
 }
 
 /* Resize Handle styles */
@@ -413,12 +391,6 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
 .chat-resize-handle:hover {
   background: rgba(0, 255, 213, 0.25);
   box-shadow: 0 0 10px var(--accent);
-}
-
-/* In RTL, the resize handle should be on the right edge */
-[dir="rtl"] .chat-resize-handle {
-  left: auto;
-  right: 0;
 }
 
 /* Shift right panels to the left in LTR sidebar layout */
@@ -444,29 +416,20 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   right: auto;
 }
 
-/* Shift left panels to the right in RTL sidebar layout */
-[dir="rtl"].layout-side-active .priority-panel,
-[dir="rtl"] .layout-side-active .priority-panel {
-  right: 410px;
-  left: auto;
-  width: 240px;
+/* In RTL sidebar layout, the docked chat panel stays on the RIGHT (as requested by the user).
+   Since the Right Column contains sys-details and telemetry in RTL, we shift them to the LEFT to make room! */
+[dir="rtl"].layout-side-active .sys-details-panel,
+[dir="rtl"] .layout-side-active .sys-details-panel {
+  right: 410px !important;
+  left: auto !important;
 }
-[dir="rtl"].layout-side-active .data-panel,
-[dir="rtl"] .layout-side-active .data-panel {
-  right: 410px;
-  left: auto;
-  width: 240px;
-}
-[dir="rtl"].layout-side-active .resource-panel-right,
-[dir="rtl"] .layout-side-active .resource-panel-right {
-  right: 410px;
-  left: auto;
-  width: 280px;
-  top: 460px;
-  bottom: 30px;
+[dir="rtl"].layout-side-active .telemetry-panel,
+[dir="rtl"] .layout-side-active .telemetry-panel {
+  right: 410px !important;
+  left: auto !important;
 }
 [dir="rtl"].layout-side-active .radar-container-panel,
 [dir="rtl"] .layout-side-active .radar-container-panel {
-  right: 710px;
-  left: auto;
+  left: 710px !important;
+  right: auto !important;
 }

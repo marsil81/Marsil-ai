@@ -50,7 +50,7 @@ export function useVoiceSystem(onTranscript) {
   const startListening = () => {
     if (!recognitionRef.current) return;
     try {
-      recognitionRef.current.lang = document.body.dir === 'rtl' ? 'ar' : 'en-US';
+      recognitionRef.current.lang = document.body.dir === 'rtl' ? 'ar-SA' : 'en-US';
       recognitionRef.current.start();
     } catch (e) {
       console.log("Speech recognition start error (might already be running):", e);

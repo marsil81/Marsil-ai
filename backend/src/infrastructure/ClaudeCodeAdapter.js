@@ -68,16 +68,20 @@ class ClaudeCodeAdapter {
                 '--verbose',
                 '--output-format', 'stream-json',
                 '--no-session-persistence',
-                '--model', this.config.model,
-                prompt
+                '--model', this.config.model
             ];
 
             const proc = spawn('claude', args, {
                 cwd: cwd || process.cwd(),
                 shell: true,
-                stdio: ['ignore', 'pipe', 'pipe'],
+                stdio: ['pipe', 'pipe', 'pipe'],
                 env: this._buildEnv()
             });
+
+            // Securely pass the prompt via stdin to completely avoid Windows shell encoding corruption
+            // which destroys Unicode/Arabic characters when passed as command line arguments.
+            proc.stdin.write(prompt + "\n");
+            proc.stdin.end();
 
             let fullResponse = '';
             let buffer = '';
