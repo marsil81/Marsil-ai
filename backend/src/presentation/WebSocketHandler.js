@@ -9,7 +9,9 @@ class WebSocketHandler {
             const msg = JSON.parse(message);
             if (msg.type === 'chat') {
                 const reply = await agentService.processUserMessage(msg.text);
-                ws.send(JSON.stringify({ type: 'chat_reply', text: reply }));
+                if (reply) {
+                    ws.send(JSON.stringify({ type: 'chat_reply', text: reply }));
+                }
             } else if (msg.type === 'abort') {
                 const reply = agentService.abortCurrentTask();
                 ws.send(JSON.stringify({ type: 'log', message: reply }));

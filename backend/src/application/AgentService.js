@@ -43,14 +43,19 @@ class AgentService {
             } else if (!state) {
                 clearTimeout(this.evolutionTimer);
             }
-            return `System: Auto-Evolution Mode is now ${state ? 'ACTIVE' : 'INACTIVE'}.`;
+            this._send('log', { message: `System: Auto-Evolution Mode is now ${state ? 'ACTIVE' : 'INACTIVE'}.` });
+            return null;
         }
 
         if (userMessage === '/EVOLUTION_TRIGGER') {
-            if (this.isWorking) return 'System: Agent is already working on a task.';
+            if (this.isWorking) {
+                this._send('log', { message: 'System: Agent is already working on a task.' });
+                return null;
+            }
             // Do not wait, run immediately
             this.runAutonomousCycle();
-            return 'System: Autonomous Evolutionary Cycle Triggered.';
+            this._send('log', { message: 'System: Autonomous Evolutionary Cycle Triggered.' });
+            return null;
         }
 
         try {

@@ -73,11 +73,16 @@ export function useAgentConnection() {
 
   const sendCommand = (text) => {
     if (!client) return;
-    setChatHistory(prev => [
-      ...prev,
-      { role: 'user', content: text },
-      { role: 'agent', content: '', isStreaming: true }
-    ]);
+    
+    // Only add to UI Chat History if it's not a background system command
+    if (!text.startsWith('/')) {
+      setChatHistory(prev => [
+        ...prev,
+        { role: 'user', content: text },
+        { role: 'agent', content: '', isStreaming: true }
+      ]);
+    }
+    
     client.sendChat(text);
   };
 
