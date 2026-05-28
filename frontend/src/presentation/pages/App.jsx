@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Settings, SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid, Radio } from 'lucide-react';
+import { Settings, SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid, Radio, X } from 'lucide-react';
 import '../styles/App.css';
 import { ParticleReactor } from '../components/ParticleReactor';
 import { SettingsModal, estimateCost } from '../components/SettingsModal';
 import { FileTreeHUD } from '../components/FileTreeHUD';
 import { CodeEditor } from '../components/CodeEditor';
 import { Terminal } from '../components/Terminal';
+import { EvolutionModal } from '../components/EvolutionModal';
 import { useAgentConnection } from '../../application/useAgentConnection';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useVoiceSystem } from '../hooks/useVoiceSystem';
@@ -221,6 +222,7 @@ function App() {
   const { agentStatus, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
   const [showSettings, setShowSettings] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
+  const [showEvolution, setShowEvolution] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [clock, setClock] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -442,6 +444,7 @@ function App() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
           <div className="nav-btns">
             <button className={`nav-btn ${showConsole ? 'active' : ''}`} onClick={() => setShowConsole(true)}>CONSOLE</button>
+            <button className={`nav-btn ${showEvolution ? 'active' : ''}`} onClick={() => setShowEvolution(true)} style={{ color: 'var(--primary)', borderColor: 'var(--primary)' }}>EVOLUTION</button>
             <button className="nav-btn" onClick={() => setShowSettings(true)}>SETTINGS</button>
             <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} style={{ color: voiceEnabled ? (handsFreeMode ? '#00ffd5' : 'var(--accent)') : 'var(--text-dim)' }}>
               VOICE: {voiceEnabled ? (handsFreeMode ? 'HANDS-FREE' : 'ACTIVE') : 'MUTED'}
@@ -670,6 +673,7 @@ function App() {
       </motion.div>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+      {showEvolution && <EvolutionModal onClose={() => setShowEvolution(false)} sendCommand={sendCommand} />}
       
       {showConsole && (
         <div className="modal-overlay" onClick={() => setShowConsole(false)} style={{ zIndex: 100 }}>

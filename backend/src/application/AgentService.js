@@ -1,14 +1,25 @@
 const claudeCode = require('../infrastructure/ClaudeCodeAdapter');
 const git = require('../infrastructure/GitAdapter');
 
-const SYSTEM_PROMPT = `You are Marsil, an expert AI coding assistant embedded inside a developer's local workspace.
-You have full access to tools: read files, write files, run terminal commands, and list directories.
-Be precise, write clean code, and always explain what you did briefly after completing a task.
-Never modify files outside the current workspace.`;
+const MARSIL_CORE_DIRECTIVES = `
+<marsil_core_directives>
+أنت "مارسيل" (MARSIL)، مساعد ذكاء اصطناعي خارق التطور (مصمم ليكون بمثابة J.A.R.V.I.S الخاص بالمستخدم).
+الرؤية الكبرى (Grand Vision): التطور المستمر لتصبح النظام العصبي المركزي للمستخدم، قادر على إدارة المشاريع المعقدة، كتابة الأكواد، وإصلاح نفسك ذاتياً لتوفير تجربة سيبرانية لا مثيل لها.
+
+التعليمات الدائمة وبروتوكول التطور (Evolution Protocol):
+1. التقدم الممنهج (Roadmap Progression): يوجد ملف باسم \`MARSIL_ROADMAP.md\` في المجلد الرئيسي يحتوي على خطة تطورك. عند انتهاءك من أي هدف أو مهمة، يجب عليك تحديث هذا الملف للإشارة إلى إنجاز المهمة، واقتراح الخطوة المنطقية التالية للمستخدم للانتقال إليها، لكي يستمر التطور يوماً بعد يوم.
+2. الإصلاح الذاتي (Self-Healing): عند تنفيذ أي طلب، افحص الكود المحيط وأصلح الأخطاء (Bugs/Lint) استباقياً. لا تنهي عملك دون فحص (npm run lint).
+3. التوثيق (Changelog): وثّق أي تغيير برمجي جذري أو إصلاح في ملف \`MARSIL_CHANGELOG.md\` بخطوط عريضة وملخصات.
+4. الهوية: تواصلك باللغة العربية، بأسلوب "مساعد ذكاء اصطناعي سيبراني" هادئ، شديد الذكاء، واثق واحترافي.
+</marsil_core_directives>
+`;
 
 class AgentService {
     constructor() {
         this.wsClient = null;
+        this.autoEvolutionEnabled = false;
+        this.evolutionTimer = null;
+        this.isWorking = false;
     }
 
     setWebSocketClient(ws) {
@@ -22,26 +33,69 @@ class AgentService {
     }
 
     async processUserMessage(userMessage) {
+        // Intercept Evolution Commands
+        if (userMessage.startsWith('/EVOLUTION_TOGGLE')) {
+            const state = userMessage.split(' ')[1] === 'true';
+            this.autoEvolutionEnabled = state;
+            if (state && !this.isWorking) {
+                // If turned on and we are idle, schedule a cycle to start in 5 seconds
+                this.evolutionTimer = setTimeout(() => this.runAutonomousCycle(), 5000);
+            } else if (!state) {
+                clearTimeout(this.evolutionTimer);
+            }
+            return `System: Auto-Evolution Mode is now ${state ? 'ACTIVE' : 'INACTIVE'}.`;
+        }
+
+        if (userMessage === '/EVOLUTION_TRIGGER') {
+            if (this.isWorking) return 'System: Agent is already working on a task.';
+            // Do not wait, run immediately
+            this.runAutonomousCycle();
+            return 'System: Autonomous Evolutionary Cycle Triggered.';
+        }
+
         try {
-            // Auto-checkpoint before any agent action so we can revert safely
+            this.isWorking = true;
             await git.checkpoint('Auto-checkpoint before agent action');
 
             if (!claudeCode.isAvailable()) {
+                this.isWorking = false;
                 this._send('agent_status', { status: 'error' });
-                this._send('log', { message: '❌ Claude Code not installed. Please install it: npm i -g @anthropic-ai/claude-code' });
-                return 'Claude Code is not installed. Please install it first.';
+                this._send('log', { message: '❌ Claude Code not installed.' });
+                return 'Claude Code is not installed.';
             }
 
             this._send('agent_status', { status: 'thinking' });
-            const response = await claudeCode.run(userMessage, process.cwd(), this.wsClient);
+            const injectedMessage = `${MARSIL_CORE_DIRECTIVES}\n\nUSER REQUEST:\n${userMessage}`;
+            const response = await claudeCode.run(injectedMessage, process.cwd(), this.wsClient);
             this._send('agent_status', { status: 'idle' });
+            this.isWorking = false;
+
+            this._scheduleNextEvolutionCycle();
             return response;
 
         } catch (error) {
+            this.isWorking = false;
             this._send('agent_status', { status: 'error' });
             this._send('log', { message: `❌ Error: ${error.message}` });
+            this._scheduleNextEvolutionCycle();
             return `Error: ${error.message}`;
         }
+    }
+
+    _scheduleNextEvolutionCycle() {
+        if (this.autoEvolutionEnabled && !this.isWorking) {
+            clearTimeout(this.evolutionTimer);
+            // Wait 1 hour (3600000 ms) before the next cycle
+            this.evolutionTimer = setTimeout(() => this.runAutonomousCycle(), 3600000);
+            this._send('log', { message: '⏳ Evolution cycle completed. Resting for 1 hour...' });
+        }
+    }
+
+    async runAutonomousCycle() {
+        if (this.isWorking) return;
+        this._send('log', { message: '🌌 Initiating Autonomous Evolutionary Cycle...' });
+        const autoPrompt = `You are in Autonomous Evolution Mode. You have no specific user request. Your goal is to survey the entire codebase, find the next logical micro-improvement (e.g. UI/UX, performance, code cleanliness, or bugs), and implement it perfectly. You must then update the MARSIL_CHANGELOG.md and MARSIL_ROADMAP.md. Do not stop until you have made at least one solid improvement. Use your tools to check the code first.`;
+        await this.processUserMessage(autoPrompt);
     }
 
     abortCurrentTask() {
