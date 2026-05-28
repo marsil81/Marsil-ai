@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Play, Pause, RefreshCw, Zap } from 'lucide-react';
 
-export function EvolutionModal({ onClose, sendCommand }) {
+export function EvolutionModal({ onClose, sendCommand, agentStatus }) {
   const [changelog, setChangelog] = useState('');
   const [roadmap, setRoadmap] = useState('');
   const [loading, setLoading] = useState(true);
-  const [autoEnabled, setAutoEnabled] = useState(false); // Can be synced with backend state if needed
 
   useEffect(() => {
     // Fetch Roadmap and Changelog
@@ -22,15 +21,11 @@ export function EvolutionModal({ onClose, sendCommand }) {
     });
   }, []);
 
-  const toggleAutoEvolution = () => {
-    const newState = !autoEnabled;
-    setAutoEnabled(newState);
-    sendCommand(`/EVOLUTION_TOGGLE ${newState}`);
-  };
-
   const triggerCycle = () => {
     sendCommand(`/EVOLUTION_TRIGGER`);
   };
+
+  const isRunning = agentStatus === 'thinking' || agentStatus === 'executing_tool';
 
   return (
     <div className="modal-overlay" onClick={onClose} style={{ zIndex: 100 }}>
@@ -46,26 +41,16 @@ export function EvolutionModal({ onClose, sendCommand }) {
           </div>
           
           <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(0,0,0,0.5)', padding: '6px 12px', border: '1px solid var(--border)', borderRadius: '4px' }}>
-              <span style={{ fontSize: '0.65rem', color: 'var(--text)', fontFamily: 'Orbitron' }}>AUTO-CYCLE (1H INTERVAL)</span>
-              <button onClick={toggleAutoEvolution} style={{
-                background: autoEnabled ? 'rgba(0, 255, 213, 0.2)' : 'rgba(255, 85, 85, 0.2)',
-                border: autoEnabled ? '1px solid var(--accent)' : '1px solid #ff5555',
-                color: autoEnabled ? 'var(--accent)' : '#ff5555',
-                padding: '4px 12px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Orbitron', fontSize: '0.6rem',
-                display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.3s'
-              }}>
-                {autoEnabled ? <Pause size={12} /> : <Play size={12} />}
-                {autoEnabled ? 'ACTIVE' : 'INACTIVE'}
-              </button>
-            </div>
-
-            <button onClick={triggerCycle} style={{
-              background: 'rgba(0, 162, 255, 0.1)', border: '1px solid var(--primary)', color: 'var(--primary)',
-              padding: '6px 16px', borderRadius: '4px', cursor: 'pointer', fontFamily: 'Orbitron', fontSize: '0.65rem',
-              display: 'flex', alignItems: 'center', gap: '6px', transition: 'all 0.3s'
+            <button onClick={triggerCycle} disabled={isRunning} style={{
+              background: isRunning ? 'rgba(0, 255, 213, 0.2)' : 'rgba(0, 162, 255, 0.1)', 
+              border: `1px solid ${isRunning ? 'var(--accent)' : 'var(--primary)'}`, 
+              color: isRunning ? 'var(--accent)' : 'var(--primary)',
+              padding: '8px 24px', borderRadius: '4px', cursor: isRunning ? 'default' : 'pointer', fontFamily: 'Orbitron', fontSize: '0.8rem',
+              display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.3s',
+              boxShadow: isRunning ? '0 0 15px rgba(0, 255, 213, 0.4)' : 'none'
             }}>
-              <RefreshCw size={14} /> TRIGGER CYCLE NOW
+              {isRunning ? <RefreshCw size={16} className="spin-animation" /> : <Play size={16} />}
+              {isRunning ? 'RUNNING...' : 'START EVOLUTION'}
             </button>
 
             <button onClick={onClose} className="hud-btn hud-btn-icon" style={{ marginLeft: '10px' }}><X size={18} /></button>

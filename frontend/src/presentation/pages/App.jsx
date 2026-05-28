@@ -673,7 +673,7 @@ function App() {
       </motion.div>
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-      {showEvolution && <EvolutionModal onClose={() => setShowEvolution(false)} sendCommand={sendCommand} />}
+      {showEvolution && <EvolutionModal onClose={() => setShowEvolution(false)} sendCommand={sendCommand} agentStatus={agentStatus} />}
       
       {showConsole && (
         <div className="modal-overlay" onClick={() => setShowConsole(false)} style={{ zIndex: 100 }}>
