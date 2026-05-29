@@ -53,13 +53,14 @@ export function Terminal({ output }) {
   const terminalRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [autoScroll, setAutoScroll] = useState(true);
   const searchInputRef = useRef(null);
 
   useEffect(() => {
-    if (terminalRef.current) {
+    if (autoScroll && terminalRef.current) {
       terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
-  }, [output]);
+  }, [output, autoScroll]);
 
   // Auto-focus search input when shown
   useEffect(() => {
@@ -98,12 +99,69 @@ export function Terminal({ output }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       {/* Terminal Bar */}
-      <div className="terminal-bar">
-        <div className="terminal-bar-dot">
-          <span></span><span></span><span></span>
+      <div className="terminal-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="terminal-bar-dot">
+            <span></span><span></span><span></span>
+          </div>
+          <span style={{ fontWeight: 'bold' }}>marsil-cmd</span>
+          <span style={{ color: 'var(--accent)', animation: 'pulse 1.5s infinite', fontSize: '0.45rem', opacity: 0.8 }}>● active</span>
         </div>
-        <span>marsil-cmd</span>
-        <span>session:active</span>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Scroll Toggle Button */}
+          <button
+            onClick={() => setAutoScroll(prev => !prev)}
+            title="Toggle Auto-Scroll Lock"
+            style={{
+              background: 'transparent',
+              border: `1px solid ${autoScroll ? 'var(--accent)' : 'rgba(0, 162, 255, 0.25)'}`,
+              color: autoScroll ? 'var(--accent)' : 'var(--text-dim)',
+              fontSize: '0.45rem',
+              padding: '2px 6px',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              fontFamily: "'Share Tech Mono', monospace",
+              letterSpacing: '1px',
+              transition: 'all 0.2s',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              boxShadow: autoScroll ? '0 0 6px rgba(0, 255, 213, 0.2)' : 'none'
+            }}
+          >
+            <span style={{
+              width: '4px', height: '4px', borderRadius: '50%',
+              background: autoScroll ? 'var(--accent)' : 'transparent',
+              border: `1px solid ${autoScroll ? 'transparent' : 'var(--text-dim)'}`,
+              display: 'inline-block'
+            }} />
+            {autoScroll ? 'SCROLL:LOCK' : 'SCROLL:FREE'}
+          </button>
+
+          {/* Search Toggle Button */}
+          <button
+            onClick={toggleSearch}
+            title="Search logs"
+            style={{
+              background: 'transparent',
+              border: `1px solid ${showSearch ? 'var(--accent)' : 'rgba(0, 162, 255, 0.25)'}`,
+              color: showSearch ? 'var(--accent)' : 'var(--text-dim)',
+              fontSize: '0.45rem',
+              padding: '2px 6px',
+              borderRadius: '3px',
+              cursor: 'pointer',
+              fontFamily: "'Share Tech Mono', monospace",
+              display: 'flex',
+              alignItems: 'center',
+              gap: '3px',
+              transition: 'all 0.2s'
+            }}
+          >
+            <Search size={8} />
+            FIND
+          </button>
+        </div>
       </div>
 
       {/* Search Bar */}

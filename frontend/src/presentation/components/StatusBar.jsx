@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import { Wifi, WifiOff, Clock, Cpu, HardDrive, Activity, Terminal, Settings, XCircle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Wifi, WifiOff, Clock, Cpu, HardDrive, Activity, Terminal, Settings, XCircle, Zap, BarChart3 } from 'lucide-react';
 
 function formatUptime(seconds) {
   if (!seconds) return '00:00:00';
@@ -38,6 +38,39 @@ function MiniSparkline({ values = [], maxValue = 100, color = '#00a2ff', width =
           background: color,
           borderRadius: '1px',
           opacity: 0.4 + (v / maxValue) * 0.6,
+        }} />;
+      })}
+    </div>
+  );
+}
+
+/**
+ * Live mini-sparkline that auto-updates with rolling data.
+ * Collects values over time and renders a compact bar chart.
+ */
+function LiveSparkline({ getValue, interval = 2000, maxPoints = 30, maxValue = 100, color = '#00a2ff', width = 50, height = 14 }) {
+  const [data, setData] = useState([]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      const val = typeof getValue === 'function' ? getValue() : (getValue || 0);
+      setData(prev => [...prev.slice(-(maxPoints - 1)), Math.min(val, maxValue)]);
+    }, interval);
+    return () => clearInterval(id);
+  }, [getValue, interval, maxPoints, maxValue]);
+
+  if (data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '1px', width, height }}>
+      {data.map((v, i) => {
+        const h = Math.max(1.5, (v / max) * (height - 2));
+        return <div key={i} style={{
+          flex: 1, height: `${h}px`,
+          background: color,
+          borderRadius: '1px',
+          opacity: 0.35 + (v / max) * 0.65,
+          transition: 'height 0.3s ease',
         }} />;
       })}
     </div>
@@ -129,7 +162,7 @@ export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentS
         userSelect: 'none',
         boxShadow: '0 -1px 12px rgba(0,162,255,0.06)',
       }}>
-        {/* Left: Connection Status */}
+        {/* Left: Connection Status + Live Sparklines */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
             {isConnected ? (
@@ -154,6 +187,12 @@ export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentS
           <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
             <Clock size={9} />
             <span>{formatUptime(uptime)}</span>
+          </div>
+
+          {/* Live CPU sparkline */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', opacity: 0.7 }}>
+            <BarChart3 size={7} />
+            <LiveSparkline getValue={() => metrics.cpu || 0} interval={3000} maxValue={100} color="#00a2ff" width={40} height={12} />
           </div>
         </div>
 
@@ -205,7 +244,7 @@ export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentS
           </div>
         </div>
 
-        {/* Right: System Info with hover previews */}
+        {/* Right: System Info with hover previews + Provider badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div
             style={{ display: 'flex', alignItems: 'center', gap: '3px', cursor: 'default', position: 'relative' }}
@@ -230,7 +269,9 @@ export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentS
             border: '1px solid rgba(0,162,255,0.15)',
             color: 'rgba(0,184,255,0.5)',
             letterSpacing: '0.5px',
+            display: 'flex', alignItems: 'center', gap: '3px',
           }}>
+            <Zap size={7} />
             {sysConfig.provider?.toUpperCase() || 'ANTHROPIC'} / {sysConfig.model || '--'}
           </div>
         </div>

@@ -37,6 +37,14 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
     let lastResizeTime = 0;
     let dpr = 1;
 
+    // Floating stats readouts around the core
+    const statsReadouts = [
+      { label: 'SYS', value: 'ONLINE', angle: 0, distance: 1.6 },
+      { label: 'PWR', value: '98%', angle: Math.PI * 0.5, distance: 1.55 },
+      { label: 'SIG', value: 'STABLE', angle: Math.PI, distance: 1.6 },
+      { label: 'NET', value: 'ACTIVE', angle: Math.PI * 1.5, distance: 1.55 },
+    ];
+
     function resize() {
       dpr = window.devicePixelRatio || 1;
       const w = window.innerWidth;
@@ -198,16 +206,68 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // ═══ CORE GLOW ═══
-      const coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius * 0.35);
-      coreGrad.addColorStop(0, `rgba(255,255,255,${0.45 + amplitude * 0.3})`);
-      coreGrad.addColorStop(0.2, `rgba(100,225,255,${0.3 + amplitude * 0.15})`);
-      coreGrad.addColorStop(0.5, `rgba(0,180,255,${0.12 + amplitude * 0.05})`);
+      // ═══ JARVIS-STYLE REACTOR CORE ═══
+      const isActive = status === 'thinking' || status === 'executing_tool';
+      const now = Date.now();
+
+      // Outer core glow — expands and contracts with amplitude
+      const coreOuterRadius = radius * (0.35 + amplitude * 0.08);
+      const coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, coreOuterRadius);
+      coreGrad.addColorStop(0, `rgba(255,255,255,${0.55 + amplitude * 0.3})`);
+      coreGrad.addColorStop(0.15, `rgba(100,225,255,${0.4 + amplitude * 0.2})`);
+      coreGrad.addColorStop(0.4, `rgba(0,180,255,${0.18 + amplitude * 0.08})`);
+      coreGrad.addColorStop(0.7, `rgba(0,100,200,${0.06 + amplitude * 0.04})`);
       coreGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = coreGrad;
       ctx.beginPath();
-      ctx.arc(centerX, centerY, radius * 0.35, 0, Math.PI * 2);
+      ctx.arc(centerX, centerY, coreOuterRadius, 0, Math.PI * 2);
       ctx.fill();
+
+      // Inner bright core — pulsing white-hot center
+      const innerPulse = Math.sin(now * 0.003) * 0.15 + 0.85;
+      const innerRadius = coreOuterRadius * 0.25 * innerPulse;
+      const innerGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, innerRadius);
+      innerGrad.addColorStop(0, `rgba(255,255,255,${0.8 + amplitude * 0.2})`);
+      innerGrad.addColorStop(0.3, `rgba(180,240,255,${0.5 + amplitude * 0.3})`);
+      innerGrad.addColorStop(0.7, `rgba(0,200,255,${0.2 + amplitude * 0.15})`);
+      innerGrad.addColorStop(1, 'transparent');
+      ctx.fillStyle = innerGrad;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Central white dot
+      ctx.shadowColor = 'rgba(0,200,255,0.9)';
+      ctx.shadowBlur = 30 + amplitude * 25;
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 4 + amplitude * 3 + Math.sin(now * 0.005) * 1.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // ═══ FLOATING STATS READOUTS (Jarvis-style) ═══
+      const floatPhase = now * 0.0008;
+      for (const stat of statsReadouts) {
+        const drift = Math.sin(floatPhase + stat.angle) * 6;
+        const sx = centerX + Math.cos(stat.angle) * baseRadius * stat.distance;
+        const sy = centerY + Math.sin(stat.angle) * baseRadius * stat.distance + drift;
+
+        // Label
+        ctx.font = 'bold 9px Orbitron, monospace';
+        ctx.fillStyle = `rgba(0, 210, 255, ${0.5 + amplitude * 0.3})`;
+        ctx.shadowColor = 'rgba(0, 210, 255, 0.3)';
+        ctx.shadowBlur = 4;
+        ctx.textAlign = 'center';
+        ctx.fillText(stat.label, sx, sy - 8);
+
+        // Value
+        ctx.font = 'bold 11px Share Tech Mono, monospace';
+        ctx.fillStyle = isActive ? '#00ffd5' : '#00a2ff';
+        ctx.shadowColor = isActive ? 'rgba(0,255,213,0.5)' : 'rgba(0,162,255,0.4)';
+        ctx.shadowBlur = 8;
+        ctx.fillText(stat.value, sx, sy + 6);
+        ctx.shadowBlur = 0;
+      }
 
       // ═══ CONNECTIONS (O(n²) with squared distance — avoids sqrt) ═══
       if (amplitude > 0.05) {
@@ -253,15 +313,6 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
           ctx.fill();
         }
       }
-
-      // ═══ CENTER GLOWING DOT ═══
-      ctx.fillStyle = '#fff';
-      ctx.shadowColor = 'rgba(0,200,255,0.8)';
-      ctx.shadowBlur = 30 + amplitude * 20;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, 3 + amplitude * 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
     }
 
     function animate() { update(); draw(); animId = requestAnimationFrame(animate); }

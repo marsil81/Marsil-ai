@@ -94,10 +94,6 @@ export function EvolutionModal({ onClose, sendCommand, agentStatus, termOutput }
 
           {/* Bottom Half: LIVE TERMINAL */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', border: '1px solid rgba(0, 255, 213, 0.3)', borderRadius: '4px', background: '#000', overflow: 'hidden' }}>
-            <div style={{ padding: '8px 12px', borderBottom: '1px solid rgba(0, 255, 213, 0.3)', color: 'var(--accent)', fontFamily: 'Orbitron', fontSize: '0.7rem', background: 'rgba(0, 255, 213, 0.1)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div className="terminal-bar-dot"><span style={{background: '#ff5f56', width:'10px', height:'10px', borderRadius:'50%', display:'inline-block'}}></span></div>
-              LIVE EXECUTION TERMINAL [CONSCIOUSNESS]
-            </div>
             <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
               <Terminal output={termOutput || []} />
             </div>

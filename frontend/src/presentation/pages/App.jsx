@@ -509,6 +509,9 @@ function App() {
   return (
     <div className={`hud-root ${chatLayout === 'side' ? 'layout-side-active' : ''}`}>
       <div className="scan-line"></div>
+      <div className="crt-overlay" />
+      <div className="vignette-overlay" />
+      <div className="perspective-grid" />
 
       {/* Cybernetic hex grid background */}
       <HexGrid status={agentStatus} />
