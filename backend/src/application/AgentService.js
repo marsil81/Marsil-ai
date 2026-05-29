@@ -26,6 +26,7 @@ class AgentService {
         this.autoEvolutionEnabled = false;
         this.evolutionTimer = null;
         this.isWorking = false;
+        this.userLang = 'en';
     }
 
     setWebSocketClient(ws) {
@@ -40,6 +41,8 @@ class AgentService {
     }
 
     async processUserMessage(userMessage, isAutonomous = false, userLang = 'en') {
+        this.userLang = userLang;
+
         // Intercept Evolution Commands
         if (userMessage.startsWith('/EVOLUTION_TOGGLE')) {
             const state = userMessage.split(' ')[1] === 'true';
@@ -88,7 +91,7 @@ Always build clean, fully functional components with beautiful interactive glass
 </hud_inspiration_sources>
 `;
 
-            const langInstruction = userLang === 'ar'
+            const langInstruction = this.userLang === 'ar'
                 ? `CRITICAL LANGUAGE REQUIREMENT:
 - The user's active interface language is set to ARABIC.
 - You MUST respond ONLY in Arabic. Do NOT use any English sentences or explanations.
@@ -99,7 +102,10 @@ Always build clean, fully functional components with beautiful interactive glass
 - You MUST respond ONLY in English. Do NOT use any Arabic characters or translation in your final reply.
 - All headings, text details, and descriptions MUST be in high-end, cybernetic, professional English.`;
 
-            const injectedMessage = isAutonomous ? userMessage : `${MARSIL_CORE_DIRECTIVES}\n\n${hudInspiration}\n\n${langInstruction}\n\nUSER REQUEST:\n${userMessage}`;
+            const injectedMessage = isAutonomous 
+                ? `${userMessage}\n\n${hudInspiration}\n\n${langInstruction}`
+                : `${MARSIL_CORE_DIRECTIVES}\n\n${hudInspiration}\n\n${langInstruction}\n\nUSER REQUEST:\n${userMessage}`;
+
             const response = await claudeCode.run(injectedMessage, process.cwd(), this.wsClient, isAutonomous);
             this._send('agent_status', { status: 'idle' });
             this.isWorking = false;
@@ -128,6 +134,7 @@ Always build clean, fully functional components with beautiful interactive glass
     async runAutonomousCycle() {
         if (this.isWorking) return;
         this._send('log', { message: '🌌 Initiating Autonomous Evolutionary Cycle...' });
+        
         const autoPrompt = `${MARSIL_CORE_DIRECTIVES}
 
 [SYSTEM INITIATION: CONTINUOUS AUTONOMOUS EVOLUTION]
@@ -150,12 +157,13 @@ Your singular directive is: DO NOT STOP after performing just one simple task! Y
 
 [COMPLETION PROTOCOL]
 Once you have fully maximized your productivity in this session, completed multiple high-quality, verified improvements, and verified that everything works perfectly:
-1. Update MARSIL_CHANGELOG.md [MEMORY] in detail with exactly what you did in Arabic.
-2. Update MARSIL_ROADMAP.md [BRAIN] marking completed milestones and planning the next evolutionary steps in Arabic.
+1. Update MARSIL_CHANGELOG.md [MEMORY] in detail with exactly what you did in ${this.userLang === 'ar' ? 'Arabic' : 'English'}.
+2. Update MARSIL_ROADMAP.md [BRAIN] marking completed milestones and planning the next evolutionary steps in ${this.userLang === 'ar' ? 'Arabic' : 'English'}.
 3. Terminate your execution loop.
 
 Do not stop until you have successfully deployed a suite of tangible, high-quality improvements. Use your tools to survey the code now and begin your continuous operational run.`;
-        await this.processUserMessage(autoPrompt, true);
+
+        await this.processUserMessage(autoPrompt, true, this.userLang);
     }
 
     abortCurrentTask() {

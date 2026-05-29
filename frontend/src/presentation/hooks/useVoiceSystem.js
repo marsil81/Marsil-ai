@@ -105,12 +105,28 @@ export function useVoiceSystem(onTranscript) {
 
     // Limit to the first 2-3 clean sentences to keep the assistant brief and futuristic
     const sentences = cleanText.split(/[.।!?।]+/);
-    const briefText = sentences.slice(0, 2).join('. ') + '.';
+    let briefText = sentences.slice(0, 2).join('. ') + '.';
+
+    const isArabic = document.body.dir === 'rtl';
+
+    // Clean other-language characters/passages to avoid mixed pronunciation
+    if (isArabic) {
+      // Arabic Mode: Strip English paragraphs or long word sequences
+      // but preserve simple short technical tokens
+      briefText = briefText.replace(/[a-zA-Z\s]{15,}/g, ' ');
+    } else {
+      // English Mode: Strip all Arabic characters completely
+      briefText = briefText.replace(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g, '');
+    }
+    briefText = briefText.replace(/\s+/g, ' ').trim();
+
+    if (!briefText || briefText === '.') {
+      if (onEnd) onEnd();
+      return;
+    }
 
     const utterance = new SpeechSynthesisUtterance(briefText);
     utteranceRef.current = utterance; // CRITICAL: Save reference to prevent Chrome Garbage Collection bug!
-
-    const isArabic = document.body.dir === 'rtl';
     utterance.lang = isArabic ? 'ar-SA' : 'en-US';
 
     utterance.onstart = () => {
