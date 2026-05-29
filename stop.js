@@ -1,6 +1,6 @@
 const { exec } = require('child_process');
 
-const PORTS = [3001, 5173, 5174];
+const PORTS = [3001, 3002, 5173, 5174];
 
 console.log('⚡ Surgical Shutdown Sequence Initiated...');
 

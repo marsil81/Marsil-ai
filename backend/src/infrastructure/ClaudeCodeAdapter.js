@@ -234,13 +234,25 @@ class ClaudeCodeAdapter {
                 }
             });
 
-            proc.on('close', () => {
+            proc.on('close', (code) => {
                 finalizeText();
-                if (this.ws) this.ws.send(JSON.stringify({ type: 'agent_status', status: 'idle' }));
+                if (this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'agent_status', status: 'idle' }));
+                    if (code !== 0) {
+                        this.ws.send(JSON.stringify({ type: 'log', message: `❌ Claude Code process exited with error code ${code}` }));
+                    }
+                }
+                console.log(`Claude Code process closed with code ${code}`);
                 resolve(fullResponse || 'Done.');
             });
 
-            proc.on('error', (err) => reject(new Error(`Claude Code error: ${err.message}`)));
+            proc.on('error', (err) => {
+                if (this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'log', message: `❌ Claude Code process error: ${err.message}` }));
+                }
+                console.error("Claude Code process error:", err);
+                reject(new Error(`Claude Code error: ${err.message}`));
+            });
 
             this._proc = proc;
         });
