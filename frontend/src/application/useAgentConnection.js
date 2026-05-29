@@ -31,6 +31,12 @@ export function useAgentConnection() {
   useEffect(() => { localStorage.setItem('marsil_chat', JSON.stringify(chatHistory)); }, [chatHistory]);
   useEffect(() => { localStorage.setItem('marsil_tokens', JSON.stringify(tokenData)); }, [tokenData]);
 
+  // Force-clear chat history on mount to clean the chat box completely for the user as requested
+  useEffect(() => {
+    setChatHistory([]);
+    localStorage.removeItem('marsil_chat');
+  }, []);
+
   useEffect(() => {
     const wsClient = new AgentWebSocketClient();
     setClient(wsClient);

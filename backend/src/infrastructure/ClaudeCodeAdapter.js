@@ -231,14 +231,6 @@ class ClaudeCodeAdapter {
         if (!ws) return;
         if (event.type === 'system' || event.type === 'assistant') {
             ws.send(JSON.stringify({ type: 'agent_status', status: 'thinking' }));
-            if (event.message?.content) {
-                for (const b of event.message.content) {
-                    if (b.type === 'tool_use') {
-                        ws.send(JSON.stringify({ type: 'log', message: `⚡ ${b.name}` }));
-                        ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
-                    }
-                }
-            }
         }
     }
 
