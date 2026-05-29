@@ -1,3 +1,4 @@
+require('dotenv/config');
 const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
@@ -33,6 +34,11 @@ async function loadConfig() {
     try {
         const data = await fs.readFile(CONFIG_PATH, 'utf-8');
         const config = { ...DEFAULT_CONFIG, ...JSON.parse(data) };
+        // Environment variables override config.json (safer for secrets)
+        if (process.env.MARSIL_API_KEY) config.apiKey = process.env.MARSIL_API_KEY;
+        if (process.env.MARSIL_PROVIDER) config.provider = process.env.MARSIL_PROVIDER;
+        if (process.env.MARSIL_MODEL) config.model = process.env.MARSIL_MODEL;
+        if (process.env.MARSIL_BASE_URL) config.baseUrl = process.env.MARSIL_BASE_URL;
         claudeCode.setProviderConfig(config);
         anthropicProxy.setTarget(config.baseUrl, config.apiKey, config.model);
         return config;
