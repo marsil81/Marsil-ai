@@ -2,6 +2,9 @@ const os = require('os');
 const agentService = require('../application/AgentService');
 const logger = require('../infrastructure/Logger');
 
+// CPU load snapshot for differential measurement
+let prevCpuTimes = null;
+
 function calculateCpuLoad() {
     const cpus = os.cpus();
     let totalIdle = 0;
@@ -14,6 +17,16 @@ function calculateCpuLoad() {
     }
     const idle = totalIdle / cpus.length;
     const tick = totalTick / cpus.length;
+
+    if (prevCpuTimes) {
+        const deltaIdle = idle - prevCpuTimes.idle;
+        const deltaTick = tick - prevCpuTimes.tick;
+        prevCpuTimes = { idle, tick };
+        if (deltaTick === 0) return '0.0';
+        return ((1 - deltaIdle / deltaTick) * 100).toFixed(1);
+    }
+
+    prevCpuTimes = { idle, tick };
     return ((1 - idle / tick) * 100).toFixed(1);
 }
 

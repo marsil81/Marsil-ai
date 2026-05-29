@@ -13,6 +13,25 @@ const PROVIDER_URLS = {
 // Strip ANSI escape codes (colors, cursor movement) from terminal output
 const ANSI_REGEX = /[][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
+// Shared helper: extract a human-readable summary from a tool-call input object
+function summarizeToolInput(toolName, inputObj) {
+    if (!inputObj) return '';
+    let summary = '';
+    if (toolName === 'Bash' || toolName === 'PowerShell' || toolName === 'run_command') {
+        summary = inputObj.command || inputObj.CommandLine || '';
+    } else if (toolName === 'Glob' || toolName === 'Grep' || toolName === 'grep_search') {
+        summary = inputObj.pattern || inputObj.query || inputObj.Query || '';
+    } else if (toolName === 'ReplaceFileContent' || toolName === 'replace_file_content' || toolName === 'multi_replace_file_content') {
+        summary = inputObj.file_path || inputObj.TargetFile || '';
+    } else if (toolName === 'ViewFile' || toolName === 'view_file' || toolName === 'list_dir') {
+        summary = inputObj.file_path || inputObj.AbsolutePath || inputObj.DirectoryPath || '';
+    } else {
+        summary = Object.values(inputObj).join(' ').substring(0, 50);
+    }
+    if (summary.length > 60) summary = '...' + summary.slice(-57);
+    return summary;
+}
+
 class ClaudeCodeAdapter {
     constructor() {
         this.available = false;
@@ -143,24 +162,7 @@ class ClaudeCodeAdapter {
                             if (this.ws) {
                                 try {
                                     const inputObj = JSON.parse(currentToolInput);
-                                    let argsSummary = '';
-
-                                    // Make logs highly readable for the user based on tool type
-                                    if (currentToolName === 'Bash' || currentToolName === 'PowerShell' || currentToolName === 'run_command') {
-                                        argsSummary = inputObj.command || inputObj.CommandLine || '';
-                                    } else if (currentToolName === 'Glob' || currentToolName === 'Grep' || currentToolName === 'grep_search') {
-                                        argsSummary = inputObj.pattern || inputObj.query || inputObj.Query || '';
-                                    } else if (currentToolName === 'ReplaceFileContent' || currentToolName === 'replace_file_content' || currentToolName === 'multi_replace_file_content') {
-                                        argsSummary = inputObj.file_path || inputObj.TargetFile || '';
-                                    } else if (currentToolName === 'ViewFile' || currentToolName === 'view_file' || currentToolName === 'list_dir') {
-                                        argsSummary = inputObj.file_path || inputObj.AbsolutePath || inputObj.DirectoryPath || '';
-                                    } else {
-                                        argsSummary = Object.values(inputObj).join(' ').substring(0, 50);
-                                    }
-
-                                    // Clean up long paths for better UI readability
-                                    if (argsSummary.length > 60) argsSummary = '...' + argsSummary.slice(-57);
-
+                                    const argsSummary = summarizeToolInput(currentToolName, inputObj);
                                     this.ws.send(JSON.stringify({ type: 'log', message: `⚡ ${currentToolName}: ${argsSummary}` }));
                                 } catch (e) {
                                     this.ws.send(JSON.stringify({ type: 'log', message: `⚡ ${currentToolName}` }));
@@ -186,26 +188,10 @@ class ClaudeCodeAdapter {
                                         }
                                     }
                                 } else if (block.type === 'tool_use') {
-                                    const toolName = block.name;
-                                    const inputObj = block.input || {};
-                                    let argsSummary = '';
-
-                                    if (toolName === 'Bash' || toolName === 'PowerShell' || toolName === 'run_command') {
-                                        argsSummary = inputObj.command || inputObj.CommandLine || '';
-                                    } else if (toolName === 'Glob' || toolName === 'Grep' || toolName === 'grep_search') {
-                                        argsSummary = inputObj.pattern || inputObj.query || inputObj.Query || '';
-                                    } else if (toolName === 'ReplaceFileContent' || toolName === 'replace_file_content' || toolName === 'multi_replace_file_content') {
-                                        argsSummary = inputObj.file_path || inputObj.TargetFile || '';
-                                    } else if (toolName === 'ViewFile' || toolName === 'view_file' || toolName === 'list_dir') {
-                                        argsSummary = inputObj.file_path || inputObj.AbsolutePath || inputObj.DirectoryPath || '';
-                                    } else {
-                                        argsSummary = Object.values(inputObj).join(' ').substring(0, 50);
-                                    }
-
-                                    if (argsSummary.length > 60) argsSummary = '...' + argsSummary.slice(-57);
+                                    const argsSummary = summarizeToolInput(block.name, block.input || {});
 
                                     if (this.ws) {
-                                        this.ws.send(JSON.stringify({ type: 'log', message: `⚡ ${toolName}: ${argsSummary}` }));
+                                        this.ws.send(JSON.stringify({ type: 'log', message: `⚡ ${block.name}: ${argsSummary}` }));
                                         this.ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
                                     }
                                 }

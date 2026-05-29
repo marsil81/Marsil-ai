@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 
 export function ParticleReactor({ status, onVisualizerRef, style }) {
   const canvasRef = useRef(null);
@@ -18,7 +18,7 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
           });
         };
         flatten(data);
-        setFileNames(flatList.slice(0, 15)); // bind up to 15 key files to 3D nodes
+        setFileNames(flatList.slice(0, 15));
       })
       .catch(() => {});
   }, []);
@@ -28,20 +28,37 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
     const ctx = canvas.getContext('2d');
     const particles = [];
     const numParticles = 160;
-    let baseRadius = Math.min(window.innerWidth, window.innerHeight) * 0.32;
-    let radius = baseRadius;
+    let baseRadius = 0;
+    let radius = 0;
     let centerX = 0, centerY = 0;
     let angleX = 0, angleY = 0;
     let amplitude = 0, targetAmplitude = 0;
     let animId;
+    let lastResizeTime = 0;
+    let dpr = 1;
 
     function resize() {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      centerX = canvas.width / 2;
-      centerY = canvas.height / 2;
-      baseRadius = Math.min(canvas.width, canvas.height) * 0.32;
+      dpr = window.devicePixelRatio || 1;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      canvas.style.width = w + 'px';
+      canvas.style.height = h + 'px';
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      centerX = w / 2;
+      centerY = h / 2;
+      baseRadius = Math.min(w, h) * 0.32;
+      radius = baseRadius;
     }
+
+    // Throttled resize handler — at most once per 200ms
+    const handleResize = () => {
+      const now = Date.now();
+      if (now - lastResizeTime < 200) return;
+      lastResizeTime = now;
+      resize();
+    };
 
     function initParticles() {
       particles.length = 0;
@@ -55,13 +72,15 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
           x: x * radius, y: y * radius, z: z * radius,
           baseX: x, baseY: y, baseZ: z,
           size: Math.random() * 2.2 + 1, scale: 1,
-          fileName: fileNames[i % fileNames.length] || null
         });
       }
     }
 
-    // Reinitalize particles when fileNames array is populated
     initParticles();
+
+    // Pre-allocate connection distance check array
+    const connectionThreshold = 55;
+    const connectionThresholdSq = connectionThreshold * connectionThreshold;
 
     function update() {
       const isActive = status === 'thinking' || status === 'executing_tool';
@@ -72,29 +91,30 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       const pulse = Math.sin(Date.now() * 0.002) * 5 + (Math.sin(Date.now() * 0.01) * 8 * amplitude);
       radius = baseRadius + pulse;
 
-      particles.forEach(p => {
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
         let x = p.baseX * radius, y = p.baseY * radius, z = p.baseZ * radius;
         if (amplitude > 0.1) {
           x += (Math.random() - 0.5) * 2 * amplitude;
           y += (Math.random() - 0.5) * 2 * amplitude;
           z += (Math.random() - 0.5) * 2 * amplitude;
         }
-        let x1 = x * Math.cos(angleY) - z * Math.sin(angleY);
-        let z1 = z * Math.cos(angleY) + x * Math.sin(angleY);
-        let y2 = y * Math.cos(angleX) - z1 * Math.sin(angleX);
-        let z2 = z1 * Math.cos(angleX) + y * Math.sin(angleX);
+        const x1 = x * Math.cos(angleY) - z * Math.sin(angleY);
+        const z1 = z * Math.cos(angleY) + x * Math.sin(angleY);
+        const y2 = y * Math.cos(angleX) - z1 * Math.sin(angleX);
+        const z2 = z1 * Math.cos(angleX) + y * Math.sin(angleX);
         p.x = x1 + centerX; p.y = y2 + centerY; p.z = z2;
         p.scale = 400 / (400 + z2);
-      });
+      }
     }
 
     function draw() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
-      // ═══ CONCENTRIC RINGS (Animated, thicker, rotating in opposite directions) ═══
+      // ═══ CONCENTRIC RINGS ═══
       const spinAngle1 = (Date.now() * 0.0006);
       const spinAngle2 = -(Date.now() * 0.001);
-      
+
       const ringRadii = [radius * 1.35, radius * 1.15, radius * 0.85, radius * 0.6];
       const ringStyles = [
         { w: 3, a: 0.28, dash: [40, 80], offset: spinAngle1 * 120 },
@@ -103,28 +123,29 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
         { w: 2, a: 0.2, dash: [], isArc: true, start: spinAngle2, end: spinAngle2 + Math.PI * 0.9 },
       ];
 
-      ringRadii.forEach((r, i) => {
-        const style = ringStyles[i];
+      for (let i = 0; i < ringRadii.length; i++) {
+        const r = ringRadii[i];
+        const s = ringStyles[i];
         ctx.beginPath();
-        ctx.strokeStyle = `rgba(0, 210, 255, ${style.a})`; // Vibrant Sky Blue
-        ctx.lineWidth = style.w;
-        
-        if (style.isArc) {
-          ctx.arc(centerX, centerY, r, style.start, style.end);
+        ctx.strokeStyle = `rgba(0, 210, 255, ${s.a})`;
+        ctx.lineWidth = s.w;
+
+        if (s.isArc) {
+          ctx.arc(centerX, centerY, r, s.start, s.end);
         } else {
           ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
         }
-        
-        if (style.dash.length > 0) {
-          ctx.setLineDash(style.dash);
-          ctx.lineDashOffset = style.offset || 0;
+
+        if (s.dash.length > 0) {
+          ctx.setLineDash(s.dash);
+          ctx.lineDashOffset = s.offset || 0;
         } else {
           ctx.setLineDash([]);
         }
-        
+
         ctx.stroke();
         ctx.setLineDash([]);
-      });
+      }
 
       // ═══ TICK MARKS ═══
       const outerR = radius * 1.35;
@@ -152,7 +173,7 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       ctx.arc(centerX, centerY, radius * 0.35, 0, Math.PI * 2);
       ctx.fill();
 
-      // ═══ CONNECTIONS ═══
+      // ═══ CONNECTIONS (O(n²) with squared distance — avoids sqrt) ═══
       ctx.strokeStyle = `rgba(0,220,255,${0.12 + amplitude * 0.2})`;
       ctx.lineWidth = 0.6;
       ctx.beginPath();
@@ -161,7 +182,7 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
         for (let j = i + 1; j < particles.length; j++) {
           const p2 = particles[j];
           const dx = p1.x - p2.x, dy = p1.y - p2.y, dz = p1.z - p2.z;
-          if (Math.sqrt(dx*dx + dy*dy + dz*dz) < 55) {
+          if (dx * dx + dy * dy + dz * dz < connectionThresholdSq) {
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
           }
@@ -169,15 +190,15 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       }
       ctx.stroke();
 
-      // ═══ PARTICLES & 3D FLOATING CODE FILE NAMES ═══
-      particles.forEach((p, idx) => {
+      // ═══ PARTICLES & 3D FLOATING FILE NAMES ═══
+      for (let idx = 0; idx < particles.length; idx++) {
+        const p = particles[idx];
         const alpha = Math.max(0.15, (p.z + radius) / (2 * radius));
         ctx.fillStyle = `rgba(0,230,255,${alpha})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size * p.scale, 0, Math.PI * 2);
         ctx.fill();
 
-        // 🌟 PILLAR 5: Render active floating file names in 3D perspective space!
         if (p.fileName && alpha > 0.65 && idx % 10 === 0) {
           ctx.font = `${Math.round(8 * p.scale)}px 'Share Tech Mono'`;
           ctx.fillStyle = `rgba(0, 255, 220, ${alpha - 0.15})`;
@@ -193,7 +214,7 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
           ctx.arc(p.x, p.y, p.size * p.scale * 2.5, 0, Math.PI * 2);
           ctx.fill();
         }
-      });
+      }
 
       // ═══ CENTER GLOWING DOT ═══
       ctx.fillStyle = '#fff';
@@ -208,11 +229,11 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
     function animate() { update(); draw(); animId = requestAnimationFrame(animate); }
 
     resize(); animate();
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', handleResize);
     vizRef.current = { setSpeaking: (v) => { targetAmplitude = v ? 1 : 0; } };
     if (onVisualizerRef) onVisualizerRef(vizRef.current);
 
-    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
+    return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', handleResize); };
   }, [status, fileNames]);
 
   return <canvas ref={canvasRef} style={{
