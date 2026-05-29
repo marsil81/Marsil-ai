@@ -3,6 +3,8 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const fs = require('fs/promises');
 const path = require('path');
 const claudeCode = require('../infrastructure/ClaudeCodeAdapter');
@@ -10,10 +12,41 @@ const gitAdapter = require('../infrastructure/GitAdapter');
 const agentService = require('../application/AgentService');
 const webSocketHandler = require('./WebSocketHandler');
 const anthropicProxy = require('../infrastructure/AnthropicProxy');
+const logger = require('../infrastructure/Logger');
 
 const app = express();
-app.use(cors());
+
+// ── Security Middleware ─────────────────────────────────────────────────────
+app.use(helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+}));
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+    methods: ['GET', 'POST', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+}));
 app.use(express.json({ limit: '10mb' }));
+
+// ── Rate Limiting ──────────────────────────────────────────────────────────
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 120,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please try again later.' },
+});
+app.use('/api/', apiLimiter);
+
+// ── Request Logger ─────────────────────────────────────────────────────────
+app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+        const ms = Date.now() - start;
+        logger.info(`${req.method} ${req.originalUrl} → ${res.statusCode} (${ms}ms)`);
+    });
+    next();
+});
 
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
@@ -66,18 +99,25 @@ app.get('/api/config', async (req, res) => {
 
 // ── POST /api/config ─────────────────────────────────────────────────────────
 app.post('/api/config', async (req, res) => {
+    const body = req.body || {};
+    if (body.provider && !['anthropic', 'openai', 'deepseek', 'gemini', 'ollama'].includes(body.provider)) {
+        return res.status(400).json({ error: `Invalid provider: "${body.provider}". Supported: anthropic, openai, deepseek, gemini, ollama` });
+    }
+    if (body.budget !== undefined && (typeof body.budget !== 'number' || body.budget < 0)) {
+        return res.status(400).json({ error: 'Budget must be a non-negative number' });
+    }
     const existing = await loadConfig();
-    const { provider, apiKey, model, baseUrl, budget } = req.body;
     const newConfig = {
-        provider: provider || existing.provider || 'anthropic',
-        apiKey:   apiKey   || existing.apiKey   || '',
-        model:    model    || existing.model    || 'claude-opus-4-5',
-        baseUrl:  baseUrl  !== undefined ? baseUrl : existing.baseUrl,
-        budget:   budget   !== undefined ? budget  : existing.budget || 0
+        provider: body.provider || existing.provider || 'anthropic',
+        apiKey:   body.apiKey   || existing.apiKey   || '',
+        model:    body.model    || existing.model    || 'claude-opus-4-5',
+        baseUrl:  body.baseUrl  !== undefined ? body.baseUrl : existing.baseUrl,
+        budget:   body.budget   !== undefined ? body.budget  : existing.budget || 0
     };
     await fs.writeFile(CONFIG_PATH, JSON.stringify(newConfig, null, 2));
     claudeCode.setProviderConfig(newConfig);
     anthropicProxy.setTarget(newConfig.baseUrl, newConfig.apiKey, newConfig.model);
+    logger.info('Configuration updated', { provider: newConfig.provider, model: newConfig.model });
     res.json({ success: true });
 });
 
@@ -174,7 +214,7 @@ app.get('/api/health', async (req, res) => {
 
 // ── Global Error Handler ─────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {
-    console.error(`[Unhandled Error] ${req.method} ${req.path}:`, err.message);
+    logger.error(`Unhandled error on ${req.method} ${req.path}`, { message: err.message });
     res.status(err.status || 500).json({
         error: err.message || 'Internal Server Error'
     });
@@ -187,17 +227,17 @@ wss.on('connection', (ws) => {
 
 // ── Graceful Shutdown ────────────────────────────────────────────────────────
 async function shutdown(signal) {
-    console.log(`\n${signal} received — shutting down gracefully...`);
+    logger.info(`${signal} received — shutting down gracefully...`);
     wss.clients.forEach((client) => {
         client.close(1001, 'Server shutting down');
     });
     anthropicProxy.stop();
     server.close(() => {
-        console.log('Server closed.');
+        logger.info('Server closed.');
         process.exit(0);
     });
     setTimeout(() => {
-        console.error('Forced shutdown after timeout.');
+        logger.error('Forced shutdown after timeout.');
         process.exit(1);
     }, 10000);
 }
@@ -205,11 +245,11 @@ async function shutdown(signal) {
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('uncaughtException', (err) => {
-    console.error('[Uncaught Exception]', err);
+    logger.error('Uncaught exception', { message: err.message, stack: err.stack });
     shutdown('UNCAUGHT_EXCEPTION');
 });
 process.on('unhandledRejection', (reason) => {
-    console.error('[Unhandled Rejection]', reason);
+    logger.error('Unhandled rejection', { message: reason?.message || String(reason) });
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────
@@ -219,11 +259,11 @@ server.listen(PORT, async () => {
     try {
         await anthropicProxy.start(3002);
     } catch (err) {
-        console.error('Failed to start local Anthropic-to-OpenAI proxy on port 3002:', err.message);
+        logger.error('Failed to start local Anthropic-to-OpenAI proxy on port 3002', { message: err.message });
     }
     const status = claudeCode.isAvailable()
         ? `Claude Code ${claudeCode.version} ✓`
         : `Claude Code NOT FOUND — install with: npm i -g @anthropic-ai/claude-code`;
-    console.log(`Marsil Backend  →  http://localhost:${PORT}`);
-    console.log(`Engine: ${status}`);
+    logger.info(`Marsil Backend → http://localhost:${PORT}`);
+    logger.info(`Engine: ${status}`);
 });

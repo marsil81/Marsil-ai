@@ -1,4 +1,5 @@
 const { spawn, execSync } = require('child_process');
+const logger = require('./Logger');
 
 // Provider base URLs for Claude Code compatibility
 const PROVIDER_URLS = {
@@ -171,6 +172,51 @@ class ClaudeCodeAdapter {
                             for (const block of event.message.content) {
                                 if (block.type === 'text') {
                                     assistantTextBuffer += block.text;
+                                    if (this.ws) {
+                                        if (isAutonomous) {
+                                            const lines = block.text.split('\n');
+                                            for (const line of lines) {
+                                                if (line.trim()) this.ws.send(JSON.stringify({ type: 'log', message: `💭 ${line}` }));
+                                            }
+                                        } else {
+                                            this.ws.send(JSON.stringify({ type: 'chat_delta', text: block.text }));
+                                        }
+                                    }
+                                } else if (block.type === 'tool_use') {
+                                    const toolName = block.name;
+                                    const inputObj = block.input || {};
+                                    let argsSummary = '';
+                                    
+                                    if (toolName === 'Bash' || toolName === 'PowerShell' || toolName === 'run_command') {
+                                        argsSummary = inputObj.command || inputObj.CommandLine || '';
+                                    } else if (toolName === 'Glob' || toolName === 'Grep' || toolName === 'grep_search') {
+                                        argsSummary = inputObj.pattern || inputObj.query || inputObj.Query || '';
+                                    } else if (toolName === 'ReplaceFileContent' || toolName === 'replace_file_content' || toolName === 'multi_replace_file_content') {
+                                        argsSummary = inputObj.file_path || inputObj.TargetFile || '';
+                                    } else if (toolName === 'ViewFile' || toolName === 'view_file' || toolName === 'list_dir') {
+                                        argsSummary = inputObj.file_path || inputObj.AbsolutePath || inputObj.DirectoryPath || '';
+                                    } else {
+                                        argsSummary = Object.values(inputObj).join(' ').substring(0, 50);
+                                    }
+
+                                    if (argsSummary.length > 60) argsSummary = '...' + argsSummary.slice(-57);
+
+                                    if (this.ws) {
+                                        this.ws.send(JSON.stringify({ type: 'log', message: `⚡ ${toolName}: ${argsSummary}` }));
+                                        this.ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
+                                    }
+                                }
+                            }
+                        }
+
+                        if (event.type === 'user' && event.message?.content) {
+                            for (const block of event.message.content) {
+                                if (block.type === 'tool_result') {
+                                    if (this.ws) {
+                                        let resultSummary = typeof block.content === 'string' ? block.content : JSON.stringify(block.content);
+                                        if (resultSummary.length > 80) resultSummary = resultSummary.substring(0, 77) + '...';
+                                        this.ws.send(JSON.stringify({ type: 'log', message: `✓ Tool output: ${resultSummary}` }));
+                                    }
                                 }
                             }
                         }

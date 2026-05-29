@@ -1,5 +1,6 @@
 const os = require('os');
 const agentService = require('../application/AgentService');
+const logger = require('../infrastructure/Logger');
 
 function calculateCpuLoad() {
     const cpus = os.cpus();
