@@ -304,7 +304,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   .priority-panel { width: 180px; right: 15px; }
   .data-panel { width: 180px; right: 15px; }
   .resource-panel-right { width: 220px; right: 15px; }
-  .radar-container-panel { right: 210px; }
+  .radar-container-panel { right: 210px; top: 110px; }
   .bottom-chat-panel { width: 480px; }
 }
 
@@ -315,7 +315,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   .priority-panel { width: 140px; right: 10px; }
   .data-panel { width: 140px; right: 10px; }
   .resource-panel-right { width: 160px; right: 10px; }
-  .radar-container-panel { right: 170px; }
+  .radar-container-panel { right: 170px; top: 100px; }
   .bottom-chat-panel { width: 380px; }
   .top-bar { padding: 10px 15px; }
   .logo { font-size: 1rem; }
@@ -477,6 +477,26 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   right: 290px;
   padding: 8px;
   z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(3,14,35,0.65);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 15px rgba(0,184,255,0.05), var(--tech-glow);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  animation: radarPulse 4s ease-in-out infinite;
+}
+.radar-container-panel::before, .radar-container-panel::after {
+  content: ''; position: absolute; width: 10px; height: 10px;
+  border-color: var(--accent); border-style: solid;
+}
+.radar-container-panel::before { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
+.radar-container-panel::after { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
+
+@keyframes radarPulse {
+  0%, 100% { box-shadow: inset 0 0 15px rgba(0,184,255,0.05), var(--tech-glow); }
+  50% { box-shadow: inset 0 0 25px rgba(0,255,213,0.08), 0 0 25px rgba(0,255,213,0.15); }
 }
 
 /* Chat container positioning when side docked */

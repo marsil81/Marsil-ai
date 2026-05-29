@@ -50,6 +50,7 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       centerY = h / 2;
       baseRadius = Math.min(w, h) * 0.32;
       radius = baseRadius;
+      offscreenDirty = true;
     }
 
     // Throttled resize handler — at most once per 200ms
@@ -84,6 +85,53 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
     const connectionThreshold = 55;
     const connectionThresholdSq = connectionThreshold * connectionThreshold;
 
+    // ── Offscreen canvas for static background elements ──
+    const offscreen = document.createElement('canvas');
+    const offCtx = offscreen.getContext('2d');
+    let offscreenDirty = true;
+
+    function drawStaticBackground() {
+      if (!offCtx) return;
+      const w = canvas.width, h = canvas.height;
+      offscreen.width = w;
+      offscreen.height = h;
+      offCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      offCtx.clearRect(0, 0, w / dpr, h / dpr);
+
+      // Concentric rings (static positions, will be re-drawn if needed)
+      const ringRadii = [baseRadius * 1.35, baseRadius * 1.15, baseRadius * 0.85, baseRadius * 0.6];
+      const ringStyles = [
+        { w: 3, a: 0.28 },
+        { w: 4, a: 0.38 },
+        { w: 2.5, a: 0.22 },
+        { w: 2, a: 0.2 },
+      ];
+      for (let i = 0; i < ringRadii.length; i++) {
+        const r = ringRadii[i];
+        const s = ringStyles[i];
+        offCtx.beginPath();
+        offCtx.strokeStyle = `rgba(0, 210, 255, ${s.a})`;
+        offCtx.lineWidth = s.w;
+        offCtx.arc(centerX, centerY, r, 0, Math.PI * 2);
+        offCtx.stroke();
+      }
+
+      // Tick marks
+      for (let i = 0; i < 72; i++) {
+        const a = (Math.PI * 2 * i) / 72;
+        const isMaj = i % 6 === 0;
+        const r1 = baseRadius * 1.35, r2 = isMaj ? baseRadius * 1.35 + 10 : baseRadius * 1.35 + 5;
+        offCtx.beginPath();
+        offCtx.moveTo(centerX + Math.cos(a) * r1, centerY + Math.sin(a) * r1);
+        offCtx.lineTo(centerX + Math.cos(a) * r2, centerY + Math.sin(a) * r2);
+        offCtx.strokeStyle = isMaj ? 'rgba(0,230,255,0.45)' : 'rgba(0,230,255,0.18)';
+        offCtx.lineWidth = isMaj ? 2 : 0.8;
+        offCtx.stroke();
+      }
+
+      offscreenDirty = false;
+    }
+
     function update() {
       const isActive = status === 'thinking' || status === 'executing_tool';
       targetAmplitude = isActive ? 1.0 : 0.0;
@@ -113,56 +161,42 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
     function draw() {
       ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
-      // ═══ CONCENTRIC RINGS ═══
+      // ── Static background (rings + ticks) from offscreen canvas ──
+      if (offscreenDirty) drawStaticBackground();
+      ctx.drawImage(offscreen, 0, 0);
+
+      // ── Rotating ring arcs (dynamic — can't cache) ──
       const spinAngle1 = (Date.now() * 0.0006);
       const spinAngle2 = -(Date.now() * 0.001);
-
-      const ringRadii = [radius * 1.35, radius * 1.15, radius * 0.85, radius * 0.6];
-      const ringStyles = [
-        { w: 3, a: 0.28, dash: [40, 80], offset: spinAngle1 * 120 },
-        { w: 4, a: 0.38, dash: [], isArc: true, start: spinAngle1, end: spinAngle1 + Math.PI * 1.6 },
-        { w: 2.5, a: 0.22, dash: [10, 15], offset: spinAngle2 * 60 },
-        { w: 2, a: 0.2, dash: [], isArc: true, start: spinAngle2, end: spinAngle2 + Math.PI * 0.9 },
+      const arcStyles = [
+        { r: baseRadius * 1.15, w: 4, a: 0.38, start: spinAngle1, end: spinAngle1 + Math.PI * 1.6 },
+        { r: baseRadius * 0.6, w: 2, a: 0.2, start: spinAngle2, end: spinAngle2 + Math.PI * 0.9 },
       ];
-
-      for (let i = 0; i < ringRadii.length; i++) {
-        const r = ringRadii[i];
-        const s = ringStyles[i];
+      for (const s of arcStyles) {
         ctx.beginPath();
         ctx.strokeStyle = `rgba(0, 210, 255, ${s.a})`;
         ctx.lineWidth = s.w;
-
-        if (s.isArc) {
-          ctx.arc(centerX, centerY, r, s.start, s.end);
-        } else {
-          ctx.arc(centerX, centerY, r, 0, Math.PI * 2);
-        }
-
-        if (s.dash.length > 0) {
-          ctx.setLineDash(s.dash);
-          ctx.lineDashOffset = s.offset || 0;
-        } else {
-          ctx.setLineDash([]);
-        }
-
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-
-      // ═══ TICK MARKS ═══
-      const outerR = radius * 1.35;
-      const t = Date.now() * 0.00008;
-      for (let i = 0; i < 72; i++) {
-        const a = (Math.PI * 2 * i) / 72 + t;
-        const isMaj = i % 6 === 0;
-        const r1 = outerR, r2 = isMaj ? outerR + 10 : outerR + 5;
-        ctx.beginPath();
-        ctx.moveTo(centerX + Math.cos(a) * r1, centerY + Math.sin(a) * r1);
-        ctx.lineTo(centerX + Math.cos(a) * r2, centerY + Math.sin(a) * r2);
-        ctx.strokeStyle = isMaj ? 'rgba(0,230,255,0.45)' : 'rgba(0,230,255,0.18)';
-        ctx.lineWidth = isMaj ? 2 : 0.8;
+        ctx.arc(centerX, centerY, s.r, s.start, s.end);
         ctx.stroke();
       }
+
+      // ── Dashed spinning rings ──
+      ctx.setLineDash([40, 80]);
+      ctx.lineDashOffset = spinAngle1 * 120;
+      ctx.strokeStyle = `rgba(0, 210, 255, 0.28)`;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, baseRadius * 1.35, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.setLineDash([10, 15]);
+      ctx.lineDashOffset = spinAngle2 * 60;
+      ctx.strokeStyle = `rgba(0, 210, 255, 0.22)`;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, baseRadius * 0.85, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
 
       // ═══ CORE GLOW ═══
       const coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius * 0.35);
@@ -176,21 +210,23 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       ctx.fill();
 
       // ═══ CONNECTIONS (O(n²) with squared distance — avoids sqrt) ═══
-      ctx.strokeStyle = `rgba(0,220,255,${0.12 + amplitude * 0.2})`;
-      ctx.lineWidth = 0.6;
-      ctx.beginPath();
-      for (let i = 0; i < particles.length; i++) {
-        const p1 = particles[i];
-        for (let j = i + 1; j < particles.length; j++) {
-          const p2 = particles[j];
-          const dx = p1.x - p2.x, dy = p1.y - p2.y, dz = p1.z - p2.z;
-          if (dx * dx + dy * dy + dz * dz < connectionThresholdSq) {
-            ctx.moveTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
+      if (amplitude > 0.05) {
+        ctx.strokeStyle = `rgba(0,220,255,${0.12 + amplitude * 0.2})`;
+        ctx.lineWidth = 0.6;
+        ctx.beginPath();
+        for (let i = 0; i < particles.length; i++) {
+          const p1 = particles[i];
+          for (let j = i + 1; j < particles.length; j++) {
+            const p2 = particles[j];
+            const dx = p1.x - p2.x, dy = p1.y - p2.y, dz = p1.z - p2.z;
+            if (dx * dx + dy * dy + dz * dz < connectionThresholdSq) {
+              ctx.moveTo(p1.x, p1.y);
+              ctx.lineTo(p2.x, p2.y);
+            }
           }
         }
+        ctx.stroke();
       }
-      ctx.stroke();
 
       // ═══ PARTICLES & 3D FLOATING FILE NAMES ═══
       for (let idx = 0; idx < particles.length; idx++) {

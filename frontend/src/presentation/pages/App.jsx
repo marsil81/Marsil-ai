@@ -11,6 +11,7 @@ import { Terminal } from '../components/Terminal';
 import { EvolutionModal } from '../components/EvolutionModal';
 import { KeyboardShortcuts } from '../components/KeyboardShortcuts';
 import { StatusBar } from '../components/StatusBar';
+import { CircularGauge } from '../components/CircularGauge';
 import { useAgentConnection } from '../../application/useAgentConnection';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useVoiceSystem } from '../hooks/useVoiceSystem';
@@ -253,13 +254,15 @@ function DiagDot({ label, ok, sub }) {
 }
 
 // ── Skeleton Panel (loading placeholder) ─────────────────────────────────────────
-function SkeletonPanel({ width, height, lines = 6 }) {
+function SkeletonPanel({ lines = 6 }) {
+  // Deterministic widths to avoid Math.random() in render (React purity rule)
+  const widths = [55, 70, 45, 60, 50, 65, 40, 75, 52, 58];
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px' }}>
       {Array.from({ length: lines }, (_, i) => (
         <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div className="skeleton-box" style={{
-            width: `${40 + Math.random() * 30}%`, height: '8px', borderRadius: '2px',
+            width: `${widths[i % widths.length]}%`, height: '8px', borderRadius: '2px',
           }} />
         </div>
       ))}
@@ -488,12 +491,12 @@ function App() {
     return () => clearInterval(id);
   }, []);
 
-  // Mark panels as loaded once we have metrics data
-  useEffect(() => {
-    if (!panelsLoaded && metrics.cpu !== 0 && metrics.ram !== 0) {
-      setPanelsLoaded(true);
-    }
-  }, [metrics, panelsLoaded]);
+  // Mark panels as loaded once we have metrics data (derived state)
+  const panelsReady = panelsLoaded || (metrics.cpu !== 0 && metrics.ram !== 0);
+  if (!panelsLoaded && panelsReady) {
+    // Trigger once outside render cycle via setTimeout
+    setTimeout(() => setPanelsLoaded(true), 0);
+  }
 
   // ── Token History Sparkline ──────────────────────────────────────────────────
   const prevTotalRef = useRef(0);
@@ -636,8 +639,16 @@ function App() {
 
   const toggleLang = useCallback(() => {
     playChirp(1000, 0.05);
-    i18n.changeLanguage(i18n.language === 'en' ? 'ar' : 'en');
-  }, [playChirp, i18n]);
+    const newLang = i18n.language === 'en' ? 'ar' : 'en';
+    i18n.changeLanguage(newLang);
+    sendCommand(`/SET_LANG ${newLang}`, newLang);
+  }, [playChirp, i18n, sendCommand]);
+
+  useEffect(() => {
+    if (connectionStatus === 'connected') {
+      sendCommand(`/SET_LANG ${i18n.language}`, i18n.language);
+    }
+  }, [connectionStatus, i18n.language, sendCommand]);
 
   // ── Global Keyboard Shortcuts ──────────────────────────────────────────────
   useEffect(() => {
@@ -697,7 +708,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showSettings, showConsole, showEvolution, selectedFile, clearChat, toggleLang, abortAgent]);
+  }, [showSettings, showConsole, showEvolution, showShortcuts, selectedFile, clearChat, toggleLang, abortAgent]);
 
   let circleCls = 'status-circle';
   if (agentStatus === 'thinking' || agentStatus === 'executing_tool') circleCls += ' thinking';
@@ -810,17 +821,11 @@ function App() {
         <div className="tech-panel-header">
           <span>⚙ {t("gauges")}</span>
         </div>
-        <div className="data-bar-row">
-          <span className="data-bar-label">CPU</span>
-          <div className="data-bar-track"><div className="data-bar-fill" style={{ width: `${metrics.cpu || 0}%` }}></div></div>
-          <span className="data-bar-val">{metrics.cpu || 0}%</span>
+        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '4px 0' }}>
+          <CircularGauge label="CPU" value={metrics.cpu || 0} color="#00a2ff" size={80} />
+          <CircularGauge label="RAM" value={metrics.ram || 0} color="#00ffd5" size={80} />
         </div>
-        <div className="data-bar-row">
-          <span className="data-bar-label">RAM</span>
-          <div className="data-bar-track"><div className="data-bar-fill" style={{ width: `${metrics.ram || 0}%` }}></div></div>
-          <span className="data-bar-val">{metrics.ram || 0}%</span>
-        </div>
-        <div className="data-bar-row">
+        <div className="data-bar-row" style={{ marginTop: '4px' }}>
           <span className="data-bar-label">NET</span>
           <div className="data-bar-track"><div className="data-bar-fill" style={{ width: '48%' }}></div></div>
           <span className="data-bar-val">48%</span>
@@ -1027,6 +1032,9 @@ function App() {
         metrics={metrics}
         agentStatus={agentStatus}
         sysConfig={sysConfig}
+        onConsoleToggle={() => setShowConsole(prev => !prev)}
+        onSettingsToggle={() => setShowSettings(prev => !prev)}
+        onAbort={abortAgent}
       />
       <ToastContainer toasts={toasts} />
       <AnimatePresence>

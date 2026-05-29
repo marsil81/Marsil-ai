@@ -44,6 +44,14 @@ class AgentService {
     async processUserMessage(userMessage, isAutonomous = false, userLang = 'en') {
         this.userLang = userLang;
 
+        // Intercept Language Synced Commands
+        if (userMessage.startsWith('/SET_LANG')) {
+            const lang = userMessage.split(' ')[1] || 'en';
+            this.userLang = lang;
+            this._send('log', { message: `System: Language synced to ${lang.toUpperCase()}` });
+            return null;
+        }
+
         // Intercept Evolution Commands
         if (userMessage.startsWith('/EVOLUTION_TOGGLE')) {
             const state = userMessage.split(' ')[1] === 'true';

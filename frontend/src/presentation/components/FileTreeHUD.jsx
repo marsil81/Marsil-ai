@@ -142,6 +142,7 @@ export function FileTreeHUD({ onFileSelect }) {
   const [tree, setTree] = useState([]);
   const [expanded, setExpanded] = useState({});
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
 
   const fetchTree = useCallback(() => {
     fetch('http://localhost:3001/api/files')
@@ -211,6 +212,25 @@ export function FileTreeHUD({ onFileSelect }) {
     return () => window.removeEventListener('click', close);
   }, []);
 
+  // ── Recursive tree filter ──
+  function filterTree(nodes, query) {
+    if (!query) return nodes;
+    const lower = query.toLowerCase();
+    return nodes.reduce((acc, node) => {
+      if (node.isDirectory) {
+        const children = filterTree(node.children || [], query);
+        if (children.length > 0 || node.name.toLowerCase().includes(lower)) {
+          acc.push({ ...node, children });
+        }
+      } else if (node.name.toLowerCase().includes(lower)) {
+        acc.push(node);
+      }
+      return acc;
+    }, []);
+  }
+
+  const filteredTree = filter ? filterTree(tree, filter) : tree;
+
   const renderNode = (node) => {
     if (node.isDirectory) {
       const isExp = expanded[node.path];
@@ -261,6 +281,41 @@ export function FileTreeHUD({ onFileSelect }) {
       {/* Git Branch Selector */}
       <GitBranchSelector />
 
+      {/* File Search / Filter */}
+      <div style={{ marginBottom: '6px', position: 'relative' }}>
+        <input
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          placeholder="Search files..."
+          style={{
+            width: '100%',
+            background: 'rgba(0,100,250,0.05)',
+            border: '1px solid rgba(0,162,255,0.15)',
+            color: 'var(--text)',
+            fontFamily: "'Share Tech Mono', monospace",
+            fontSize: '0.5rem',
+            padding: '3px 6px',
+            borderRadius: '3px',
+            outline: 'none',
+            transition: 'border-color 0.2s',
+          }}
+          onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+          onBlur={(e) => e.target.style.borderColor = 'rgba(0,162,255,0.15)'}
+        />
+        {filter && (
+          <button
+            onClick={() => setFilter('')}
+            style={{
+              position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)',
+              background: 'transparent', border: 'none', color: 'var(--text-dim)',
+              cursor: 'pointer', fontSize: '0.45rem', padding: '2px',
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
       {/* New File Button */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
         <button onClick={handleNewFile} style={{
@@ -298,7 +353,12 @@ export function FileTreeHUD({ onFileSelect }) {
       )}
 
       {/* Tree */}
-      {!loading && tree.map(node => renderNode(node))}
+      {!loading && filteredTree.map(node => renderNode(node))}
+      {!loading && filter && filteredTree.length === 0 && (
+        <div style={{ fontSize: '0.5rem', color: 'var(--text-dim)', padding: '8px 4px', textAlign: 'center' }}>
+          No files matching "{filter}"
+        </div>
+      )}
 
       {/* Context Menu */}
       {contextMenu && (

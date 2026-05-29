@@ -1,4 +1,4 @@
-import { Wifi, WifiOff, Clock, Cpu, HardDrive, Activity } from 'lucide-react';
+import { Wifi, WifiOff, Clock, Cpu, HardDrive, Activity, Terminal, Settings, XCircle } from 'lucide-react';
 
 function formatUptime(seconds) {
   if (!seconds) return '00:00:00';
@@ -22,7 +22,7 @@ function getLatencyLabel(ms) {
   return `${ms}ms`;
 }
 
-export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentStatus, sysConfig }) {
+export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentStatus, sysConfig, onConsoleToggle, onSettingsToggle, onAbort }) {
   const isConnected = connectionStatus === 'connected';
   const isReconnecting = connectionStatus === 'reconnecting';
 
@@ -74,22 +74,52 @@ export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentS
         </div>
       </div>
 
-      {/* Center: Agent Status */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '6px',
-        fontFamily: 'Orbitron', fontSize: '0.5rem', letterSpacing: '1.5px',
-      }}>
-        <span style={{
-          width: '5px', height: '5px', borderRadius: '50%',
-          background: agentStatus === 'thinking' || agentStatus === 'executing_tool'
-            ? '#00ffd5' : (agentStatus === 'error' ? '#ef4444' : '#22c55e'),
-          boxShadow: agentStatus === 'thinking' || agentStatus === 'executing_tool'
-            ? '0 0 6px rgba(0,255,213,0.6)' : 'none',
-          animation: agentStatus === 'thinking' ? 'pulse 0.8s infinite' : 'none',
-        }} />
-        <span style={{ color: 'rgba(180,220,255,0.6)' }}>
-          {agentStatus.toUpperCase()}
-        </span>
+      {/* Center: Agent Status + Quick Actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '6px',
+          fontFamily: 'Orbitron', fontSize: '0.5rem', letterSpacing: '1.5px',
+        }}>
+          <span style={{
+            width: '5px', height: '5px', borderRadius: '50%',
+            background: agentStatus === 'thinking' || agentStatus === 'executing_tool'
+              ? '#00ffd5' : (agentStatus === 'error' ? '#ef4444' : '#22c55e'),
+            boxShadow: agentStatus === 'thinking' || agentStatus === 'executing_tool'
+              ? '0 0 6px rgba(0,255,213,0.6)' : 'none',
+            animation: agentStatus === 'thinking' ? 'pulse 0.8s infinite' : 'none',
+          }} />
+          <span style={{ color: 'rgba(180,220,255,0.6)' }}>
+            {agentStatus.toUpperCase()}
+          </span>
+        </div>
+
+        {/* Quick Action Buttons */}
+        <div style={{ display: 'flex', gap: '2px', borderLeft: '1px solid rgba(0,184,255,0.1)', paddingLeft: '8px' }}>
+          <button onClick={onConsoleToggle} title="Toggle Console (Ctrl+Shift+C)" style={{
+            background: 'transparent', border: 'none', color: 'rgba(180,220,255,0.35)', cursor: 'pointer',
+            padding: '1px 4px', display: 'flex', alignItems: 'center', borderRadius: '2px',
+            transition: 'all 0.2s',
+          }} onMouseEnter={e => e.target.style.color = 'rgba(180,220,255,0.8)'}
+             onMouseLeave={e => e.target.style.color = 'rgba(180,220,255,0.35)'}>
+            <Terminal size={9} />
+          </button>
+          <button onClick={onSettingsToggle} title="Toggle Settings (Ctrl+Shift+S)" style={{
+            background: 'transparent', border: 'none', color: 'rgba(180,220,255,0.35)', cursor: 'pointer',
+            padding: '1px 4px', display: 'flex', alignItems: 'center', borderRadius: '2px',
+            transition: 'all 0.2s',
+          }} onMouseEnter={e => e.target.style.color = 'rgba(180,220,255,0.8)'}
+             onMouseLeave={e => e.target.style.color = 'rgba(180,220,255,0.35)'}>
+            <Settings size={9} />
+          </button>
+          <button onClick={onAbort} title="Abort Agent (Ctrl+Shift+X)" style={{
+            background: 'transparent', border: 'none', color: 'rgba(239,68,68,0.4)', cursor: 'pointer',
+            padding: '1px 4px', display: 'flex', alignItems: 'center', borderRadius: '2px',
+            transition: 'all 0.2s',
+          }} onMouseEnter={e => e.target.style.color = 'rgba(239,68,68,0.8)'}
+             onMouseLeave={e => e.target.style.color = 'rgba(239,68,68,0.4)'}>
+            <XCircle size={9} />
+          </button>
+        </div>
       </div>
 
       {/* Right: System Info */}
