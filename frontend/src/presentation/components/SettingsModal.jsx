@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { X, Eye, EyeOff, ShieldCheck, CheckCircle, AlertCircle, Zap } from 'lucide-react';
 
 // ── Provider definitions ──────────────────────────────────────────────────────
@@ -192,7 +193,11 @@ export function SettingsModal({ onClose }) {
   };
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
       style={{
         position: 'fixed', inset: 0, zIndex: 200,
         background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)',
@@ -200,7 +205,11 @@ export function SettingsModal({ onClose }) {
       }}
       onClick={onClose}
     >
-      <div
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        transition={{ duration: 0.2, ease: 'easeOut' }}
         onClick={e => e.stopPropagation()}
         style={{
           width: '560px', maxHeight: '90vh', overflowY: 'auto',
@@ -211,7 +220,10 @@ export function SettingsModal({ onClose }) {
           padding: '28px',
           fontFamily: "'Share Tech Mono', monospace",
           color: 'var(--text)',
+          position: 'relative',
+          overflow: 'hidden',
         }}
+        className="modal-box"
       >
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -414,8 +426,8 @@ export function SettingsModal({ onClose }) {
             {saved ? '✓ SAVED' : 'SAVE CONFIG'}
           </button>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 

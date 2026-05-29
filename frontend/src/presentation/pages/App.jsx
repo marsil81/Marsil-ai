@@ -280,7 +280,7 @@ function useToasts() {
 function App() {
   const { t, i18n } = useTranslation();
   const { agentStatus, connectionStatus, wsLatency, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
-  const { toasts } = useToasts();
+  const { toasts, addToast } = useToasts();
   const [showSettings, setShowSettings] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
   const [showEvolution, setShowEvolution] = useState(false);
@@ -294,6 +294,7 @@ function App() {
     keyValid: false,
     proxyRunning: false,
   });
+  const [uptime, setUptime] = useState('00:00:00');
   // Token history for sparkline (last 20 data points)
   const [tokenHistory, setTokenHistory] = useState([]);
   const tokenHistoryRef = useRef([]);
@@ -373,6 +374,19 @@ function App() {
   }, []);
 
   // ── Diagnostics Polling ────────────────────────────────────────────────────
+  const prevConnectionRef = useRef(connectionStatus);
+  useEffect(() => {
+    if (prevConnectionRef.current !== connectionStatus) {
+      prevConnectionRef.current = connectionStatus;
+      if (connectionStatus === 'connected') {
+        addToast('WebSocket connected', 'success', 3000);
+      } else if (connectionStatus === 'reconnecting') {
+        addToast('WebSocket reconnecting...', 'warning', 5000);
+      } else if (connectionStatus === 'disconnected') {
+        addToast('WebSocket disconnected', 'error', 5000);
+      }
+    }
+  }, [connectionStatus, addToast]);
   useEffect(() => {
     const check = () => {
       fetch('http://localhost:3001/api/proxy/status')
@@ -393,6 +407,30 @@ function App() {
     const id = setInterval(check, 10000);
     return () => clearInterval(id);
   }, [connectionStatus]);
+
+  // ── Uptime & Metrics Polling ────────────────────────────────────────────────
+  useEffect(() => {
+    const fetchMetrics = () => {
+      fetch('http://localhost:3001/api/metrics')
+        .then(r => r.json())
+        .then(data => {
+          if (data.uptime != null) {
+            const hrs = Math.floor(data.uptime / 3600);
+            const mins = Math.floor((data.uptime % 3600) / 60);
+            const secs = Math.floor(data.uptime % 60);
+            setUptime(
+              String(hrs).padStart(2, '0') + ':' +
+              String(mins).padStart(2, '0') + ':' +
+              String(secs).padStart(2, '0')
+            );
+          }
+        })
+        .catch(() => {});
+    };
+    fetchMetrics();
+    const id = setInterval(fetchMetrics, 5000);
+    return () => clearInterval(id);
+  }, []);
 
   // ── Token History Sparkline ──────────────────────────────────────────────────
   const prevTotalRef = useRef(0);
@@ -421,47 +459,6 @@ function App() {
   useEffect(() => {
     try { localStorage.setItem('marsil_chatWidth', String(chatWidth)); } catch { /* localStorage unavailable */ }
   }, [chatWidth]);
-
-  // ── Global Keyboard Shortcuts ──────────────────────────────────────────────
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      // Ctrl+K: Focus chat input
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        const input = document.querySelector('.chat-input');
-        if (input) input.focus();
-        return;
-      }
-      // Ctrl+Shift+C: Toggle Console
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
-        e.preventDefault();
-        setShowConsole(prev => !prev);
-        return;
-      }
-      // Ctrl+Shift+S: Toggle Settings
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
-        e.preventDefault();
-        setShowSettings(prev => !prev);
-        return;
-      }
-      // Escape: Close modals
-      if (e.key === 'Escape') {
-        if (showSettings) { setShowSettings(false); return; }
-        if (showConsole) { setShowConsole(false); return; }
-        if (showEvolution) { setShowEvolution(false); return; }
-        if (selectedFile) { setSelectedFile(null); return; }
-        return;
-      }
-      // Ctrl+L: Clear chat
-      if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
-        e.preventDefault();
-        clearChat();
-        return;
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showSettings, showConsole, showEvolution, selectedFile, clearChat]);
 
   const handleMouseDown = () => {
     isDraggingRef.current = true;
@@ -574,10 +571,61 @@ function App() {
     }
   };
 
-  const toggleLang = () => {
+  const toggleLang = useCallback(() => {
     playChirp(1000, 0.05);
     i18n.changeLanguage(i18n.language === 'en' ? 'ar' : 'en');
-  };
+  }, [playChirp, i18n]);
+
+  // ── Global Keyboard Shortcuts ──────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const input = document.querySelector('.chat-input');
+        if (input) input.focus();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        setShowConsole(prev => !prev);
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        setShowSettings(prev => !prev);
+        return;
+      }
+      if (e.key === 'Escape') {
+        if (showSettings) { setShowSettings(false); return; }
+        if (showConsole) { setShowConsole(false); return; }
+        if (showEvolution) { setShowEvolution(false); return; }
+        if (selectedFile) { setSelectedFile(null); return; }
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
+        e.preventDefault();
+        setShowEvolution(prev => !prev);
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'L') {
+        e.preventDefault();
+        toggleLang();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'X') {
+        e.preventDefault();
+        abortAgent();
+        return;
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+        e.preventDefault();
+        clearChat();
+        return;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showSettings, showConsole, showEvolution, selectedFile, clearChat, toggleLang, abortAgent]);
 
   let circleCls = 'status-circle';
   if (agentStatus === 'thinking' || agentStatus === 'executing_tool') circleCls += ' thinking';
@@ -611,13 +659,13 @@ function App() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
           <div className="nav-btns">
             <button className={`nav-btn ${showConsole ? 'active' : ''}`} onClick={() => setShowConsole(true)} title="Ctrl+Shift+C"><span className="kbd-hint">⌨</span> CONSOLE</button>
-            <button className={`nav-btn ${showEvolution ? 'active' : ''}`} onClick={() => setShowEvolution(true)} style={{ color: 'var(--primary)', borderColor: 'var(--primary)' }}>EVOLUTION</button>
+            <button className={`nav-btn ${showEvolution ? 'active' : ''}`} onClick={() => setShowEvolution(true)} title="Ctrl+Shift+E" style={{ color: 'var(--primary)', borderColor: 'var(--primary)' }}><span className="kbd-hint">⌨</span> EVOLUTION</button>
             <button className="nav-btn" onClick={() => setShowSettings(true)} title="Ctrl+Shift+S"><span className="kbd-hint">⌨</span> SETTINGS</button>
-            <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} style={{ color: voiceEnabled ? (handsFreeMode ? '#00ffd5' : 'var(--accent)') : 'var(--text-dim)' }}>
+            <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} title={voiceEnabled ? 'Mute Voice' : 'Unmute Voice'} style={{ color: voiceEnabled ? (handsFreeMode ? '#00ffd5' : 'var(--accent)') : 'var(--text-dim)' }}>
               VOICE: {voiceEnabled ? (handsFreeMode ? 'HANDS-FREE' : 'ACTIVE') : 'MUTED'}
             </button>
-            <button className="nav-btn" onClick={toggleLang}>LANG</button>
-            <button className="nav-btn" onClick={abortAgent} style={{ color: '#ff5555' }}>{t("emergency_stop")}</button>
+            <button className="nav-btn" onClick={toggleLang} title="Ctrl+Shift+L">LANG</button>
+            <button className="nav-btn" onClick={abortAgent} title="Ctrl+Shift+X" style={{ color: '#ff5555' }}>{t("emergency_stop")}</button>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <DiagDot label="WS" ok={isConnected} sub={isConnected && wsLatency != null ? `${wsLatency}ms` : null} />
@@ -637,6 +685,7 @@ function App() {
         <div className="sys-row"><span>SIGNAL CORE</span><span className="val">{agentStatus.toUpperCase()}</span></div>
         <div className="sys-row"><span>{t("mem_usage")}</span><span className="val">{metrics.ram || 0}%</span></div>
         <div className="sys-row"><span>{t("cpu_load")}</span><span className="val">{metrics.cpu || 0}%</span></div>
+        <div className="sys-row"><span>UPTIME</span><span className="val">{uptime}</span></div>
         <div className="sys-row"><span>{t("temp")}</span><span className="val">54.8 °C</span></div>
         <div className="sys-row"><span>{t("link")}</span><span className="val">STABLE</span></div>
         <div className="sys-row"><span>{t("workspace")}</span><span className="val">D:\IRON MAN</span></div>
@@ -884,9 +933,7 @@ function App() {
 
       <AnimatePresence>
         {showSettings && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-            <SettingsModal onClose={() => setShowSettings(false)} />
-          </motion.div>
+          <SettingsModal onClose={() => setShowSettings(false)} />
         )}
       </AnimatePresence>
       <AnimatePresence>

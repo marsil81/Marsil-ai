@@ -101,6 +101,11 @@
 - [x] إضافة طوابع زمنية للرسائل في الدردشة.
 - [x] إضافة نقطة نهاية REST `/api/metrics` لمقاييس النظام.
 - [x] تحسين نظام الصوت: احترام إعداد i18n بدلاً من اللغة الثابتة.
+- [x] **SettingsModal AnimatePresence:** motion.div with fade/scale and glassmorphic styling.
+- [x] **WebSocket Connection Toasts:** Toast notifications for connect/reconnecting/disconnect.
+- [x] **Uptime Display:** Poll /api/metrics every 5s, display HH:MM:SS in sys-details.
+- [x] **New Keyboard Shortcuts:** Ctrl+Shift+E (Evolution), Ctrl+Shift+L (Lang), Ctrl+Shift+X (Abort).
+- [x] **useCallback Optimization:** Wrapped 5 functions to prevent unnecessary re-renders.
 - [ ] بناء نظام قراءة وبحث متقدم في ملفات الـ (PDF) والبيانات الخارجية للمستخدم.
 - [ ] تفاعل مارسيل مع أجهزة النظام الأساسية (System Hardware Control).
 - [ ] تفعيل أصوات وتأثيرات بصرية متقدمة للردود الذكية.

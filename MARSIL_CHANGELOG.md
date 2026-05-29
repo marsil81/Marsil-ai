@@ -3,6 +3,17 @@
 هذا الملف مخصص لتسجيل التحديثات التلقائية، التحسينات المعمارية، وإصلاح الأخطاء التي يقوم بها **مارسيل** بشكل ذاتي في الخلفية.
 
 ---
+### [Continuous Enhancement Pack: AnimatePresence Modals, Keyboard Shortcuts, Uptime Display, Connection Toasts, useCallback Optimization] - 2026-05-29
+**Summary:** Executed 8 high-impact improvements in a single continuous evolution cycle:
+- **SettingsModal AnimatePresence:** Converted SettingsModal overlay and container to `motion.div` with fade/scale transitions, added `modal-box` CSS class for cyber corner brackets. Removed redundant wrapper in App.jsx.
+- **WebSocket Connection Toasts:** Connected `useToasts` to `connectionStatus` changes — shows success toast on connect, warning on reconnecting, error on disconnect.
+- **System Uptime Display:** Added `/api/metrics` polling every 5s, parsed uptime into HH:MM:SS format, displayed in sys-details panel between CPU and TEMP.
+- **Keyboard Shortcut Indicators:** Added `⌨` kbd-hint spans to EVOLUTION button, title attributes with shortcuts to VOICE, LANG, and ABORT buttons.
+- **New Global Keyboard Shortcuts:** Ctrl+Shift+E (Evolution Modal), Ctrl+Shift+L (Language Toggle), Ctrl+Shift+X (Abort Agent). Moved keyboard handler useEffect after all function declarations to fix ESLint hoisting error.
+- **useCallback Optimization:** Wrapped `abortAgent`, `clearTokens`, `clearChat`, `sendCommand` in `useAgentConnection.js` with `useCallback` to prevent unnecessary re-renders. Wrapped `toggleLang` in App.jsx with `useCallback`.
+- **ESLint 0 Errors:** Frontend and backend both pass with zero errors. Vite production build compiles successfully (639ms, 452KB JS bundle).
+- **MARSIL_ROADMAP Update:** Marked Phase 10 milestone for UI enhancements and keyboard shortcuts as completed.
+
 ### [حزمة تحسينات مستمرة: AnimatePresence، ErrorBoundary، مؤشر زمني، Sparkline محسّن، مقاييس REST] - 2026-05-29
 **الملخص:** تم تنفيذ 10 مهام تحسينية في جلسة تطور مستمرة واحدة:
 - **AnimatePresence لجميع النوافذ المنبثقة:** إضافة `AnimatePresence` من framer-motion حول SettingsModal و EvolutionModal و Console لضمان تشغيل exit animations عند الإغلاق.

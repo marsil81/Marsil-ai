@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { AgentWebSocketClient } from '../infrastructure/WebSocketClient';
 
 export function useAgentConnection() {
@@ -78,7 +78,7 @@ export function useAgentConnection() {
     return () => wsClient.disconnect();
   }, []);
 
-  const sendCommand = (text, lang = 'en') => {
+  const sendCommand = useCallback((text, lang = 'en') => {
     if (!clientRef.current) return;
     
     // Only add to UI Chat History if it's not a background system command
@@ -92,11 +92,11 @@ export function useAgentConnection() {
     }
     
     clientRef.current.sendChat(text, lang);
-  };
+  }, []);
 
-  const abortAgent  = () => { if (clientRef.current) clientRef.current.sendAbort(); };
-  const clearTokens = () => setTokenData({ tokensIn: 0, tokensOut: 0, totalTokens: 0, provider: '', model: '' });
-  const clearChat   = () => { setChatHistory([]); setTermOutput([]); localStorage.removeItem('marsil_chat'); };
+  const abortAgent  = useCallback(() => { if (clientRef.current) clientRef.current.sendAbort(); }, []);
+  const clearTokens = useCallback(() => setTokenData({ tokensIn: 0, tokensOut: 0, totalTokens: 0, provider: '', model: '' }), []);
+  const clearChat   = useCallback(() => { setChatHistory([]); setTermOutput([]); localStorage.removeItem('marsil_chat'); }, []);
 
   return {
     agentStatus, connectionStatus, wsLatency, metrics, termOutput, chatHistory,
