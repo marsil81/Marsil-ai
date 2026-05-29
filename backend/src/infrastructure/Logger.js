@@ -1,3 +1,5 @@
+const os = require('os');
+
 const LEVELS = { debug: 0, info: 1, warn: 2, error: 3 };
 const COLORS = {
     debug: '\x1b[90m',
@@ -6,6 +8,32 @@ const COLORS = {
     error: '\x1b[31m',
     reset: '\x1b[0m'
 };
+
+// ── Shared CPU Load Calculator (differential, single source of truth) ──────────
+let _prevCpuTimes = null;
+
+function calculateCpuLoad() {
+    const cpus = os.cpus();
+    let totalIdle = 0;
+    let totalTick = 0;
+    for (const cpu of cpus) {
+        totalTick += cpu.times.user + cpu.times.nice + cpu.times.sys + cpu.times.irq + cpu.times.idle;
+        totalIdle += cpu.times.idle;
+    }
+    const idle = totalIdle / cpus.length;
+    const tick = totalTick / cpus.length;
+
+    if (_prevCpuTimes) {
+        const deltaIdle = idle - _prevCpuTimes.idle;
+        const deltaTick = tick - _prevCpuTimes.tick;
+        _prevCpuTimes = { idle, tick };
+        if (deltaTick === 0) return '0.0';
+        return ((1 - deltaIdle / deltaTick) * 100).toFixed(1);
+    }
+
+    _prevCpuTimes = { idle, tick };
+    return '0.0';
+}
 
 const currentLevel = LEVELS[process.env.LOG_LEVEL] ?? LEVELS.info;
 
@@ -49,4 +77,6 @@ module.exports = {
     getBuffer: (limit = 100) => buffer.slice(-limit).reverse(),
     /** Clear the in-memory log buffer to free memory */
     clearBuffer: () => { buffer.length = 0; },
+    /** Shared differential CPU load calculator (used by Server.js & WebSocketHandler.js) */
+    calculateCpuLoad,
 };

@@ -17,32 +17,6 @@ function validateMessage(msg) {
     return { valid: true };
 }
 
-// CPU load snapshot for differential measurement
-let prevCpuTimes = null;
-
-function calculateCpuLoad() {
-    const cpus = os.cpus();
-    let totalIdle = 0;
-    let totalTick = 0;
-    for (const cpu of cpus) {
-        totalTick += cpu.times.user + cpu.times.nice + cpu.times.sys + cpu.times.irq + cpu.times.idle;
-        totalIdle += cpu.times.idle;
-    }
-    const idle = totalIdle / cpus.length;
-    const tick = totalTick / cpus.length;
-
-    if (prevCpuTimes) {
-        const deltaIdle = idle - prevCpuTimes.idle;
-        const deltaTick = tick - prevCpuTimes.tick;
-        prevCpuTimes = { idle, tick };
-        if (deltaTick === 0) return '0.0';
-        return ((1 - deltaIdle / deltaTick) * 100).toFixed(1);
-    }
-
-    prevCpuTimes = { idle, tick };
-    return '0.0'; // First call — return baseline, next call will be differential
-}
-
 class WebSocketHandler {
     handleConnection(ws) {
         agentService.setWebSocketClient(ws);
@@ -104,7 +78,7 @@ class WebSocketHandler {
 
             ws.send(JSON.stringify({
                 type: 'metrics',
-                cpu: calculateCpuLoad(),
+                cpu: logger.calculateCpuLoad(),
                 ram: memUsage
             }));
         }, 5000);

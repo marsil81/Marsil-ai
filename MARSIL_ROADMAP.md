@@ -106,6 +106,14 @@
 - [x] **Uptime Display:** Poll /api/metrics every 5s, display HH:MM:SS in sys-details.
 - [x] **New Keyboard Shortcuts:** Ctrl+Shift+E (Evolution), Ctrl+Shift+L (Lang), Ctrl+Shift+X (Abort).
 - [x] **useCallback Optimization:** Wrapped 5 functions to prevent unnecessary re-renders.
+- [x] **CPU Load Refactor:** Extracted duplicate CPU calculator into shared Logger.js export.
+- [x] **index.css Cleanup:** Replaced Vite defaults with minimal global reset.
+- [x] **i18n Splash Screen:** Suspense wrapper with cyber loading animation.
+- [x] **Keyboard Shortcuts Modal:** `?` key toggles glassmorphic shortcuts overlay.
+- [x] **StatusBar Component:** Persistent bottom bar with connection, latency, uptime, CPU/RAM, provider.
+- [x] **Skeleton Loading:** Shimmer panels for system details, telemetry, and resource monitor.
+- [x] **Toast Sounds:** Distinct audio feedback per toast type.
+- [x] **Network Quality Indicator:** Color-coded latency label in diagnostics bar.
 - [ ] بناء نظام قراءة وبحث متقدم في ملفات الـ (PDF) والبيانات الخارجية للمستخدم.
 - [ ] تفاعل مارسيل مع أجهزة النظام الأساسية (System Hardware Control).
 - [ ] تفعيل أصوات وتأثيرات بصرية متقدمة للردود الذكية.

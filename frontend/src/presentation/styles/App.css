@@ -69,10 +69,10 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
 
 /* ═══ INDIVIDUAL PANELS POSITIONING ═══ */
 .sys-details-panel { top: 120px; left: 30px; width: 280px; }
-.telemetry-panel { top: 480px; left: 30px; width: 360px; bottom: 30px; }
+.telemetry-panel { top: 480px; left: 30px; width: 360px; bottom: 56px; }
 .priority-panel { top: 120px; right: 30px; width: 240px; }
 .data-panel { top: 290px; right: 30px; width: 240px; }
-.resource-panel-right { top: 490px; right: 30px; bottom: 30px; width: 280px; }
+.resource-panel-right { top: 490px; right: 30px; bottom: 56px; width: 280px; }
 
 /* ═══ DYNAMIC LAYOUT COMPONENTS ═══ */
 .sys-row {
@@ -97,7 +97,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
 /* ═══ BOTTOM WIDE DIRECTIVES CENTER ═══ */
 .bottom-chat-container {
   position: absolute;
-  bottom: 30px;
+  bottom: 56px;
   left: 0;
   right: 0;
   display: flex;
@@ -484,7 +484,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   position: absolute;
   top: 120px;
   right: 30px;
-  bottom: 30px;
+  bottom: 56px;
   left: auto;
   width: auto;
   height: auto;
@@ -541,7 +541,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   right: auto;
   width: 280px;
   top: 460px;
-  bottom: 30px;
+  bottom: 56px;
 }
 .layout-side-active .radar-container-panel {
   left: 710px;

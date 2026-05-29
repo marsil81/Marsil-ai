@@ -19,32 +19,6 @@ function apiError(res, status, code, message) {
     return res.status(status).json({ error: { code, message } });
 }
 
-// ── Differential CPU Load (shared with WebSocketHandler pattern) ──────────────────
-let prevCpuTimes = null;
-
-function calculateCpuLoad() {
-    const cpus = os.cpus();
-    let totalIdle = 0;
-    let totalTick = 0;
-    for (const cpu of cpus) {
-        totalTick += cpu.times.user + cpu.times.nice + cpu.times.sys + cpu.times.irq + cpu.times.idle;
-        totalIdle += cpu.times.idle;
-    }
-    const idle = totalIdle / cpus.length;
-    const tick = totalTick / cpus.length;
-
-    if (prevCpuTimes) {
-        const deltaIdle = idle - prevCpuTimes.idle;
-        const deltaTick = tick - prevCpuTimes.tick;
-        prevCpuTimes = { idle, tick };
-        if (deltaTick === 0) return '0.0';
-        return ((1 - deltaIdle / deltaTick) * 100).toFixed(1);
-    }
-
-    prevCpuTimes = { idle, tick };
-    return '0.0';
-}
-
 const app = express();
 
 // ── Security Middleware ─────────────────────────────────────────────────────
@@ -327,7 +301,7 @@ app.get('/api/metrics', async (req, res) => {
     const memTotal = os.totalmem();
     const memUsage = (((memTotal - memFree) / memTotal) * 100).toFixed(1);
     res.json({
-        cpu: calculateCpuLoad(),
+        cpu: logger.calculateCpuLoad(),
         ram: memUsage,
         uptime: process.uptime(),
         timestamp: Date.now(),

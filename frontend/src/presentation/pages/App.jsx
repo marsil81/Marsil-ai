@@ -9,6 +9,8 @@ import { FileTreeHUD } from '../components/FileTreeHUD';
 import { CodeEditor } from '../components/CodeEditor';
 import { Terminal } from '../components/Terminal';
 import { EvolutionModal } from '../components/EvolutionModal';
+import { KeyboardShortcuts } from '../components/KeyboardShortcuts';
+import { StatusBar } from '../components/StatusBar';
 import { useAgentConnection } from '../../application/useAgentConnection';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useVoiceSystem } from '../hooks/useVoiceSystem';
@@ -250,6 +252,51 @@ function DiagDot({ label, ok, sub }) {
   );
 }
 
+// ── Skeleton Panel (loading placeholder) ─────────────────────────────────────────
+function SkeletonPanel({ width, height, lines = 6 }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px' }}>
+      {Array.from({ length: lines }, (_, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div className="skeleton-box" style={{
+            width: `${40 + Math.random() * 30}%`, height: '8px', borderRadius: '2px',
+          }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Network Quality Indicator ────────────────────────────────────────────────────
+function NetworkQuality({ latency }) {
+  const label = latency == null ? 'OFFLINE'
+    : latency < 30 ? 'EXCELLENT'
+    : latency < 80 ? 'GOOD'
+    : latency < 150 ? 'FAIR'
+    : 'POOR';
+  const color = latency == null ? '#ef4444'
+    : latency < 30 ? '#22c55e'
+    : latency < 80 ? '#86efac'
+    : latency < 150 ? '#eab308'
+    : '#ef4444';
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      fontSize: '0.45rem', color: 'rgba(255,255,255,0.2)',
+      fontFamily: "'Share Tech Mono', monospace",
+      marginLeft: '4px',
+    }}>
+      <span style={{
+        width: '5px', height: '5px', borderRadius: '50%',
+        background: color,
+        boxShadow: `0 0 6px ${color}`,
+        display: 'inline-block',
+      }} />
+      NET: {label}
+    </span>
+  );
+}
+
 // ── Toast Notification System ───────────────────────────────────────────────────
 function ToastContainer({ toasts }) {
   if (!toasts.length) return null;
@@ -262,13 +309,20 @@ function ToastContainer({ toasts }) {
   );
 }
 
-function useToasts() {
+function useToasts(soundFx) {
   const [toasts, setToasts] = useState([]);
   const idRef = useRef(0);
 
   const addToast = (message, type = 'info', duration = 4000) => {
     const id = ++idRef.current;
     setToasts(prev => [...prev, { id, message, type }]);
+    // Play sound based on toast type
+    if (soundFx) {
+      if (type === 'success') soundFx.playChirp(1800, 0.1, 'sine');
+      else if (type === 'error') soundFx.playChirp(300, 0.2, 'sawtooth');
+      else if (type === 'warning') soundFx.playChirp(800, 0.12, 'triangle');
+      else soundFx.playChirp(1200, 0.06, 'sine');
+    }
     setTimeout(() => {
       setToasts(prev => prev.filter(t => t.id !== id));
     }, duration);
@@ -280,10 +334,13 @@ function useToasts() {
 function App() {
   const { t, i18n } = useTranslation();
   const { agentStatus, connectionStatus, wsLatency, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
-  const { toasts, addToast } = useToasts();
+  const soundFx = useSoundEffects(agentStatus);
+  const { playChirp, playTick } = soundFx;
+  const { toasts, addToast } = useToasts(soundFx);
   const [showSettings, setShowSettings] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
   const [showEvolution, setShowEvolution] = useState(false);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [clock, setClock] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
@@ -295,6 +352,7 @@ function App() {
     proxyRunning: false,
   });
   const [uptime, setUptime] = useState('00:00:00');
+  const [panelsLoaded, setPanelsLoaded] = useState(false);
   // Token history for sparkline (last 20 data points)
   const [tokenHistory, setTokenHistory] = useState([]);
   const tokenHistoryRef = useRef([]);
@@ -315,8 +373,6 @@ function App() {
       fetchConfig();
     }
   }, [showSettings]);
-
-  const { playChirp, playTick } = useSoundEffects(agentStatus);
 
   const [handsFreeMode, setHandsFreeMode] = useState(false);
   const handsFreeModeRef = useRef(false);
@@ -431,6 +487,13 @@ function App() {
     const id = setInterval(fetchMetrics, 5000);
     return () => clearInterval(id);
   }, []);
+
+  // Mark panels as loaded once we have metrics data
+  useEffect(() => {
+    if (!panelsLoaded && metrics.cpu !== 0 && metrics.ram !== 0) {
+      setPanelsLoaded(true);
+    }
+  }, [metrics, panelsLoaded]);
 
   // ── Token History Sparkline ──────────────────────────────────────────────────
   const prevTotalRef = useRef(0);
@@ -596,11 +659,20 @@ function App() {
         return;
       }
       if (e.key === 'Escape') {
+        if (showShortcuts) { setShowShortcuts(false); return; }
         if (showSettings) { setShowSettings(false); return; }
         if (showConsole) { setShowConsole(false); return; }
         if (showEvolution) { setShowEvolution(false); return; }
         if (selectedFile) { setSelectedFile(null); return; }
         return;
+      }
+      if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tag = e.target?.tagName?.toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea') {
+          e.preventDefault();
+          setShowShortcuts(prev => !prev);
+          return;
+        }
       }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
         e.preventDefault();
@@ -672,6 +744,7 @@ function App() {
             <DiagDot label="API" ok={diagState.keyValid} />
             <DiagDot label="CLD" ok={diagState.claudeAvailable} />
             <DiagDot label="PRX" ok={diagState.proxyRunning} />
+            <NetworkQuality latency={wsLatency} />
           </div>
         </div>
       </div>
@@ -682,13 +755,13 @@ function App() {
           <span>⌂ {t("system_engine")}</span>
           <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("sec")}</span>
         </div>
-        <div className="sys-row"><span>SIGNAL CORE</span><span className="val">{agentStatus.toUpperCase()}</span></div>
+        {!panelsLoaded ? <SkeletonPanel lines={7} /> : <><div className="sys-row"><span>SIGNAL CORE</span><span className="val">{agentStatus.toUpperCase()}</span></div>
         <div className="sys-row"><span>{t("mem_usage")}</span><span className="val">{metrics.ram || 0}%</span></div>
         <div className="sys-row"><span>{t("cpu_load")}</span><span className="val">{metrics.cpu || 0}%</span></div>
         <div className="sys-row"><span>UPTIME</span><span className="val">{uptime}</span></div>
         <div className="sys-row"><span>{t("temp")}</span><span className="val">54.8 °C</span></div>
         <div className="sys-row"><span>{t("link")}</span><span className="val">STABLE</span></div>
-        <div className="sys-row"><span>{t("workspace")}</span><span className="val">D:\IRON MAN</span></div>
+        <div className="sys-row"><span>{t("workspace")}</span><span className="val">D:\IRON MAN</span></div></>}
 
         {/* Holographic File Tree integrated natively */}
         <div style={{ marginTop: '10px', borderTop: '1px solid var(--border)', paddingTop: '8px', cursor: 'default' }} onPointerDown={(e) => e.stopPropagation()}>
@@ -704,10 +777,12 @@ function App() {
           <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("live")}</span>
         </div>
         <div className="chat-msgs" style={{ height: 'calc(100% - 25px)', cursor: 'default' }} onPointerDown={(e) => e.stopPropagation()}>
+          {!panelsLoaded ? <SkeletonPanel lines={8} /> : <>
           {termOutput.length === 0 && <div className="log-line">Marsil AI Terminal Operational...</div>}
           {termOutput.slice(-30).map((line, i) => (
             <div key={i} className="log-line">{line}</div>
           ))}
+          </>}
         </div>
       </motion.div>
 
@@ -761,6 +836,7 @@ function App() {
             fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace'
           }}>CLEAR</button>
         </div>
+        {!panelsLoaded ? <SkeletonPanel lines={6} /> :
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: 'calc(100% - 25px)', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
@@ -853,7 +929,7 @@ function App() {
               );
             })()}
           </div>
-        </div>
+        </div>}
       </motion.div>
 
       {/* ═══ BOTTOM CENTER PANEL: SYSTEM DIRECTIVES (Swapped to bottom center wide) ═══ */}
@@ -944,7 +1020,20 @@ function App() {
         )}
       </AnimatePresence>
 
+      <StatusBar
+        connectionStatus={connectionStatus}
+        wsLatency={wsLatency}
+        uptime={uptime}
+        metrics={metrics}
+        agentStatus={agentStatus}
+        sysConfig={sysConfig}
+      />
       <ToastContainer toasts={toasts} />
+      <AnimatePresence>
+        {showShortcuts && (
+          <KeyboardShortcuts onClose={() => setShowShortcuts(false)} />
+        )}
+      </AnimatePresence>
       <AnimatePresence>
       {showConsole && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="modal-overlay" onClick={() => setShowConsole(false)} style={{ zIndex: 100 }}>

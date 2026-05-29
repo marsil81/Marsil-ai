@@ -3,6 +3,16 @@
 هذا الملف مخصص لتسجيل التحديثات التلقائية، التحسينات المعمارية، وإصلاح الأخطاء التي يقوم بها **مارسيل** بشكل ذاتي في الخلفية.
 
 ---
+### [Continuous Enhancement Pack: CPU Refactor, StatusBar, Keyboard Shortcuts, Skeleton Loading, i18n Splash, Network Quality] - 2026-05-29
+**Summary:** Executed 8 high-impact improvements in a single continuous evolution cycle:
+- **CPU Load Calculation Refactor:** Extracted duplicate `calculateCpuLoad()` from Server.js and WebSocketHandler.js into Logger.js as a single shared export. Eliminated 40 lines of duplicated code.
+- **index.css Cleanup:** Replaced bloated default Vite styles with a minimal global reset (3 rules) — no more conflicting overrides with App.css.
+- **i18n Ready Splash Screen:** Wrapped App in `<Suspense>` with a cyber-styled "INITIALIZING NEURAL INTERFACE" loading animation to prevent flash of untranslated content.
+- **Keyboard Shortcuts Modal:** New `KeyboardShortcuts.jsx` component — press `?` to toggle a glassmorphic modal showing all 9 shortcuts with icons, key badges, and cyber styling.
+- **Bottom StatusBar:** New `StatusBar.jsx` component — persistent bottom bar showing: connection status (WiFi icon + color), latency, uptime, agent status with pulsing dot, CPU/RAM gauges, and provider/model badge. Adjusted all panel bottom positions to accommodate.
+- **Skeleton Loading States:** Added `SkeletonPanel` component with shimmer animation for system details, telemetry, and resource monitoring panels — visible until first metrics data arrives.
+- **Toast Notification Sounds:** Integrated sound effects into `useToasts()` — distinct chirp tones for success (high sine), error (low sawtooth), warning (triangle), and info (short sine).
+- **Network Quality Indicator:** New `NetworkQuality` component in diagnostics bar — color-coded (green/yellow/red) with labels (EXCELLENT/GOOD/FAIR/POOR) based on WebSocket latency thresholds.
 ### [Continuous Enhancement Pack: AnimatePresence Modals, Keyboard Shortcuts, Uptime Display, Connection Toasts, useCallback Optimization] - 2026-05-29
 **Summary:** Executed 8 high-impact improvements in a single continuous evolution cycle:
 - **SettingsModal AnimatePresence:** Converted SettingsModal overlay and container to `motion.div` with fade/scale transitions, added `modal-box` CSS class for cyber corner brackets. Removed redundant wrapper in App.jsx.
