@@ -129,16 +129,26 @@
 - [x] **Animated Data Flow Lines:** SVG particle streams flowing along bezier curves between panels.
 - [x] **StatusBar Hover Previews:** Glassmorphic tooltips with mini sparklines for CPU/RAM on hover.
 
-### المرحلة الثانية عشرة: الذروة البصرية السيبرانية والتجربة الحسية الغامرة (قيد التنفيذ 🔄)
+### المرحلة الثانية عشرة: الذروة البصرية السيبرانية والتجربة الحسية الغامرة (تم الإنجاز ✅)
 - [x] **Cybernetic HUD SystemStatus Widget:** Animated SVG orbital rings with CPU/RAM progress arcs, pulsing reactor core, diagnostic status dots, and uptime display.
 - [x] **Premium AudioVisualizer Component:** Standalone canvas-based visualizer with 4 modes (listening spectrogram, speaking sine waves, thinking radar sweep, idle heartbeat ripple) with glow effects and radial gradients.
 - [x] **Glassmorphic CSS Overhaul:** Expanded CSS custom properties, glass-card pattern, cyber-btn with animated sweep, neon-text gradient, data-stream animation, glitch-text effect, and cyber-ring expand animation.
 - [x] **Panel Scanline Effect:** Horizontal gradient sweep animation on all tech panels for premium HUD aesthetic.
+- [x] **Enhanced CRT Scan-Beam Overlay:** Horizontal glowing beam sweeping top-to-bottom with fade in/out for premium retro-futuristic CRT aesthetic.
+- [x] **Arwes-Inspired Corner Bracket Accents:** Hover-expanding corner brackets with neon glow, self-drawing header underlines on all tech panels.
+- [x] **Tech Warning Badges & HUD Brackets:** `tech-panel-badge`, `tech-header-brackets`, `tech-telem-row`, `tech-cell` with left-edge gradient accent bar.
+- [x] **Enhanced Reactor Core (ParticleReactor):** 7 concentric rings, dual tick-mark rings, 4 rotating arcs, 4 dashed spinning rings, purple accent ring, dual-layer central dot, 8 floating stats with pill containers.
+- [x] **Enhanced Token Sparkline:** Grid background, total counter label, rounded bar gradients, 30-point history window.
+- [x] **Cyber Flicker & Hex Corner Utilities:** Animation and clip-path utility classes.
+
+### المرحلة الثالثة عشرة: التحسينات المتقدمة والذكاء الاصطناعي التفاعلي (قيد التنفيذ 🔄)
 - [ ] **Code Splitting & Lazy Loading:** Route-based splitting for EvolutionModal, SettingsModal, CodeEditor.
 - [ ] **Unit Tests for Backend:** Jest/Vitest test suite for GitAdapter, Logger, and AgentService.  
 - [ ] **System Hardware Integration:** Read CPU temperature, GPU stats, disk I/O via OS-level APIs.
 - [ ] **3D HUD Particle Effects:** Enhanced ParticleReactor with depth-of-field blur, color-shifting particles, and interactive mouse tracking.
 - [ ] **Real-Time System Resource Graphs:** Canvas-based animated line charts for CPU/RAM/Network history with gradient fills.
+- [ ] **Interactive Cyber Sounds:** Integrate hover/click chirps and bleeps for primary buttons.
+- [ ] **Voice Spectrometer Waveform:** Render live audio spectrometer or voice visualizer wave animating actively when speaking.
 
 ---
 **توجيهات مارسيل:** في نهاية كل يوم أو بعد تنفيذ أي طلب ضخم، اقرأ هذه الخريطة، حدد ما تم إنجازه بوضع علامة ✅، واقترح على المستخدم المرحلة التالية لضمان تطورك المستمر.

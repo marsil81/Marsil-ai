@@ -37,12 +37,16 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
     let lastResizeTime = 0;
     let dpr = 1;
 
-    // Floating stats readouts around the core
+    // Floating stats readouts around the core — enhanced with more Jarvis-style orbits
     const statsReadouts = [
       { label: 'SYS', value: 'ONLINE', angle: 0, distance: 1.6 },
       { label: 'PWR', value: '98%', angle: Math.PI * 0.5, distance: 1.55 },
       { label: 'SIG', value: 'STABLE', angle: Math.PI, distance: 1.6 },
       { label: 'NET', value: 'ACTIVE', angle: Math.PI * 1.5, distance: 1.55 },
+      { label: 'TMP', value: '54.8°', angle: Math.PI * 0.25, distance: 1.9 },
+      { label: 'VLT', value: '11.9V', angle: Math.PI * 0.75, distance: 1.9 },
+      { label: 'TKN', value: '0', angle: Math.PI * 1.25, distance: 1.9 },
+      { label: 'MEM', value: '64%', angle: Math.PI * 1.75, distance: 1.9 },
     ];
 
     function resize() {
@@ -106,13 +110,19 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       offCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
       offCtx.clearRect(0, 0, w / dpr, h / dpr);
 
-      // Concentric rings (static positions, will be re-drawn if needed)
-      const ringRadii = [baseRadius * 1.35, baseRadius * 1.15, baseRadius * 0.85, baseRadius * 0.6];
+      // Enhanced concentric rings — more rings for a richer Jarvis-style reactor
+      const ringRadii = [
+        baseRadius * 1.45, baseRadius * 1.35, baseRadius * 1.15,
+        baseRadius * 0.95, baseRadius * 0.85, baseRadius * 0.6, baseRadius * 0.4
+      ];
       const ringStyles = [
+        { w: 1.5, a: 0.12 },
         { w: 3, a: 0.28 },
         { w: 4, a: 0.38 },
+        { w: 1.5, a: 0.15 },
         { w: 2.5, a: 0.22 },
         { w: 2, a: 0.2 },
+        { w: 1.5, a: 0.15 },
       ];
       for (let i = 0; i < ringRadii.length; i++) {
         const r = ringRadii[i];
@@ -124,17 +134,23 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
         offCtx.stroke();
       }
 
-      // Tick marks
-      for (let i = 0; i < 72; i++) {
-        const a = (Math.PI * 2 * i) / 72;
-        const isMaj = i % 6 === 0;
-        const r1 = baseRadius * 1.35, r2 = isMaj ? baseRadius * 1.35 + 10 : baseRadius * 1.35 + 5;
-        offCtx.beginPath();
-        offCtx.moveTo(centerX + Math.cos(a) * r1, centerY + Math.sin(a) * r1);
-        offCtx.lineTo(centerX + Math.cos(a) * r2, centerY + Math.sin(a) * r2);
-        offCtx.strokeStyle = isMaj ? 'rgba(0,230,255,0.45)' : 'rgba(0,230,255,0.18)';
-        offCtx.lineWidth = isMaj ? 2 : 0.8;
-        offCtx.stroke();
+      // Enhanced tick marks — two rings of ticks for richer HUD aesthetic
+      for (let ring = 0; ring < 2; ring++) {
+        const tickRadius = ring === 0 ? baseRadius * 1.35 : baseRadius * 0.95;
+        const tickCount = ring === 0 ? 72 : 36;
+        const majorEvery = ring === 0 ? 6 : 4;
+        for (let i = 0; i < tickCount; i++) {
+          const a = (Math.PI * 2 * i) / tickCount;
+          const isMaj = i % majorEvery === 0;
+          const r1 = tickRadius;
+          const r2 = isMaj ? tickRadius + (ring === 0 ? 10 : 7) : tickRadius + (ring === 0 ? 5 : 3);
+          offCtx.beginPath();
+          offCtx.moveTo(centerX + Math.cos(a) * r1, centerY + Math.sin(a) * r1);
+          offCtx.lineTo(centerX + Math.cos(a) * r2, centerY + Math.sin(a) * r2);
+          offCtx.strokeStyle = isMaj ? 'rgba(0,230,255,0.45)' : 'rgba(0,230,255,0.18)';
+          offCtx.lineWidth = isMaj ? 2 : 0.8;
+          offCtx.stroke();
+        }
       }
 
       offscreenDirty = false;
@@ -176,9 +192,13 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       // ── Rotating ring arcs (dynamic — can't cache) ──
       const spinAngle1 = (Date.now() * 0.0006);
       const spinAngle2 = -(Date.now() * 0.001);
+      const spinAngle3 = (Date.now() * 0.0004);
+      const spinAngle4 = -(Date.now() * 0.0008);
       const arcStyles = [
         { r: baseRadius * 1.15, w: 4, a: 0.38, start: spinAngle1, end: spinAngle1 + Math.PI * 1.6 },
         { r: baseRadius * 0.6, w: 2, a: 0.2, start: spinAngle2, end: spinAngle2 + Math.PI * 0.9 },
+        { r: baseRadius * 1.45, w: 2, a: 0.15, start: spinAngle3, end: spinAngle3 + Math.PI * 0.7 },
+        { r: baseRadius * 0.4, w: 1.5, a: 0.18, start: spinAngle4, end: spinAngle4 + Math.PI * 1.2 },
       ];
       for (const s of arcStyles) {
         ctx.beginPath();
@@ -204,68 +224,120 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       ctx.beginPath();
       ctx.arc(centerX, centerY, baseRadius * 0.85, 0, Math.PI * 2);
       ctx.stroke();
+
+      ctx.setLineDash([25, 50]);
+      ctx.lineDashOffset = spinAngle3 * 80;
+      ctx.strokeStyle = `rgba(0, 210, 255, 0.12)`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, baseRadius * 1.45, 0, Math.PI * 2);
+      ctx.stroke();
+
       ctx.setLineDash([]);
 
-      // ═══ JARVIS-STYLE REACTOR CORE ═══
+      // ═══ JARVIS-STYLE REACTOR CORE — Enhanced with multi-layered glow ═══
       const isActive = status === 'thinking' || status === 'executing_tool';
       const now = Date.now();
 
       // Outer core glow — expands and contracts with amplitude
-      const coreOuterRadius = radius * (0.35 + amplitude * 0.08);
+      const coreOuterRadius = radius * (0.4 + amplitude * 0.1);
       const coreGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, coreOuterRadius);
-      coreGrad.addColorStop(0, `rgba(255,255,255,${0.55 + amplitude * 0.3})`);
-      coreGrad.addColorStop(0.15, `rgba(100,225,255,${0.4 + amplitude * 0.2})`);
-      coreGrad.addColorStop(0.4, `rgba(0,180,255,${0.18 + amplitude * 0.08})`);
-      coreGrad.addColorStop(0.7, `rgba(0,100,200,${0.06 + amplitude * 0.04})`);
+      coreGrad.addColorStop(0, `rgba(255,255,255,${0.6 + amplitude * 0.3})`);
+      coreGrad.addColorStop(0.1, `rgba(140,235,255,${0.5 + amplitude * 0.25})`);
+      coreGrad.addColorStop(0.25, `rgba(0,210,255,${0.3 + amplitude * 0.15})`);
+      coreGrad.addColorStop(0.5, `rgba(0,150,255,${0.12 + amplitude * 0.06})`);
+      coreGrad.addColorStop(0.75, `rgba(0,80,200,${0.04 + amplitude * 0.03})`);
       coreGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = coreGrad;
       ctx.beginPath();
       ctx.arc(centerX, centerY, coreOuterRadius, 0, Math.PI * 2);
       ctx.fill();
 
-      // Inner bright core — pulsing white-hot center
+      // Inner bright core — pulsing white-hot center with dual layer
       const innerPulse = Math.sin(now * 0.003) * 0.15 + 0.85;
-      const innerRadius = coreOuterRadius * 0.25 * innerPulse;
+      const innerRadius = coreOuterRadius * 0.3 * innerPulse;
       const innerGrad = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, innerRadius);
-      innerGrad.addColorStop(0, `rgba(255,255,255,${0.8 + amplitude * 0.2})`);
-      innerGrad.addColorStop(0.3, `rgba(180,240,255,${0.5 + amplitude * 0.3})`);
-      innerGrad.addColorStop(0.7, `rgba(0,200,255,${0.2 + amplitude * 0.15})`);
+      innerGrad.addColorStop(0, `rgba(255,255,255,${0.9 + amplitude * 0.1})`);
+      innerGrad.addColorStop(0.2, `rgba(200,245,255,${0.6 + amplitude * 0.3})`);
+      innerGrad.addColorStop(0.5, `rgba(0,220,255,${0.3 + amplitude * 0.2})`);
+      innerGrad.addColorStop(0.8, `rgba(0,150,255,${0.1 + amplitude * 0.1})`);
       innerGrad.addColorStop(1, 'transparent');
       ctx.fillStyle = innerGrad;
       ctx.beginPath();
       ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
       ctx.fill();
 
-      // Central white dot
+      // Secondary inner glow — purple accent ring (Jarvis-style)
+      const accentRingRadius = innerRadius * 1.6;
+      ctx.strokeStyle = `rgba(139, 92, 246, ${0.08 + amplitude * 0.06})`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, accentRingRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Central white dot with enhanced glow
       ctx.shadowColor = 'rgba(0,200,255,0.9)';
-      ctx.shadowBlur = 30 + amplitude * 25;
+      ctx.shadowBlur = 40 + amplitude * 30;
       ctx.fillStyle = '#fff';
       ctx.beginPath();
-      ctx.arc(centerX, centerY, 4 + amplitude * 3 + Math.sin(now * 0.005) * 1.5, 0, Math.PI * 2);
+      ctx.arc(centerX, centerY, 5 + amplitude * 4 + Math.sin(now * 0.005) * 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Secondary blue-white dot
+      ctx.shadowColor = 'rgba(100,200,255,0.6)';
+      ctx.shadowBlur = 20 + amplitude * 15;
+      ctx.fillStyle = `rgba(200,240,255,${0.6 + amplitude * 0.3})`;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, 8 + amplitude * 3 + Math.sin(now * 0.004 + 1) * 1.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // ═══ FLOATING STATS READOUTS (Jarvis-style) ═══
+      // ═══ FLOATING STATS READOUTS (Jarvis-style) — Enhanced with bracket decorations ═══
       const floatPhase = now * 0.0008;
       for (const stat of statsReadouts) {
         const drift = Math.sin(floatPhase + stat.angle) * 6;
         const sx = centerX + Math.cos(stat.angle) * baseRadius * stat.distance;
         const sy = centerY + Math.sin(stat.angle) * baseRadius * stat.distance + drift;
 
+        // Background pill for readability
+        const labelWidth = ctx.measureText(stat.label).width || 20;
+        const valWidth = ctx.measureText(stat.value).width || 20;
+        const pillW = Math.max(labelWidth, valWidth) + 16;
+        const pillH = 28;
+        ctx.fillStyle = `rgba(0, 5, 15, ${0.3 + amplitude * 0.2})`;
+        ctx.strokeStyle = `rgba(0, 210, 255, ${0.1 + amplitude * 0.1})`;
+        ctx.lineWidth = 0.5;
+        const rx = sx - pillW / 2;
+        const ry = sy - pillH / 2 + 2;
+        // Rounded rect
+        ctx.beginPath();
+        ctx.moveTo(rx + 3, ry);
+        ctx.lineTo(rx + pillW - 3, ry);
+        ctx.quadraticCurveTo(rx + pillW, ry, rx + pillW, ry + 3);
+        ctx.lineTo(rx + pillW, ry + pillH - 3);
+        ctx.quadraticCurveTo(rx + pillW, ry + pillH, rx + pillW - 3, ry + pillH);
+        ctx.lineTo(rx + 3, ry + pillH);
+        ctx.quadraticCurveTo(rx, ry + pillH, rx, ry + pillH - 3);
+        ctx.lineTo(rx, ry + 3);
+        ctx.quadraticCurveTo(rx, ry, rx + 3, ry);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
         // Label
-        ctx.font = 'bold 9px Orbitron, monospace';
+        ctx.font = 'bold 8px Orbitron, monospace';
         ctx.fillStyle = `rgba(0, 210, 255, ${0.5 + amplitude * 0.3})`;
         ctx.shadowColor = 'rgba(0, 210, 255, 0.3)';
         ctx.shadowBlur = 4;
         ctx.textAlign = 'center';
-        ctx.fillText(stat.label, sx, sy - 8);
+        ctx.fillText(stat.label, sx, sy - 4);
 
         // Value
-        ctx.font = 'bold 11px Share Tech Mono, monospace';
+        ctx.font = 'bold 10px Share Tech Mono, monospace';
         ctx.fillStyle = isActive ? '#00ffd5' : '#00a2ff';
         ctx.shadowColor = isActive ? 'rgba(0,255,213,0.5)' : 'rgba(0,162,255,0.4)';
         ctx.shadowBlur = 8;
-        ctx.fillText(stat.value, sx, sy + 6);
+        ctx.fillText(stat.value, sx, sy + 10);
         ctx.shadowBlur = 0;
       }
 

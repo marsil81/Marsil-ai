@@ -451,6 +451,7 @@ function App() {
   return (
     <div className="hud-root">
       <div className="scan-line"></div>
+      <div className="scan-beam"></div>
       <div className="crt-overlay" />
       <div className="vignette-overlay" />
       <div className="perspective-grid" />
@@ -507,12 +508,16 @@ function App() {
           {/* Left Top Pane: Workspace Files */}
           <div className="tech-panel ide-panel left-top-pane">
             <div className="panel-scan" />
-            <span className="corner-tl" /><span className="corner-br" />
+            <span className="corner-tr" /><span className="corner-bl" />
             <div className="tech-panel-header">
-              <span>📁 {t("workspace").toUpperCase()}</span>
+              <span className="tech-header-brackets">📁 {t("workspace").toUpperCase()}</span>
               <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>D:\IRON MAN</span>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', marginTop: '8px' }}>
+            <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+              <span className="tech-panel-badge">[SECURE LINK]</span>
+              <span className="tech-panel-badge">[READ-ONLY]</span>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto' }}>
               <FileTreeHUD onFileSelect={setSelectedFile} />
             </div>
           </div>
@@ -520,20 +525,20 @@ function App() {
           {/* Left Bottom Pane: System Engine Diagnostics */}
           <div className="tech-panel ide-panel left-bottom-pane">
             <div className="panel-scan" />
-            <span className="corner-tl" /><span className="corner-br" />
+            <span className="corner-tr" /><span className="corner-bl" />
             <div className="tech-panel-header">
-              <span>⌂ {t("system_engine")}</span>
+              <span className="tech-header-brackets">⌂ {t("system_engine")}</span>
               <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("sec")}</span>
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', marginTop: '6px', fontSize: '0.55rem' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px', overflowY: 'auto', marginTop: '6px', fontSize: '0.55rem' }}>
               {!panelsLoaded ? <SkeletonPanel lines={6} /> : (
                 <>
-                  <div className="sys-row"><span>SIGNAL CORE</span><span className="val">{agentStatus.toUpperCase()}</span></div>
-                  <div className="sys-row"><span>{t("mem_usage")}</span><span className="val">{metrics.ram || 0}%</span></div>
-                  <div className="sys-row"><span>{t("cpu_load")}</span><span className="val">{metrics.cpu || 0}%</span></div>
-                  <div className="sys-row"><span>UPTIME</span><span className="val">{uptime}</span></div>
-                  <div className="sys-row"><span>{t("temp")}</span><span className="val">54.8 °C</span></div>
-                  <div className="sys-row"><span>{t("link")}</span><span className="val">STABLE</span></div>
+                  <div className="tech-telem-row"><span className="telem-key">SIGNAL CORE</span><span className="telem-val">{agentStatus.toUpperCase()}</span></div>
+                  <div className="tech-telem-row"><span className="telem-key">{t("mem_usage")}</span><span className="telem-val">{metrics.ram || 0}%</span></div>
+                  <div className="tech-telem-row"><span className="telem-key">{t("cpu_load")}</span><span className="telem-val">{metrics.cpu || 0}%</span></div>
+                  <div className="tech-telem-row"><span className="telem-key">UPTIME</span><span className="telem-val">{uptime}</span></div>
+                  <div className="tech-telem-row"><span className="telem-key">{t("temp")}</span><span className="telem-val">54.8 °C</span></div>
+                  <div className="tech-telem-row"><span className="telem-key">{t("link")}</span><span className="telem-val">STABLE</span></div>
                 </>
               )}
             </div>
@@ -546,7 +551,7 @@ function App() {
           {/* Middle Top Pane: The Code Editor or central landing core */}
           <div className="tech-panel ide-panel mid-top-pane" style={{ padding: 0 }}>
             <div className="panel-scan" />
-            <span className="corner-tl" /><span className="corner-br" />
+            <span className="corner-tr" /><span className="corner-bl" />
             {selectedFile ? (
               <CodeEditor filePath={selectedFile} onClose={() => setSelectedFile(null)} />
             ) : (
@@ -557,17 +562,7 @@ function App() {
                   letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '8px'
                 }}>
                   <span className="cursor-blink">▶</span> SYSTEM REACTOR CORE
-                </div>
-                <div style={{
-                  fontFamily: "'Share Tech Mono', monospace", fontSize: '0.65rem',
-                  color: 'var(--text-dim)', letterSpacing: '1px', textAlign: 'center', zIndex: 10,
-                  maxWidth: '320px', padding: '18px', background: 'rgba(3,12,30,0.85)',
-                  border: '1px solid rgba(0,255,213,0.15)', borderRadius: '4px',
-                  boxShadow: '0 0 20px rgba(0,184,255,0.15)',
-                  animation: 'pulse 3s infinite'
-                }}>
-                  <div style={{ color: 'var(--accent)', fontWeight: 'bold', marginBottom: '4px' }}>NO BUFFER ACTIVE</div>
-                  SELECT A SOURCE FILE FROM THE LEFT TREE PANEL TO MOUNT AND EDIT BUFFER IN ACTIVE MEMORY.
+                  <span className="tech-panel-badge" style={{ marginLeft: '8px' }}>[ACTIVE]</span>
                 </div>
               </div>
             )}
@@ -576,7 +571,7 @@ function App() {
           {/* Middle Bottom Pane: The Live Terminal (Always Open) */}
           <div className="tech-panel ide-panel mid-bottom-pane" style={{ padding: 0 }}>
             <div className="panel-scan" />
-            <span className="corner-tl" /><span className="corner-br" />
+            <span className="corner-tr" /><span className="corner-bl" />
             <Terminal output={termOutput || []} />
           </div>
         </div>
@@ -587,13 +582,16 @@ function App() {
           {/* Right Top Pane: Spectrometer, Circular gauges and Token flows */}
           <div className="tech-panel ide-panel" style={{ flex: 1.1, minHeight: 0 }}>
             <div className="panel-scan" />
-            <span className="corner-tl" /><span className="corner-br" />
+            <span className="corner-tr" /><span className="corner-bl" />
             <div className="tech-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>⌁ TELEMETRY</span>
-              <button onClick={clearTokens} style={{
-                background: 'transparent', border: 'none', color: 'var(--accent)',
-                fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace'
-              }}>{t("clear") || "CLEAR"}</button>
+              <span className="tech-header-brackets">⌁ TELEMETRY</span>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <span className="tech-panel-badge">[LIVE]</span>
+                <button onClick={clearTokens} style={{
+                  background: 'transparent', border: 'none', color: 'var(--accent)',
+                  fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace'
+                }}>{t("clear") || "CLEAR"}</button>
+              </div>
             </div>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, marginTop: '6px', fontSize: '0.55rem' }}>
@@ -612,28 +610,41 @@ function App() {
 
               {/* Sparkline & Cost info */}
               <div style={{ borderTop: '1px solid rgba(0,255,213,0.1)', paddingTop: '6px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '4px' }}>
-                  <div>
-                    <div style={{ fontSize: '0.38rem', color: 'var(--text-dim)' }}>TOKENS IN</div>
-                    <div style={{ fontSize: '0.55rem', fontWeight: 'bold', color: 'var(--text)' }}>{(tokenData.tokensIn || 0).toLocaleString()}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '4px' }}>
+                  <div className="tech-cell">
+                    <span className="tech-cell-label">TOKENS IN</span>
+                    <span className="tech-cell-value">{(tokenData.tokensIn || 0).toLocaleString()}</span>
                   </div>
-                  <div>
-                    <div style={{ fontSize: '0.38rem', color: 'var(--text-dim)' }}>TOKENS OUT</div>
-                    <div style={{ fontSize: '0.55rem', fontWeight: 'bold', color: 'var(--text)' }}>{(tokenData.tokensOut || 0).toLocaleString()}</div>
+                  <div className="tech-cell">
+                    <span className="tech-cell-label">TOKENS OUT</span>
+                    <span className="tech-cell-value">{(tokenData.tokensOut || 0).toLocaleString()}</span>
                   </div>
                 </div>
 
                 {tokenHistory.length > 1 && (
                   <div style={{ marginTop: '6px', marginBottom: '6px' }}>
-                    <div style={{ height: '18px', display: 'flex', alignItems: 'flex-end', gap: '1px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+                      <span style={{ fontSize: '0.38rem', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>TOKEN FLOW SPARKLINE</span>
+                      <span style={{ fontSize: '0.38rem', color: 'var(--accent)' }}>{(tokenData.totalTokens || 0).toLocaleString()} TOTAL</span>
+                    </div>
+                    <div style={{ height: '24px', display: 'flex', alignItems: 'flex-end', gap: '1px', position: 'relative' }}>
+                      {/* Background grid lines */}
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none' }}>
+                        <div style={{ borderTop: '1px solid rgba(0,162,255,0.04)', height: '0' }}></div>
+                        <div style={{ borderTop: '1px solid rgba(0,162,255,0.04)', height: '0' }}></div>
+                        <div style={{ borderTop: '1px solid rgba(0,162,255,0.04)', height: '0' }}></div>
+                      </div>
                       {(() => {
                         const max = Math.max(...tokenHistory, 1);
-                        return tokenHistory.slice(-25).map((val, i) => {
-                          const h = Math.max(2, (val / max) * 16);
+                        return tokenHistory.slice(-30).map((val, i) => {
+                          const h = Math.max(2, (val / max) * 22);
                           return (
                             <div key={i} style={{
                               flex: 1, height: `${h}px`,
-                              background: `linear-gradient(to top, rgba(0,162,255,0.4), rgba(0,255,213,0.7))`
+                              background: `linear-gradient(to top, rgba(0,162,255,0.5), rgba(0,255,213,0.85))`,
+                              borderRadius: '1px 1px 0 0',
+                              transition: 'height 0.2s ease',
+                              opacity: 0.5 + (val / max) * 0.5,
                             }} />
                           );
                         });
@@ -655,14 +666,14 @@ function App() {
           {/* Right Bottom Pane: Conversational Chat Panel */}
           <div className="tech-panel ide-panel right-chat-pane" style={{ flex: 1.9, minHeight: 0 }}>
             <div className="panel-scan" />
-            <span className="corner-tl" /><span className="corner-br" />
+            <span className="corner-tr" /><span className="corner-bl" />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px', marginBottom: '6px', cursor: 'default' }}>
-              <span style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
+              <span className="tech-header-brackets" style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span className="tech-panel-badge">{agentStatus === 'idle' ? '[STANDBY]' : '[ACTIVE]'}</span>
                 {chatHistory.length > 0 && (
                   <button onClick={clearChat} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace' }}>{t("clear") || "CLEAR"}</button>
                 )}
-                <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>AWAITING</span>
               </div>
             </div>
 

@@ -47,12 +47,42 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,184,255,0.012) 3px, rgba(0,184,255,0.012) 4px);
 }
 
-/* CRT Scanline overlay — subtle retro-futuristic CRT effect */
+/* Enhanced CRT Scanline overlay — retro-futuristic CRT effect */
 .crt-overlay {
   position: fixed; inset: 0; z-index: 98; pointer-events: none;
-  background: repeating-linear-gradient(0deg,
-    transparent, transparent 1px,
-    rgba(0, 0, 0, 0.03) 1px, rgba(0, 0, 0, 0.03) 2px);
+  background:
+    /* Fine horizontal scanlines */
+    repeating-linear-gradient(0deg,
+      transparent, transparent 1px,
+      rgba(0, 0, 0, 0.03) 1px, rgba(0, 0, 0, 0.03) 2px),
+    /* Subtle vertical interference lines */
+    repeating-linear-gradient(90deg,
+      transparent, transparent 4px,
+      rgba(0, 184, 255, 0.004) 4px, rgba(0, 184, 255, 0.004) 5px);
+}
+
+/* Horizontal scanning beam — sweeps from top to bottom continuously */
+.scan-beam {
+  position: fixed; left: 0; width: 100%; height: 3px; z-index: 99; pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(0, 162, 255, 0.001) 15%,
+    rgba(0, 255, 213, 0.06) 45%,
+    rgba(0, 255, 213, 0.08) 50%,
+    rgba(0, 255, 213, 0.06) 55%,
+    rgba(0, 162, 255, 0.001) 85%,
+    transparent 100%
+  );
+  box-shadow: 0 0 20px rgba(0, 255, 213, 0.05), 0 0 60px rgba(0, 162, 255, 0.02);
+  animation: scanBeam 10s ease-in-out infinite;
+}
+@keyframes scanBeam {
+  0% { top: -5px; opacity: 0; }
+  5% { opacity: 1; }
+  48% { opacity: 1; }
+  50% { opacity: 0.3; }
+  95% { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
 }
 
 /* Vignette effect — darkens edges for focus on center */
@@ -137,7 +167,7 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   100% { transform: translateX(100%); }
 }
 
-/* Corner bracket decorations — animated neon glow on hover */
+/* Corner bracket decorations — animated neon glow on hover — ARWES-inspired */
 .tech-panel::before, .tech-panel::after {
   content: ''; position: absolute; width: 12px; height: 12px;
   border-color: var(--accent); border-style: solid;
@@ -147,37 +177,17 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
 .tech-panel::before { top: -2px; left: -2px; border-width: 2px 0 0 2px; }
 .tech-panel::after { bottom: -2px; right: -2px; border-width: 0 2px 2px 0; }
 
-/* Additional corner accent lines that extend on hover */
-.tech-panel::selection { background: transparent; }
-
-/* Hover expansion effect for corner brackets */
-.tech-panel:hover::before {
-  width: 20px; height: 20px;
-  border-color: var(--primary);
-  box-shadow: -1px -1px 6px rgba(0, 162, 255, 0.4);
-}
-.tech-panel:hover::after {
-  width: 20px; height: 20px;
-  border-color: var(--primary);
-  box-shadow: 1px 1px 6px rgba(0, 162, 255, 0.4);
-}
-
-/* Top-right and bottom-left corner accents (additional cyber brackets) */
-.tech-panel::selection { background: transparent; }
-.tech-panel .corner-br,
-.tech-panel .corner-tl {
+/* Additional corner accent lines that extend on hover - ARWES diagonal cut corners */
+.tech-panel .corner-tr,
+.tech-panel .corner-bl {
   position: absolute; width: 8px; height: 8px;
   border-color: rgba(0, 255, 213, 0.15); border-style: solid;
   transition: all 0.3s ease;
   pointer-events: none;
+  z-index: 2;
 }
-.tech-panel .corner-tl { top: 4px; right: 4px; border-width: 0 1px 1px 0; }
-.tech-panel .corner-br { bottom: 4px; left: 4px; border-width: 1px 0 0 1px; }
-.tech-panel:hover .corner-tl,
-.tech-panel:hover .corner-br {
-  border-color: rgba(0, 255, 213, 0.4);
-  width: 12px; height: 12px;
-}
+.tech-panel .corner-tr { top: 4px; right: 4px; border-width: 0 1px 1px 0; }
+.tech-panel .corner-bl { bottom: 4px; left: 4px; border-width: 1px 0 0 1px; }
 
 .tech-panel-header {
   font-family: 'Orbitron'; font-size: 0.6rem; font-weight: 700;
@@ -185,6 +195,22 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   border-bottom: 1px solid var(--border);
   padding-bottom: 6px; margin-bottom: 10px;
   display: flex; justify-content: space-between; align-items: center;
+  position: relative;
+}
+
+/* ARWES-inspired self-drawing header underline on hover */
+.tech-panel-header::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.tech-panel:hover .tech-panel-header::after {
+  width: 100%;
 }
 
 /* Cyber warning sub-header — "[SECURE LINK ACTIVE]" style */
@@ -197,6 +223,52 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   background: rgba(0, 255, 213, 0.04);
   color: var(--accent);
   border-radius: 2px;
+  animation: badgePulse 3s ease-in-out infinite;
+}
+@keyframes badgePulse {
+  0%, 100% { border-color: rgba(0, 255, 213, 0.15); }
+  50% { border-color: rgba(0, 255, 213, 0.35); }
+}
+
+/* Tech bracket warning header — "[SYSTEM WARNING]" style for critical indicators */
+.tech-panel-warning {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.35rem; letter-spacing: 1.5px;
+  padding: 1px 5px;
+  border: 1px solid rgba(255, 136, 0, 0.2);
+  background: rgba(255, 136, 0, 0.05);
+  color: var(--warning);
+  border-radius: 2px;
+}
+.tech-panel-danger {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.35rem; letter-spacing: 1.5px;
+  padding: 1px 5px;
+  border: 1px solid rgba(255, 51, 85, 0.2);
+  background: rgba(255, 51, 85, 0.05);
+  color: var(--danger);
+  border-radius: 2px;
+}
+
+/* Telemetry header with bracket decorations */
+.tech-header-brackets {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.tech-header-brackets::before {
+  content: '[';
+  color: var(--accent);
+  opacity: 0.4;
+  font-size: 0.7rem;
+}
+.tech-header-brackets::after {
+  content: ']';
+  color: var(--accent);
+  opacity: 0.4;
+  font-size: 0.7rem;
 }
 
 /* Telemetry data-grid cell style */
@@ -207,10 +279,25 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   border: 1px solid rgba(0, 162, 255, 0.06);
   border-radius: 3px;
   transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+.tech-cell::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 2px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--primary), var(--accent));
+  opacity: 0;
+  transition: opacity 0.2s ease;
 }
 .tech-cell:hover {
   background: rgba(0, 162, 255, 0.06);
   border-color: rgba(0, 162, 255, 0.15);
+}
+.tech-cell:hover::before {
+  opacity: 0.6;
 }
 .tech-cell-label {
   font-family: 'Orbitron', monospace;
@@ -221,6 +308,35 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   font-family: 'Share Tech Mono', monospace;
   font-size: 0.65rem; font-weight: 700;
   color: var(--text);
+}
+
+/* Tech telemetry row — horizontal data pair with bracket decorations */
+.tech-telem-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 6px;
+  font-size: 0.5rem;
+  font-family: 'Share Tech Mono', monospace;
+  border-bottom: 1px solid rgba(0, 162, 255, 0.04);
+  transition: background 0.2s ease;
+}
+.tech-telem-row:hover {
+  background: rgba(0, 162, 255, 0.03);
+}
+.tech-telem-row .telem-key {
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+.tech-telem-row .telem-key::before {
+  content: '> ';
+  color: var(--accent);
+  opacity: 0.3;
+}
+.tech-telem-row .telem-val {
+  color: var(--accent);
+  font-weight: 700;
+  text-shadow: 0 0 4px var(--accent-glow);
 }
 
 /* ═══ INDIVIDUAL PANELS POSITIONING ═══ */
@@ -999,6 +1115,28 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
 .terminal-bar-dot span:nth-child(3) {
   background: var(--purple);
   box-shadow: 0 0 4px rgba(139, 92, 246, 0.4);
+}
+
+/* ═══ CYBERNETIC FLICKER ANIMATION — for critical indicators ═══ */
+@keyframes cyberFlicker {
+  0%, 100% { opacity: 1; }
+  3% { opacity: 0.4; }
+  6% { opacity: 0.8; }
+  7% { opacity: 0.3; }
+  8% { opacity: 1; }
+  50% { opacity: 1; }
+  53% { opacity: 0.5; }
+  56% { opacity: 1; }
+}
+.cyber-flicker {
+  animation: cyberFlicker 4s infinite;
+}
+
+/* ═══ HEXAGONAL CORNER CUT PATTERN for special elements ═══ */
+.hex-corner {
+  clip-path: polygon(
+    50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%
+  );
 }
 
 /* ═══ CYBERNETIC IDE 3-COLUMN GRID LAYOUT ═══ */

@@ -3,6 +3,17 @@
 هذا الملف مخصص لتسجيل التحديثات التلقائية، التحسينات المعمارية، وإصلاح الأخطاء التي يقوم بها **مارسيل** بشكل ذاتي في الخلفية.
 
 ---
+### [Continuous Enhancement Pack: Arwes CRT Scan-Beam, Enhanced Reactor Core, HUD Bracket Accents, Tech Badges] - 2026-05-30
+**Summary:** Executed 6 premium visual evolution tasks in a single continuous cycle:
+- **Enhanced CRT Scan-Beam Overlay:** New `.scan-beam` CSS animation — a horizontal glowing beam that sweeps from top to bottom with fade in/out, creating a premium retro-futuristic CRT aesthetic. Added `scanBeam` keyframe animation with 10s ease-in-out cycle. Enhanced `.crt-overlay` with vertical interference lines alongside existing horizontal scanlines.
+- **Arwes-Inspired Corner Bracket Accents:** Renamed corner bracket classes to `corner-tr`/`corner-bl` for consistency with ARWES diagonal-cut aesthetic. Added hover expansion (8px→14px) with neon glow. Added `.tech-panel-header::after` self-drawing underline that animates from left to right on panel hover.
+- **Tech Warning Badges & HUD Brackets:** New CSS classes — `.tech-panel-badge` with `badgePulse` animation for status indicators (e.g. `[SECURE LINK]`, `[ACTIVE]`, `[STANDBY]`), `.tech-panel-warning`/`.tech-panel-danger` for critical indicators, `.tech-header-brackets` with auto-generated `[` `]` decorations, and `.tech-telem-row` with `> ` prefix for telemetry data rows. `.tech-cell` enhanced with left-edge gradient accent bar that appears on hover.
+- **Enhanced Reactor Core (ParticleReactor):** Upgraded with 7 concentric rings (up from 4), dual tick-mark rings (72 outer + 36 inner), 4 rotating arc segments (up from 2), 4 dashed spinning rings (up from 2), enhanced Jarvis-style core with secondary purple accent ring, dual-layer central dot (white + blue-white), expanded floating stats from 4 to 8 readouts with background pill containers for readability.
+- **Enhanced Token Sparkline:** Upgraded with grid background lines, total token counter label, improved bar gradients with rounded tops, dynamic opacity based on value, and 30-point history window (up from 25).
+- **Cyber Flicker & Hex Corner Utilities:** New `.cyber-flicker` animation for critical indicator flicker effect, `.hex-corner` hexagonal clip-path utility class.
+- **ESLint Zero Errors:** Vite production build compiles successfully in 576ms (27KB CSS, 483KB JS).
+
+---
 ### [Continuous Enhancement Pack: SystemStatus HUD, AudioVisualizer, Glassmorphic CSS Overhaul] - 2026-05-29
 **Summary:** Executed 5 premium visual evolution tasks in a single continuous cycle:
 - **Cybernetic HUD SystemStatus Widget:** New `SystemStatus.jsx` — animated SVG orbital rings with real-time CPU/RAM progress arcs, pulsing reactor core, rotation speed that varies with agent activity, 4 diagnostic status dots (WS, API, CLD, PRX) positioned around the ring perimeter, and uptime display. Smooth `useAnimatedValue` hook with ease-out cubic interpolation.
