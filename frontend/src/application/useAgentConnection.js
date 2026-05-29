@@ -4,6 +4,7 @@ import { AgentWebSocketClient } from '../infrastructure/WebSocketClient';
 export function useAgentConnection() {
   const [agentStatus, setAgentStatus]   = useState('idle');
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
+  const [wsLatency, setWsLatency]       = useState(null);
   const [metrics, setMetrics]           = useState({ cpu: 0, ram: 0 });
   const TERM_OUTPUT_MAX = 1000;
   const [termOutput, setTermOutput]     = useState([]);
@@ -28,6 +29,7 @@ export function useAgentConnection() {
     wsClient.onStatusChange   = setAgentStatus;
     wsClient.onMetricsChange  = setMetrics;
     wsClient.onConnectionChange = setConnectionStatus;
+    wsClient.onLatencyUpdate    = setWsLatency;
     wsClient.onTerminalOutput = (output) =>
       setTermOutput(prev => { const next = [...prev, output]; return next.length > TERM_OUTPUT_MAX ? next.slice(-TERM_OUTPUT_MAX) : next; });
     wsClient.onSystemLog      = (message) =>
@@ -39,13 +41,13 @@ export function useAgentConnection() {
         const lastIndex = copy.length - 1;
         const last = copy[lastIndex];
         if (last && last.role === 'agent' && last.isStreaming) {
-          // Clone the object to avoid mutating previous state directly (fixes StrictMode duplication)
-          const newLast = { ...last, content: text };
+          // Clone the object to avoid mutating previous state directly
+          const newLast = { ...last, content: text, ts: Date.now() };
           delete newLast.isStreaming;
           copy[lastIndex] = newLast;
           return copy;
         }
-        return [...prev, { role: 'agent', content: text }];
+        return [...prev, { role: 'agent', content: text, ts: Date.now() }];
       });
     };
 
@@ -81,9 +83,10 @@ export function useAgentConnection() {
     
     // Only add to UI Chat History if it's not a background system command
     if (!text.startsWith('/')) {
+      const now = Date.now();
       setChatHistory(prev => [
         ...prev,
-        { role: 'user', content: text },
+        { role: 'user', content: text, ts: now },
         { role: 'agent', content: '', isStreaming: true }
       ]);
     }
@@ -96,7 +99,7 @@ export function useAgentConnection() {
   const clearChat   = () => { setChatHistory([]); setTermOutput([]); localStorage.removeItem('marsil_chat'); };
 
   return {
-    agentStatus, connectionStatus, metrics, termOutput, chatHistory,
+    agentStatus, connectionStatus, wsLatency, metrics, termOutput, chatHistory,
     sendCommand, abortAgent,
     tokenData, clearTokens, clearChat,
     // legacy alias so existing code using totalTokens doesn't break

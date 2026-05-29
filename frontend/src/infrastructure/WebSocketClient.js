@@ -9,6 +9,7 @@ export class AgentWebSocketClient {
         this.onSystemLog      = () => {};
         this.onTokenUpdate    = () => {};
         this.onConnectionChange = () => {}; // 'connected' | 'reconnecting' | 'disconnected'
+        this.onLatencyUpdate  = () => {}; // (ms) => void
 
         // Auto-reconnect state
         this._reconnectAttempts = 0;
@@ -17,11 +18,31 @@ export class AgentWebSocketClient {
         this._reconnectTimer = null;
         this._disposed = false;
         this._url = 'ws://localhost:3001';
+        this._latencyMs = 0;
+        this._pingTimer = null;
+        this._pingStart = 0;
     }
 
     connect() {
         this._disposed = false;
         this._doConnect();
+    }
+
+    _startLatencyProbe() {
+        this._stopLatencyProbe();
+        this._pingTimer = setInterval(() => {
+            if (this.socket && this.socket.readyState === WebSocket.OPEN) {
+                this._pingStart = Date.now();
+                this.socket.send(JSON.stringify({ type: 'ping' }));
+            }
+        }, 15000);
+    }
+
+    _stopLatencyProbe() {
+        if (this._pingTimer) {
+            clearInterval(this._pingTimer);
+            this._pingTimer = null;
+        }
     }
 
     _doConnect() {
@@ -33,6 +54,7 @@ export class AgentWebSocketClient {
             this._reconnectAttempts = 0;
             this._reconnectDelay = 1000;
             this.onConnectionChange('connected');
+            this._startLatencyProbe();
         };
 
         this.socket.onmessage = (event) => {
@@ -41,6 +63,14 @@ export class AgentWebSocketClient {
                 // Respond to ping immediately to keep connection alive
                 if (msg.type === 'ping') {
                     this.sendPong();
+                    return;
+                }
+                if (msg.type === 'pong') {
+                    if (this._pingStart > 0) {
+                        this._latencyMs = Date.now() - this._pingStart;
+                        this._pingStart = 0;
+                        this.onLatencyUpdate(this._latencyMs);
+                    }
                     return;
                 }
                 if (msg.type === 'agent_status')
@@ -102,6 +132,7 @@ export class AgentWebSocketClient {
 
     disconnect() {
         this._disposed = true;
+        this._stopLatencyProbe();
         clearTimeout(this._reconnectTimer);
         if (this.socket) {
             this.socket.close();

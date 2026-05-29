@@ -316,11 +316,22 @@ export function CodeEditor({ filePath, onClose }) {
       }}>
         {loading ? (
           <div style={{
-            color: 'var(--text-dim)', fontSize: '0.7rem',
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            height: '100%', letterSpacing: '2px',
+            display: 'flex', flexDirection: 'column', gap: '8px',
+            padding: '20px 24px',
           }}>
-            <span style={{ animation: 'pulse 1.2s infinite' }}>LOADING CONTENT...</span>
+            {[1,2,3,4,5,6,7,8,9,10,11,12].map(i => {
+              const widths = [55, 70, 45, 60, 50, 65, 40, 75, 50, 55, 60, 45];
+              return (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="skeleton-box" style={{ width: '24px', height: '10px', borderRadius: '2px', flexShrink: 0 }} />
+                  <div className="skeleton-box" style={{
+                    width: `${widths[i]}%`,
+                    height: '10px',
+                    borderRadius: '2px',
+                  }} />
+                </div>
+              );
+            })}
           </div>
         ) : (
           <>

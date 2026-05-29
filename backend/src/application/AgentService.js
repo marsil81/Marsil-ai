@@ -27,6 +27,7 @@ class AgentService {
         this.evolutionTimer = null;
         this.isWorking = false;
         this.userLang = 'en';
+        this.workingWindowEnd = 0;
     }
 
     setWebSocketClient(ws) {
@@ -47,11 +48,14 @@ class AgentService {
         if (userMessage.startsWith('/EVOLUTION_TOGGLE')) {
             const state = userMessage.split(' ')[1] === 'true';
             this.autoEvolutionEnabled = state;
-            if (state && !this.isWorking) {
-                // If turned on and we are idle, schedule a cycle to start in 5 seconds
-                this.evolutionTimer = setTimeout(() => this.runAutonomousCycle(), 5000);
-            } else if (!state) {
+            if (state) {
+                this.workingWindowEnd = Date.now() + 3600000; // 1-hour active session
+                if (!this.isWorking) {
+                    this.evolutionTimer = setTimeout(() => this.runAutonomousCycle(), 5000);
+                }
+            } else {
                 clearTimeout(this.evolutionTimer);
+                this.workingWindowEnd = 0;
             }
             this._send('log', { message: `System: Auto-Evolution Mode is now ${state ? 'ACTIVE' : 'INACTIVE'}.` });
             return null;
@@ -62,7 +66,7 @@ class AgentService {
                 this._send('log', { message: 'System: Agent is already working on a task.' });
                 return null;
             }
-            // Do not wait, run immediately
+            this.workingWindowEnd = Date.now() + 3600000; // Set 1-hour active session
             this.runAutonomousCycle();
             this._send('log', { message: 'System: Autonomous Evolutionary Cycle Triggered.' });
             return '⚡ Autonomous Evolutionary Cycle initiated. Check the Evolution panel for live output.';
@@ -123,11 +127,25 @@ Always build clean, fully functional components with beautiful interactive glass
     }
 
     _scheduleNextEvolutionCycle() {
-        if (this.autoEvolutionEnabled && !this.isWorking) {
-            clearTimeout(this.evolutionTimer);
-            // Wait 1 hour (3600000 ms) before the next cycle
-            this.evolutionTimer = setTimeout(() => this.runAutonomousCycle(), 3600000);
-            this._send('log', { message: '⏳ Evolution cycle completed. Resting for 1 hour...' });
+        if (!this.autoEvolutionEnabled || this.isWorking) return;
+
+        clearTimeout(this.evolutionTimer);
+        const now = Date.now();
+
+        if (now < this.workingWindowEnd) {
+            // We are still within the 1-hour active development window
+            // Wait 30 seconds before triggering the next cycle so it keeps evolving
+            const remainingSecs = Math.round((this.workingWindowEnd - now) / 1000);
+            this.evolutionTimer = setTimeout(() => this.runAutonomousCycle(), 30000);
+            this._send('log', { message: `🔄 Active evolution cycle completed. Next session starting in 30 seconds... (Remaining session time: ${remainingSecs}s)` });
+        } else {
+            // Active window expired. Rest for 1 hour.
+            this.workingWindowEnd = 0;
+            this.evolutionTimer = setTimeout(() => {
+                this.workingWindowEnd = Date.now() + 3600000; // Initialize a new 1-hour working window when rest finishes
+                this.runAutonomousCycle();
+            }, 3600000);
+            this._send('log', { message: '⏳ 1-hour active development window expired. Entering 1-hour rest cycle...' });
         }
     }
 

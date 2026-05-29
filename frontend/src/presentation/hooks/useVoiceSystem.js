@@ -1,9 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+
+const LANG_MAP = { en: 'en-US', ar: 'ar-SA' };
 
 export function useVoiceSystem(onTranscript) {
+  const { i18n } = useTranslation();
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const recognitionRef = useRef(null);
+  const langRef = useRef(i18n.language);
+
+  // Keep langRef in sync
+  useEffect(() => { langRef.current = i18n.language; }, [i18n.language]);
 
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -11,7 +19,7 @@ export function useVoiceSystem(onTranscript) {
       const rec = new SpeechRecognition();
       rec.continuous = false;
       rec.interimResults = false;
-      rec.lang = 'ar-SA'; // Standard Arabic BCP-47 language tag for guaranteed browser compatibility
+      rec.lang = LANG_MAP[i18n.language] || 'en-US';
 
       rec.onstart = () => setIsListening(true);
       rec.onend = () => setIsListening(false);
@@ -42,7 +50,7 @@ export function useVoiceSystem(onTranscript) {
       };
       recognitionRef.current = rec;
     }
-  }, [onTranscript]);
+  }, [i18n.language, onTranscript]);
 
   const utteranceRef = useRef(null);
   const safetyTimeoutRef = useRef(null);
@@ -50,7 +58,7 @@ export function useVoiceSystem(onTranscript) {
   const startListening = () => {
     if (!recognitionRef.current) return;
     try {
-      recognitionRef.current.lang = document.body.dir === 'rtl' ? 'ar-SA' : 'en-US';
+      recognitionRef.current.lang = LANG_MAP[langRef.current] || 'en-US';
       recognitionRef.current.start();
     } catch {
       // Recognition may already be running — handled silently
@@ -107,7 +115,7 @@ export function useVoiceSystem(onTranscript) {
     const sentences = cleanText.split(/[.।!?।]+/);
     let briefText = sentences.slice(0, 2).join('. ') + '.';
 
-    const isArabic = document.body.dir === 'rtl';
+    const isArabic = langRef.current === 'ar';
 
     // Clean other-language characters/passages to avoid mixed pronunciation
     if (isArabic) {

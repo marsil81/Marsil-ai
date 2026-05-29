@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid, Radio, X } from 'lucide-react';
 import '../styles/App.css';
 import { ParticleReactor } from '../components/ParticleReactor';
@@ -231,7 +231,7 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
 }
 
 // ── Diagnostics Dot ────────────────────────────────────────────────────────────
-function DiagDot({ label, ok }) {
+function DiagDot({ label, ok, sub }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '3px',
@@ -245,7 +245,7 @@ function DiagDot({ label, ok }) {
         boxShadow: ok ? '0 0 6px rgba(34,197,94,0.6)' : 'none',
         display: 'inline-block',
       }} />
-      {label}
+      {label}{sub != null && <span style={{ opacity: 0.5, marginLeft: '1px' }}>{sub}</span>}
     </span>
   );
 }
@@ -279,7 +279,7 @@ function useToasts() {
 
 function App() {
   const { t, i18n } = useTranslation();
-  const { agentStatus, connectionStatus, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
+  const { agentStatus, connectionStatus, wsLatency, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
   const { toasts } = useToasts();
   const [showSettings, setShowSettings] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
@@ -620,7 +620,7 @@ function App() {
             <button className="nav-btn" onClick={abortAgent} style={{ color: '#ff5555' }}>{t("emergency_stop")}</button>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <DiagDot label="WS" ok={isConnected} />
+            <DiagDot label="WS" ok={isConnected} sub={isConnected && wsLatency != null ? `${wsLatency}ms` : null} />
             <DiagDot label="API" ok={diagState.keyValid} />
             <DiagDot label="CLD" ok={diagState.claudeAvailable} />
             <DiagDot label="PRX" ok={diagState.proxyRunning} />
@@ -743,21 +743,34 @@ function App() {
             <div style={{ marginBottom: '6px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.4rem', color: 'var(--text-dim)', marginBottom: '2px' }}>
                 <span>TOKEN FLOW</span>
-                <span>{tokenHistory.length} pts</span>
+                <span>{tokenHistory.length} pts · PEAK: {Math.max(...tokenHistory).toLocaleString()}</span>
               </div>
-              <div style={{ height: '20px', display: 'flex', alignItems: 'flex-end', gap: '1px' }}>
-                {tokenHistory.map((val, i) => {
+              <div style={{ height: '24px', display: 'flex', alignItems: 'flex-end', gap: '1px', position: 'relative' }}>
+                {(() => {
                   const max = Math.max(...tokenHistory, 1);
-                  const h = Math.max(2, (val / max) * 18);
-                  return (
-                    <div key={i} style={{
-                      flex: 1, height: `${h}px`,
-                      background: `linear-gradient(to top, rgba(0,162,255,0.4), rgba(0,255,213,${0.3 + (val/max) * 0.5}))`,
-                      borderRadius: '1px 1px 0 0',
-                      transition: 'height 0.3s ease',
-                    }} />
-                  );
-                })}
+                  return tokenHistory.map((val, i) => {
+                    const h = Math.max(2, (val / max) * 22);
+                    const isPeak = val === max;
+                    const opacity = 0.3 + (val / max) * 0.7;
+                    return (
+                      <div key={i} style={{
+                        flex: 1, height: `${h}px`, position: 'relative',
+                        background: `linear-gradient(to top, rgba(0,162,255,0.5), rgba(0,255,213,${opacity}))`,
+                        borderRadius: '1px 1px 0 0',
+                        transition: 'height 0.3s ease, opacity 0.3s ease',
+                        boxShadow: isPeak ? '0 0 4px rgba(0,255,213,0.4)' : 'none',
+                      }}>
+                        {isPeak && (
+                          <div style={{
+                            position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)',
+                            width: '3px', height: '3px', borderRadius: '50%',
+                            background: 'var(--accent)', boxShadow: '0 0 6px var(--accent)',
+                          }} />
+                        )}
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}
@@ -821,7 +834,10 @@ function App() {
             )}
             {chatHistory.map((msg, i) => (
               <div key={i} className={`chat-msg ${msg.role === 'user' ? 'user' : 'agent'}${msg.isStreaming ? ' streaming' : ''}`}>
-                <div className="chat-tag">{msg.role === 'user' ? t("you") : t("ironman")}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div className="chat-tag">{msg.role === 'user' ? t("you") : t("ironman")}</div>
+                  {msg.ts && <span style={{ fontSize: '0.4rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{new Date(msg.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>}
+                </div>
                 <div>{msg.content}{msg.isStreaming && <span className="cursor-blink">▊</span>}</div>
               </div>
             ))}
@@ -866,18 +882,23 @@ function App() {
         </div>
       </motion.div>
 
-      {showSettings && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          <SettingsModal onClose={() => setShowSettings(false)} />
-        </motion.div>
-      )}
-      {showEvolution && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-          <EvolutionModal onClose={() => setShowEvolution(false)} sendCommand={sendCommand} agentStatus={agentStatus} termOutput={termOutput} />
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {showSettings && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            <SettingsModal onClose={() => setShowSettings(false)} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showEvolution && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+            <EvolutionModal onClose={() => setShowEvolution(false)} sendCommand={sendCommand} agentStatus={agentStatus} termOutput={termOutput} />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <ToastContainer toasts={toasts} />
+      <AnimatePresence>
       {showConsole && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="modal-overlay" onClick={() => setShowConsole(false)} style={{ zIndex: 100 }}>
           <motion.div initial={{ opacity: 0, scale: 0.95, y: -10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2, ease: 'easeOut' }} className="modal-box" onClick={e => e.stopPropagation()} style={{ width: '85%', height: '85%', maxWidth: '1200px', display: 'flex', flexDirection: 'column', background: 'rgba(5, 10, 20, 0.95)', border: '1px solid var(--accent)' }}>
@@ -894,6 +915,7 @@ function App() {
           </motion.div>
         </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }

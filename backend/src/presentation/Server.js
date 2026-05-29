@@ -7,6 +7,7 @@ const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const fs = require('fs/promises');
 const path = require('path');
+const os = require('os');
 const claudeCode = require('../infrastructure/ClaudeCodeAdapter');
 const gitAdapter = require('../infrastructure/GitAdapter');
 const webSocketHandler = require('./WebSocketHandler');
@@ -16,6 +17,32 @@ const logger = require('../infrastructure/Logger');
 // ── Standardized Error Helper ─────────────────────────────────────────────────────
 function apiError(res, status, code, message) {
     return res.status(status).json({ error: { code, message } });
+}
+
+// ── Differential CPU Load (shared with WebSocketHandler pattern) ──────────────────
+let prevCpuTimes = null;
+
+function calculateCpuLoad() {
+    const cpus = os.cpus();
+    let totalIdle = 0;
+    let totalTick = 0;
+    for (const cpu of cpus) {
+        totalTick += cpu.times.user + cpu.times.nice + cpu.times.sys + cpu.times.irq + cpu.times.idle;
+        totalIdle += cpu.times.idle;
+    }
+    const idle = totalIdle / cpus.length;
+    const tick = totalTick / cpus.length;
+
+    if (prevCpuTimes) {
+        const deltaIdle = idle - prevCpuTimes.idle;
+        const deltaTick = tick - prevCpuTimes.tick;
+        prevCpuTimes = { idle, tick };
+        if (deltaTick === 0) return '0.0';
+        return ((1 - deltaIdle / deltaTick) * 100).toFixed(1);
+    }
+
+    prevCpuTimes = { idle, tick };
+    return '0.0';
 }
 
 const app = express();
@@ -291,6 +318,19 @@ app.get('/api/health', async (req, res) => {
         claudeAvailable: claudeCode.isAvailable(),
         provider: config.provider,
         model: config.model
+    });
+});
+
+// ── GET /api/metrics ────────────────────────────────────────────────────────────
+app.get('/api/metrics', async (req, res) => {
+    const memFree = os.freemem();
+    const memTotal = os.totalmem();
+    const memUsage = (((memTotal - memFree) / memTotal) * 100).toFixed(1);
+    res.json({
+        cpu: calculateCpuLoad(),
+        ram: memUsage,
+        uptime: process.uptime(),
+        timestamp: Date.now(),
     });
 });
 
