@@ -88,6 +88,8 @@ class ClaudeCodeAdapter {
             let tokensOut = 0;
             let assistantTextBuffer = '';
             let hasDeltas = false;
+            let currentToolName = null;
+            let currentToolInput = '';
 
             const finalizeText = () => {
                 if (isAutonomous && autoBuffer.trim() && ws) {
@@ -115,10 +117,44 @@ class ClaudeCodeAdapter {
                         this._handleEvent(event, ws);
 
                         if (event.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
+                            currentToolName = event.content_block.name;
+                            currentToolInput = '';
+                        }
+                        
+                        if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta') {
+                            currentToolInput += event.delta.partial_json;
+                        }
+
+                        if (event.type === 'content_block_stop' && currentToolName) {
                             if (ws) {
-                                ws.send(JSON.stringify({ type: 'log', message: `⚡ Executing Tool: ${event.content_block.name}` }));
+                                try {
+                                    const inputObj = JSON.parse(currentToolInput);
+                                    let argsSummary = '';
+                                    
+                                    // Make logs highly readable for the user based on tool type
+                                    if (currentToolName === 'Bash' || currentToolName === 'PowerShell' || currentToolName === 'run_command') {
+                                        argsSummary = inputObj.command || inputObj.CommandLine || '';
+                                    } else if (currentToolName === 'Glob' || currentToolName === 'Grep' || currentToolName === 'grep_search') {
+                                        argsSummary = inputObj.pattern || inputObj.query || inputObj.Query || '';
+                                    } else if (currentToolName === 'ReplaceFileContent' || currentToolName === 'replace_file_content' || currentToolName === 'multi_replace_file_content') {
+                                        argsSummary = inputObj.file_path || inputObj.TargetFile || '';
+                                    } else if (currentToolName === 'ViewFile' || currentToolName === 'view_file' || currentToolName === 'list_dir') {
+                                        argsSummary = inputObj.file_path || inputObj.AbsolutePath || inputObj.DirectoryPath || '';
+                                    } else {
+                                        argsSummary = Object.values(inputObj).join(' ').substring(0, 50);
+                                    }
+                                    
+                                    // Clean up long paths for better UI readability
+                                    if (argsSummary.length > 60) argsSummary = '...' + argsSummary.slice(-57);
+
+                                    ws.send(JSON.stringify({ type: 'log', message: `⚡ ${currentToolName}: ${argsSummary}` }));
+                                } catch (e) {
+                                    ws.send(JSON.stringify({ type: 'log', message: `⚡ ${currentToolName}` }));
+                                }
                                 ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
                             }
+                            currentToolName = null;
+                            currentToolInput = '';
                         }
 
                         if (event.type === 'assistant' && event.message?.content) {
@@ -128,7 +164,8 @@ class ClaudeCodeAdapter {
                                 }
                             }
                         }
-                        if (event.type === 'content_block_delta' && event.delta?.text) {
+                        
+                        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta' && event.delta?.text) {
                             hasDeltas = true;
                             fullResponse += event.delta.text;
                             if (ws) {
