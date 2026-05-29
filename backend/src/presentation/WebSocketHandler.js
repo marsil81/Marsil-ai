@@ -1,6 +1,5 @@
 const os = require('os');
 const agentService = require('../application/AgentService');
-const logger = require('../infrastructure/Logger');
 
 // CPU load snapshot for differential measurement
 let prevCpuTimes = null;
@@ -52,7 +51,7 @@ class WebSocketHandler {
                     ws.send(JSON.stringify({ type: 'log', message: reply }));
                     ws.send(JSON.stringify({ type: 'agent_status', status: 'idle' }));
                 }
-            } catch (e) {
+            } catch {
                 ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
             }
         });

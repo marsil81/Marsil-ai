@@ -11,7 +11,7 @@ const PROVIDER_URLS = {
 };
 
 // Strip ANSI escape codes (colors, cursor movement) from terminal output
-const ANSI_REGEX = /[][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
+const ANSI_REGEX = /[\x1b\x9b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
 // Shared helper: extract a human-readable summary from a tool-call input object
 function summarizeToolInput(toolName, inputObj) {
@@ -216,7 +216,7 @@ class ClaudeCodeAdapter {
                                 const inputObj = JSON.parse(currentToolInput);
                                 const argsSummary = summarizeToolInput(currentToolName, inputObj);
                                 this.ws.send(JSON.stringify({ type: 'log', message: `⚡ [${this._toolCallCount}] ${currentToolName}: ${argsSummary}` }));
-                            } catch (e) {
+                            } catch {
                                 this.ws.send(JSON.stringify({ type: 'log', message: `⚡ [${this._toolCallCount}] ${currentToolName}` }));
                             }
                             this.ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
@@ -340,7 +340,7 @@ class ClaudeCodeAdapter {
         });
     }
 
-    _handleEvent(event, wsInput) {
+    _handleEvent(event, _wsInput) {
         if (!this.ws) return;
         if (event.type === 'system' || event.type === 'assistant') {
             this.ws.send(JSON.stringify({ type: 'agent_status', status: 'thinking' }));

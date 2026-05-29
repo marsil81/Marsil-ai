@@ -4,7 +4,15 @@
 
 ---
 
-### [إصلاح تسرب الذاكرة في الواجهة وتحسين استقرار النواة] - 2026-05-29
+### [تحسينات شاملة: ESLint احترافي، Auto-Reconnect، Git Branch API، Toast Notifications، تحسين أداء Canvas] - 2026-05-29
+**الملخص:** تم تنفيذ حزمة تحسينات شاملة على جودة الكود واستقرار الاتصال وتجربة المستخدم:
+- **إضافة ESLint احترافي (Backend):** تثبيت ESLint مع قواعد قياسية (no-unused-vars, prefer-const, no-var) واستبدال الـ lint script القديم بـ `eslint src/`. تم إصلاح 13 مشكلة (3 أخطاء + 10 تحذيرات) لتصل إلى 0 خطأ و 0 تحذير.
+- **إضافة Auto-Reconnect للـ WebSocketClient (Frontend):** نظام إعادة اتصال ذكي مع Exponential Backoff (يبدأ من 1 ثانية ويتضاعف حتى 30 ثانية كحد أقصى)، مع حد أقصى 10 محاولات، وعرض رسائل الحالة في Toast Notifications.
+- **إضافة Git Branch Management API (Backend):** 3 نقاط نهاية جديدة: `GET /api/git/branches` (سرد الفروع مع الفرض الحالي)، `POST /api/git/branch` (إنشاء فرع جديد مع `action: 'create'` أو التبديل مع `action: 'switch'`).
+- **إضافة نظام Toast Notifications (Frontend):** مكون `useToasts()` مع 4 أنواع (info, success, warning, error) ومدة عرض تلقائية 4 ثوانٍ مع Animation Slide-in.
+- **تحسين أداء VoicePulseVisualizer (Frontend):** استبدال المصفوفات المؤقتة بـ `Float32Array` مسبق التخصيص، إضافة `trigCacheRef` لتخزين قيم المثلثات المحسوبة مسبقاً، تحسين دورة حياة AudioContext (إعادة الاستخدام بدلاً من الإغلاق/الفتح المتكرر)، تجنب إنشاء الكائنات في حلقة الرسم.
+- **تحسين WebSocket Ping/Pong (Frontend):** إضافة معالج `ping` يستجيب فوراً بـ `pong` لمنع قطع الاتصال، وإضافة callback `onConnectionChange` لإعلام الواجهة بحالة الاتصال.
+- **إصلاح جميع تحذيرات ESLint:** إزالة المتغيرات غير المستخدمة (logger من GitAdapter و WebSocketHandler، agentService من Server.js)، تغيير `let` إلى `const` حيثما أمكن، إزالة متغيرات الـ catch غير المستخدمة.
 **الملخص:** تم تنفيذ حزمة إصلاحات استباقية لمنع تدهور الأداء في الجلسات الطويلة:
 - **إصلاح تسرب الذاكرة (Memory Leak) في useAgentConnection.js:** إضافة حد أقصى 1000 سطر لمصفوفة `termOutput` (TERM_OUTPUT_MAX) مع قص تلقائي (`next.slice(-1000)`) عند تجاوز الحد، لمنع تورم الذاكرة في جلسات التطور الذاتي الطويلة.
 - **إصلاح المسار البديل في loadConfig (Server.js):** إضافة استدعاء `claudeCode.setProviderConfig(config)` في مسار catch الفاشل، لضمان مزامنة الإعدادات حتى عند فشل قراءة ملف config.json.

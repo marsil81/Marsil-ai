@@ -9,7 +9,6 @@ const fs = require('fs/promises');
 const path = require('path');
 const claudeCode = require('../infrastructure/ClaudeCodeAdapter');
 const gitAdapter = require('../infrastructure/GitAdapter');
-const agentService = require('../application/AgentService');
 const webSocketHandler = require('./WebSocketHandler');
 const anthropicProxy = require('../infrastructure/AnthropicProxy');
 const logger = require('../infrastructure/Logger');
@@ -219,6 +218,27 @@ app.get('/api/git/log', async (req, res) => {
         const count = Math.min(Math.max(parseInt(req.query.count) || 10, 1), 50);
         const result = await gitAdapter.log(count);
         res.json(result);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── Git Branch Operations ──────────────────────────────────────────────────────
+app.get('/api/git/branches', async (req, res) => {
+    try {
+        const result = await gitAdapter.branches();
+        res.json(result);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/git/branch', async (req, res) => {
+    try {
+        const { name, action } = req.body || {};
+        if (action === 'switch') {
+            const result = await gitAdapter.switchBranch(name);
+            res.json(result);
+        } else {
+            const result = await gitAdapter.createBranch(name);
+            res.json(result);
+        }
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

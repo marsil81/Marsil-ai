@@ -1,6 +1,5 @@
 const { execFile } = require('child_process');
 const path = require('path');
-const logger = require('./Logger');
 
 const WORKSPACE_DIR = path.resolve(__dirname, '../../..');
 
@@ -93,6 +92,63 @@ class GitAdapter {
                     return { hash, message: rest.join(' ') };
                 });
                 resolve({ commits });
+            });
+        });
+    }
+
+    /**
+     * List all local branches
+     */
+    branches() {
+        return new Promise((resolve) => {
+            execFile('git', ['branch', '--no-color'], { cwd: WORKSPACE_DIR }, (error, stdout) => {
+                if (error) {
+                    resolve({ error: error.message });
+                    return;
+                }
+                const branches = stdout.split('\n').filter(Boolean).map(line => ({
+                    name: line.replace('* ', '').trim(),
+                    current: line.startsWith('*'),
+                }));
+                resolve({ branches, current: branches.find(b => b.current)?.name || 'unknown' });
+            });
+        });
+    }
+
+    /**
+     * Create and switch to a new branch
+     */
+    createBranch(branchName) {
+        return new Promise((resolve) => {
+            if (!branchName || typeof branchName !== 'string' || !/^[\w./-]+$/.test(branchName)) {
+                resolve({ error: 'Invalid branch name' });
+                return;
+            }
+            execFile('git', ['checkout', '-b', branchName], { cwd: WORKSPACE_DIR }, (error, stdout) => {
+                if (error) {
+                    resolve({ error: error.message });
+                    return;
+                }
+                resolve({ message: stdout.trim() || `Switched to new branch: ${branchName}` });
+            });
+        });
+    }
+
+    /**
+     * Switch to an existing branch
+     */
+    switchBranch(branchName) {
+        return new Promise((resolve) => {
+            if (!branchName || typeof branchName !== 'string' || !/^[\w./-]+$/.test(branchName)) {
+                resolve({ error: 'Invalid branch name' });
+                return;
+            }
+            execFile('git', ['checkout', branchName], { cwd: WORKSPACE_DIR }, (error, stdout) => {
+                if (error) {
+                    resolve({ error: error.message });
+                    return;
+                }
+                resolve({ message: stdout.trim() || `Switched to branch: ${branchName}` });
             });
         });
     }

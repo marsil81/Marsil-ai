@@ -18,6 +18,21 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
   const streamRef = useRef(null);
+  const voiceLevelsRef = useRef(new Float32Array(12));
+  const phaseRef = useRef(0);
+
+  // Pre-compute trig values for 12-bar spectrogram (avoids Math.cos/Math.sin per frame)
+  const trigCacheRef = useRef(null);
+  if (!trigCacheRef.current) {
+    const angles = [];
+    for (let i = 0; i < 12; i++) {
+      angles.push({
+        cos: Math.cos((i / 12) * Math.PI * 2),
+        sin: Math.sin((i / 12) * Math.PI * 2),
+      });
+    }
+    trigCacheRef.current = angles;
+  }
 
   // Initialize real microphone input if listening
   useEffect(() => {
@@ -25,10 +40,15 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
       let active = true;
       const initAudio = async () => {
         try {
+          // Reuse existing AudioContext if possible
+          if (audioCtxRef.current && audioCtxRef.current.state === 'closed') {
+            audioCtxRef.current = null;
+          }
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           if (!AudioContextClass) return;
-          const ctx = new AudioContextClass();
+          const ctx = audioCtxRef.current || new AudioContextClass();
           audioCtxRef.current = ctx;
+          if (ctx.state === 'suspended') await ctx.resume();
 
           const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
           if (!active) {
@@ -51,10 +71,9 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
         active = false;
         if (streamRef.current) {
           streamRef.current.getTracks().forEach(t => t.stop());
+          streamRef.current = null;
         }
-        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-          audioCtxRef.current.close();
-        }
+        // Don't close AudioContext on stop — keep it alive for next listening session
         analyserRef.current = null;
       };
     }
@@ -65,12 +84,18 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     let id;
-    let phase = 0;
+    const trig = trigCacheRef.current;
+    const levels = voiceLevelsRef.current;
+
+    // Pre-allocate data array for frequency analysis
+    const freqArray = new Uint8Array(32);
 
     const draw = () => {
       ctx.clearRect(0, 0, 90, 90);
       const cx = 45;
       const cy = 45;
+      const phase = phaseRef.current;
+      phaseRef.current += 0.15;
 
       // Outer cybernetic circle boundary
       ctx.strokeStyle = 'rgba(0, 184, 255, 0.1)';
@@ -79,48 +104,39 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
       ctx.arc(cx, cy, 42, 0, Math.PI * 2);
       ctx.stroke();
 
-      phase += 0.15;
-
       if (isListening) {
         // --- 1. USER SPEAKING (REAL-TIME MIC CAPTURE OR SIMULATION) ---
-        let voiceLevels = [];
         if (analyserRef.current) {
-          const bufferLength = analyserRef.current.frequencyBinCount;
-          const dataArray = new Uint8Array(bufferLength);
-          analyserRef.current.getByteFrequencyData(dataArray);
-          // Map to 12 bars around the circle
+          analyserRef.current.getByteFrequencyData(freqArray);
           for (let i = 0; i < 12; i++) {
-            voiceLevels.push(dataArray[i % bufferLength] / 255.0);
+            levels[i] = freqArray[i % 32] / 255.0;
           }
         } else {
-          // Simulation fallback (simulated speech values)
+          // Simulation fallback — write directly to pre-allocated array
           for (let i = 0; i < 12; i++) {
-            voiceLevels.push(0.15 + Math.sin(phase + i) * Math.cos(phase * 0.7 + i) * 0.4);
+            levels[i] = 0.15 + Math.sin(phase + i) * Math.cos(phase * 0.7 + i) * 0.4;
           }
         }
 
-        // Draw an pulsing arc reactor / circular voice spectrogram
+        // Draw pulsing arc reactor / circular voice spectrogram
         ctx.strokeStyle = 'rgba(0, 255, 213, 0.6)';
         ctx.lineWidth = 2;
         for (let i = 0; i < 12; i++) {
           const angle = (i / 12) * Math.PI * 2 + (phase * 0.05);
-          const level = Math.max(0.1, voiceLevels[i]);
-          const startR = 20;
+          const level = Math.max(0.1, levels[i]);
           const endR = 20 + level * 20;
-          
-          const x1 = cx + Math.cos(angle) * startR;
-          const y1 = cy + Math.sin(angle) * startR;
-          const x2 = cx + Math.cos(angle) * endR;
-          const y2 = cy + Math.sin(angle) * endR;
 
           ctx.beginPath();
-          ctx.moveTo(x1, y1);
-          ctx.lineTo(x2, y2);
+          ctx.moveTo(cx + trig[i].cos * 20, cy + trig[i].sin * 20);
+          ctx.lineTo(cx + Math.cos(angle) * endR, cy + Math.sin(angle) * endR);
           ctx.stroke();
         }
 
         // Central glowing core pulsing with average voice level
-        const avgLevel = voiceLevels.reduce((a, b) => a + b, 0) / voiceLevels.length;
+        let avgLevel = 0;
+        for (let i = 0; i < 12; i++) avgLevel += levels[i];
+        avgLevel /= 12;
+
         ctx.fillStyle = `rgba(0, 255, 213, ${0.3 + avgLevel * 0.5})`;
         ctx.beginPath();
         ctx.arc(cx, cy, 10 + avgLevel * 8, 0, Math.PI * 2);
@@ -129,28 +145,28 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
       } else if (isSpeaking) {
         // --- 2. AI SPEAKING (MULTI-FREQUENCY Siri-style SINE WAVES) ---
         ctx.lineWidth = 1.5;
-        const waves = [
-          { freq: 0.2, amp: 14, color: 'rgba(0, 184, 255, 0.7)', speed: 0.15 },
-          { freq: 0.35, amp: 8, color: 'rgba(0, 255, 213, 0.6)', speed: 0.25 },
-          { freq: 0.15, amp: 18, color: 'rgba(138, 43, 226, 0.5)', speed: 0.1 }
+        // Inline wave data to avoid array allocation per frame
+        const waveData = [
+          { freq: 0.2, amp: 14, color: 'rgba(0, 184, 255, 0.7)', speed: 1.5 },
+          { freq: 0.35, amp: 8, color: 'rgba(0, 255, 213, 0.6)', speed: 2.5 },
+          { freq: 0.15, amp: 18, color: 'rgba(138, 43, 226, 0.5)', speed: 1.0 },
         ];
 
-        waves.forEach(w => {
-          ctx.strokeStyle = w.color;
+        for (let w = 0; w < 3; w++) {
+          const { freq, amp, color, speed } = waveData[w];
+          ctx.strokeStyle = color;
           ctx.beginPath();
           for (let x = 10; x <= 80; x++) {
-            // Sine wave centered vertically, scaling down at edges
-            const scale = Math.sin(((x - 10) / 70) * Math.PI); // 0 at edges, 1 at center
-            const y = cy + Math.sin(x * w.freq + phase * w.speed * 10) * w.amp * scale;
+            const scale = Math.sin(((x - 10) / 70) * Math.PI);
+            const y = cy + Math.sin(x * freq + phase * speed) * amp * scale;
             if (x === 10) ctx.moveTo(x, y);
             else ctx.lineTo(x, y);
           }
           ctx.stroke();
-        });
+        }
 
       } else if (agentStatus === 'thinking' || agentStatus === 'executing_tool') {
-        // --- 3. AI THINKING (CALCULATING HUDS / RADAR SWEEP WITH GRID WAVE) ---
-        // Draw crosshair lines
+        // --- 3. AI THINKING (RADAR SWEEP WITH GRID WAVE) ---
         ctx.strokeStyle = 'rgba(0, 184, 255, 0.15)';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -158,7 +174,6 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
         ctx.moveTo(cx, cy - 38); ctx.lineTo(cx, cy + 38);
         ctx.stroke();
 
-        // Draw scanline grid
         ctx.strokeStyle = 'rgba(0, 255, 213, 0.4)';
         ctx.lineWidth = 1;
         ctx.beginPath();
@@ -169,7 +184,6 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
         }
         ctx.stroke();
 
-        // Outer rotating ticks
         ctx.strokeStyle = 'rgba(0, 184, 255, 0.5)';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
@@ -180,17 +194,15 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
         ctx.stroke();
 
       } else {
-        // --- 4. IDLE STANDBY (FLAT LINE WITH HEARTBEAT BASSELINE RIPPLE) ---
+        // --- 4. IDLE STANDBY (HEARTBEAT BASELINE RIPPLE) ---
         ctx.strokeStyle = 'rgba(0, 184, 255, 0.35)';
         ctx.lineWidth = 1.5;
         ctx.beginPath();
         for (let x = 10; x <= 80; x++) {
           let ripple = 0;
-          // Create a periodic heartbeat pulse in the center
           const distToCenter = Math.abs(x - cx);
           if (distToCenter < 18) {
             const scale = Math.cos((distToCenter / 18) * (Math.PI / 2));
-            // Heartbeat peak function
             ripple = Math.sin(phase * 0.4 + x * 0.3) * 2.5 * scale;
           }
           const y = cy + ripple;
@@ -208,18 +220,43 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
   }, [isListening, isSpeaking, agentStatus]);
 
   return (
-    <canvas 
-      ref={canvasRef} 
-      width={90} 
-      height={90} 
-      style={{ width: '90px', height: '90px', display: 'block', margin: '0 auto' }} 
+    <canvas
+      ref={canvasRef}
+      width={90}
+      height={90}
+      style={{ width: '90px', height: '90px', display: 'block', margin: '0 auto' }}
     />
   );
+}
+
+// ── Toast Notification System ───────────────────────────────────────────────────
+function useToasts() {
+  const [toasts, setToasts] = useState([]);
+  const idRef = useRef(0);
+
+  const addToast = (message, type = 'info', duration = 4000) => {
+    const id = ++idRef.current;
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== id));
+    }, duration);
+  };
+
+  const ToastContainer = toasts.length > 0 ? (
+    <div className="toast-container">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast-item ${t.type}`}>{t.message}</div>
+      ))}
+    </div>
+  ) : null;
+
+  return { toasts, addToast, ToastContainer };
 }
 
 function App() {
   const { t, i18n } = useTranslation();
   const { agentStatus, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
+  const { addToast, ToastContainer } = useToasts();
   const [showSettings, setShowSettings] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
   const [showEvolution, setShowEvolution] = useState(false);
@@ -674,7 +711,8 @@ function App() {
 
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showEvolution && <EvolutionModal onClose={() => setShowEvolution(false)} sendCommand={sendCommand} agentStatus={agentStatus} termOutput={termOutput} />}
-      
+
+      {ToastContainer}
       {showConsole && (
         <div className="modal-overlay" onClick={() => setShowConsole(false)} style={{ zIndex: 100 }}>
           <div className="modal-box" onClick={e => e.stopPropagation()} style={{ width: '85%', height: '85%', maxWidth: '1200px', display: 'flex', flexDirection: 'column', background: 'rgba(5, 10, 20, 0.95)', border: '1px solid var(--accent)' }}>

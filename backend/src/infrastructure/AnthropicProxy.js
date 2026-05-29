@@ -23,7 +23,7 @@ function parseToolInput(tc, choiceContent) {
     let parsedInput = {};
     try {
         parsedInput = JSON.parse(tc.function.arguments);
-    } catch (e) {}
+    } catch {}
 
     if (tc.function.name === 'PowerShell' || tc.function.name === 'Bash') {
         if (!parsedInput.command || !parsedInput.command.trim()) {
@@ -80,11 +80,11 @@ class AnthropicProxy {
                 }
 
                 for (const msg of anthropicReq.messages) {
-                    let content = msg.content;
+                    const content = msg.content;
                     if (Array.isArray(content)) {
                         // Handle text and tool_use / tool_result
-                        let textParts = [];
-                        let toolCalls = [];
+                        const textParts = [];
+                        const toolCalls = [];
                         
                         for (const part of content) {
                             if (part.type === 'text') textParts.push(part.text);
