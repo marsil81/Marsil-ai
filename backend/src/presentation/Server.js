@@ -12,12 +12,13 @@ const anthropicProxy = require('../infrastructure/AnthropicProxy');
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const CONFIG_PATH = path.join(__dirname, '../../config.json');
+const WORKSPACE_ROOT = path.resolve(__dirname, '../../..');
 
 // Default config shape — provider-based, no more "engine" toggle
 const DEFAULT_CONFIG = {
@@ -86,6 +87,20 @@ app.get('/api/status', async (req, res) => {
     });
 });
 
+// ── Path Safety ──────────────────────────────────────────────────────────────
+function safePath(relativePath) {
+    if (!relativePath || typeof relativePath !== 'string') {
+        throw new Error('Invalid path: must be a non-empty string');
+    }
+    const resolved = path.resolve(WORKSPACE_ROOT, relativePath);
+    const resolvedLower = resolved.toLowerCase();
+    const workspaceLower = WORKSPACE_ROOT.toLowerCase();
+    if (!resolvedLower.startsWith(workspaceLower)) {
+        throw new Error('Path traversal outside workspace denied');
+    }
+    return resolved;
+}
+
 // ── File Tree ────────────────────────────────────────────────────────────────
 async function getFileTree(dir) {
     try {
@@ -94,7 +109,7 @@ async function getFileTree(dir) {
         for (const entry of entries) {
             if (['node_modules', '.git', 'dist'].includes(entry.name)) continue;
             const resPath = path.join(dir, entry.name);
-            const rel = path.relative(path.join(__dirname, '../../..'), resPath);
+            const rel = path.relative(WORKSPACE_ROOT, resPath);
             if (entry.isDirectory()) {
                 try {
                     files.push({ name: entry.name, path: rel, isDirectory: true, children: await getFileTree(resPath) });
@@ -110,14 +125,14 @@ async function getFileTree(dir) {
 }
 
 app.get('/api/files', async (req, res) => {
-    try { res.json(await getFileTree(path.join(__dirname, '../../..'))); }
+    try { res.json(await getFileTree(WORKSPACE_ROOT)); }
     catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ── File Read / Write ────────────────────────────────────────────────────────
 app.get('/api/file', async (req, res) => {
     try {
-        const filePath = path.join(__dirname, '../../..', req.query.path);
+        const filePath = safePath(req.query.path);
         const content = await fs.readFile(filePath, 'utf-8');
         res.json({ content });
     } catch (err) { res.status(500).json({ error: err.message }); }
@@ -125,7 +140,7 @@ app.get('/api/file', async (req, res) => {
 
 app.post('/api/file', async (req, res) => {
     try {
-        const filePath = path.join(__dirname, '../../..', req.body.path);
+        const filePath = safePath(req.body.path);
         await fs.mkdir(path.dirname(filePath), { recursive: true });
         await fs.writeFile(filePath, req.body.content || '', 'utf-8');
         res.json({ success: true });
@@ -138,9 +153,57 @@ app.post('/api/revert', async (req, res) => {
     res.json({ message: result });
 });
 
+// ── Health Check ─────────────────────────────────────────────────────────────
+app.get('/api/health', async (req, res) => {
+    const config = await loadConfig();
+    res.json({
+        status: 'ok',
+        uptime: process.uptime(),
+        timestamp: Date.now(),
+        claudeAvailable: claudeCode.isAvailable(),
+        provider: config.provider,
+        model: config.model
+    });
+});
+
+// ── Global Error Handler ─────────────────────────────────────────────────────
+app.use((err, req, res, _next) => {
+    console.error(`[Unhandled Error] ${req.method} ${req.path}:`, err.message);
+    res.status(err.status || 500).json({
+        error: err.message || 'Internal Server Error'
+    });
+});
+
 // ── WebSocket ────────────────────────────────────────────────────────────────
 wss.on('connection', (ws) => {
     webSocketHandler.handleConnection(ws);
+});
+
+// ── Graceful Shutdown ────────────────────────────────────────────────────────
+async function shutdown(signal) {
+    console.log(`\n${signal} received — shutting down gracefully...`);
+    wss.clients.forEach((client) => {
+        client.close(1001, 'Server shutting down');
+    });
+    anthropicProxy.stop();
+    server.close(() => {
+        console.log('Server closed.');
+        process.exit(0);
+    });
+    setTimeout(() => {
+        console.error('Forced shutdown after timeout.');
+        process.exit(1);
+    }, 10000);
+}
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('uncaughtException', (err) => {
+    console.error('[Uncaught Exception]', err);
+    shutdown('UNCAUGHT_EXCEPTION');
+});
+process.on('unhandledRejection', (reason) => {
+    console.error('[Unhandled Rejection]', reason);
 });
 
 // ── Start ────────────────────────────────────────────────────────────────────

@@ -14,6 +14,7 @@ class ClaudeCodeAdapter {
         this.available = false;
         this.version = null;
         this.config = { provider: 'anthropic', apiKey: '', model: 'claude-opus-4-5', baseUrl: null };
+        this.ws = null;
 
         try {
             const out = execSync('claude --version', { timeout: 5000, encoding: 'utf-8' });
@@ -27,6 +28,11 @@ class ClaudeCodeAdapter {
     }
 
     isAvailable() { return this.available; }
+
+    setWebSocket(ws) { 
+        this.ws = ws; 
+        console.log("WebSocket client dynamically updated in ClaudeCodeAdapter!");
+    }
 
     /**
      * Update provider configuration.
@@ -61,7 +67,10 @@ class ClaudeCodeAdapter {
     /**
      * Run Claude Code in non-interactive print mode with streaming JSON output.
      */
-    async run(prompt, cwd, ws, isAutonomous = false) {
+    async run(prompt, cwd, wsInput, isAutonomous = false) {
+        if (wsInput) {
+            this.ws = wsInput;
+        }
         return new Promise((resolve, reject) => {
             const args = [
                 '--print',
@@ -93,14 +102,14 @@ class ClaudeCodeAdapter {
             let currentToolInput = '';
 
             const finalizeText = () => {
-                if (isAutonomous && autoBuffer.trim() && ws) {
-                    ws.send(JSON.stringify({ type: 'log', message: `💭 ${autoBuffer}` }));
+                if (isAutonomous && autoBuffer.trim() && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'log', message: `💭 ${autoBuffer}` }));
                     autoBuffer = '';
                 }
                 if (!hasDeltas && assistantTextBuffer) {
                     fullResponse += assistantTextBuffer;
-                    if (ws && !isAutonomous) {
-                        ws.send(JSON.stringify({ type: 'chat_delta', text: assistantTextBuffer }));
+                    if (this.ws && !isAutonomous) {
+                        this.ws.send(JSON.stringify({ type: 'chat_delta', text: assistantTextBuffer }));
                     }
                     assistantTextBuffer = '';
                 }
@@ -115,7 +124,7 @@ class ClaudeCodeAdapter {
                     if (!line.trim()) continue;
                     try {
                         const event = JSON.parse(line);
-                        this._handleEvent(event, ws);
+                        this._handleEvent(event, this.ws);
 
                         if (event.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
                             currentToolName = event.content_block.name;
@@ -127,7 +136,7 @@ class ClaudeCodeAdapter {
                         }
 
                         if (event.type === 'content_block_stop' && currentToolName) {
-                            if (ws) {
+                            if (this.ws) {
                                 try {
                                     const inputObj = JSON.parse(currentToolInput);
                                     let argsSummary = '';
@@ -148,11 +157,11 @@ class ClaudeCodeAdapter {
                                     // Clean up long paths for better UI readability
                                     if (argsSummary.length > 60) argsSummary = '...' + argsSummary.slice(-57);
 
-                                    ws.send(JSON.stringify({ type: 'log', message: `⚡ ${currentToolName}: ${argsSummary}` }));
+                                    this.ws.send(JSON.stringify({ type: 'log', message: `⚡ ${currentToolName}: ${argsSummary}` }));
                                 } catch (e) {
-                                    ws.send(JSON.stringify({ type: 'log', message: `⚡ ${currentToolName}` }));
+                                    this.ws.send(JSON.stringify({ type: 'log', message: `⚡ ${currentToolName}` }));
                                 }
-                                ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
+                                this.ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
                             }
                             currentToolName = null;
                             currentToolInput = '';
@@ -169,36 +178,36 @@ class ClaudeCodeAdapter {
                         if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta' && event.delta?.text) {
                             hasDeltas = true;
                             fullResponse += event.delta.text;
-                            if (ws) {
+                            if (this.ws) {
                                 if (isAutonomous) {
                                     autoBuffer += event.delta.text;
                                     const aLines = autoBuffer.split('\n');
                                     autoBuffer = aLines.pop();
                                     for (const al of aLines) {
-                                        if (al.trim()) ws.send(JSON.stringify({ type: 'log', message: `💭 ${al}` }));
+                                        if (al.trim()) this.ws.send(JSON.stringify({ type: 'log', message: `💭 ${al}` }));
                                     }
                                 } else {
-                                    ws.send(JSON.stringify({ type: 'chat_delta', text: event.delta.text }));
+                                    this.ws.send(JSON.stringify({ type: 'chat_delta', text: event.delta.text }));
                                 }
                             }
                         }
                         if (event.type === 'error') {
-                            if (ws) {
-                                ws.send(JSON.stringify({ type: 'log', message: `❌ Error: ${event.error?.message || event.message || JSON.stringify(event)}` }));
+                            if (this.ws) {
+                                this.ws.send(JSON.stringify({ type: 'log', message: `❌ Error: ${event.error?.message || event.message || JSON.stringify(event)}` }));
                             }
                         }
                         if (event.type === 'result') {
                             finalizeText();
                             if (event.result && !fullResponse) {
                                 fullResponse = String(event.result);
-                                if (ws && !isAutonomous) {
-                                    ws.send(JSON.stringify({ type: 'chat_delta', text: String(event.result) }));
+                                if (this.ws && !isAutonomous) {
+                                    this.ws.send(JSON.stringify({ type: 'chat_delta', text: String(event.result) }));
                                 }
                             }
                             tokensIn  = event.total_tokens_in  || 0;
                             tokensOut = event.total_tokens_out || 0;
-                            if (ws) {
-                                ws.send(JSON.stringify({
+                            if (this.ws) {
+                                this.ws.send(JSON.stringify({
                                     type: 'token_usage',
                                     tokensIn,
                                     tokensOut,
@@ -210,20 +219,24 @@ class ClaudeCodeAdapter {
                         }
                     } catch {
                         fullResponse += line;
+                        if (this.ws) {
+                            const cleanLine = line.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').trim();
+                            if (cleanLine) this.ws.send(JSON.stringify({ type: 'log', message: cleanLine }));
+                        }
                     }
                 }
             });
 
             proc.stderr.on('data', (data) => {
                 const cleanMsg = data.toString().replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').trim();
-                if (cleanMsg && ws) {
-                    ws.send(JSON.stringify({ type: 'log', message: cleanMsg }));
+                if (cleanMsg && this.ws) {
+                    this.ws.send(JSON.stringify({ type: 'log', message: cleanMsg }));
                 }
             });
 
             proc.on('close', () => {
                 finalizeText();
-                if (ws) ws.send(JSON.stringify({ type: 'agent_status', status: 'idle' }));
+                if (this.ws) this.ws.send(JSON.stringify({ type: 'agent_status', status: 'idle' }));
                 resolve(fullResponse || 'Done.');
             });
 
@@ -233,10 +246,10 @@ class ClaudeCodeAdapter {
         });
     }
 
-    _handleEvent(event, ws) {
-        if (!ws) return;
+    _handleEvent(event, wsInput) {
+        if (!this.ws) return;
         if (event.type === 'system' || event.type === 'assistant') {
-            ws.send(JSON.stringify({ type: 'agent_status', status: 'thinking' }));
+            this.ws.send(JSON.stringify({ type: 'agent_status', status: 'thinking' }));
         }
     }
 

@@ -24,6 +24,7 @@ class AgentService {
 
     setWebSocketClient(ws) {
         this.wsClient = ws;
+        claudeCode.setWebSocket(ws);
     }
 
     _send(type, data) {
