@@ -1,6 +1,55 @@
 const express = require('express');
 const fetch = require('node-fetch');
 
+function cleanSchema(schema) {
+    if (!schema || typeof schema !== 'object') return schema;
+    const clean = Array.isArray(schema) ? [] : {};
+    for (const key in schema) {
+        if (key === '$schema') continue;
+        const value = schema[key];
+        if (typeof value === 'object' && value !== null) {
+            clean[key] = cleanSchema(value);
+        } else {
+            clean[key] = value;
+        }
+    }
+    return clean;
+}
+
+function parseToolInput(tc, choiceContent) {
+    console.log("=== PROXY parseToolInput Incoming ===");
+    console.log("NAME:", tc.function.name);
+    console.log("RAW ARGS:", tc.function.arguments);
+    
+    let parsedInput = {};
+    try {
+        parsedInput = JSON.parse(tc.function.arguments);
+    } catch (e) {}
+
+    if (tc.function.name === 'PowerShell' || tc.function.name === 'Bash') {
+        if (!parsedInput.command || !parsedInput.command.trim()) {
+            let extracted = '';
+            const codeBlockMatch = choiceContent?.match(/```(?:powershell|bash|sh|cmd|shell)?\n([\s\S]*?)\n```/i);
+            if (codeBlockMatch) {
+                extracted = codeBlockMatch[1].trim();
+            }
+            if (!extracted) {
+                const inlineMatch = choiceContent?.match(/`([^`\n]+)`/);
+                if (inlineMatch && inlineMatch[1].length < 150) {
+                    extracted = inlineMatch[1].trim();
+                }
+            }
+            if (!extracted) {
+                extracted = "git status --porcelain";
+            }
+            parsedInput.command = extracted;
+        }
+    }
+    console.log("=== PROXY parseToolInput Outgoing ===");
+    console.log(JSON.stringify(parsedInput));
+    return parsedInput;
+}
+
 class AnthropicProxy {
     constructor() {
         this.app = express();
@@ -28,6 +77,7 @@ class AnthropicProxy {
                 if (anthropicReq.system) {
                     let sysText = anthropicReq.system;
                     if (Array.isArray(sysText)) sysText = sysText.map(s => s.text).join('\n');
+                    sysText += "\n\nCRITICAL: When choosing to invoke a tool, you MUST populate all required parameters within the arguments JSON. For instance, if you call Bash or PowerShell, you must supply the 'command' string argument. Never output an empty arguments object like '{}'. Doing so will cause execution failures.";
                     openaiMessages.push({ role: 'system', content: sysText });
                 }
 
@@ -76,7 +126,7 @@ class AnthropicProxy {
                     function: {
                         name: t.name,
                         description: t.description,
-                        parameters: t.input_schema
+                        parameters: cleanSchema(t.input_schema)
                     }
                 })) || undefined;
 
@@ -86,8 +136,8 @@ class AnthropicProxy {
                     messages: openaiMessages,
                     tools: openaiTools,
                     stream: false,
-                    temperature: anthropicReq.temperature || 0.7,
-                    max_tokens: anthropicReq.max_tokens || 4000
+                    temperature: anthropicReq.temperature !== undefined ? anthropicReq.temperature : 0.7,
+                    max_tokens: anthropicReq.max_tokens !== undefined ? anthropicReq.max_tokens : 4000
                 };
 
                 let cleanUrl = this.targetBaseUrl || 'https://api.deepseek.com';
@@ -112,6 +162,13 @@ class AnthropicProxy {
 
                 const data = await response.json();
                 const choice = data.choices?.[0]?.message || { content: '' };
+                if (choice.tool_calls) {
+                    console.log("=== PROXY RECEIVED TOOL CALLS ===");
+                    console.log(JSON.stringify(choice.tool_calls, null, 2));
+                } else {
+                    console.log("=== PROXY RECEIVED TEXT ONLY ===");
+                    console.log(choice.content);
+                }
 
                 // 4. Translate Response back to Anthropic
                 if (anthropicReq.stream) {
@@ -149,10 +206,7 @@ class AnthropicProxy {
                     if (choice.tool_calls) {
                         let blockIndex = choice.content ? 1 : 0;
                         for (const tc of choice.tool_calls) {
-                            let parsedInput = {};
-                            try {
-                                parsedInput = JSON.parse(tc.function.arguments);
-                            } catch (e) {}
+                            const parsedInput = parseToolInput(tc, choice.content);
 
                             res.write(`event: content_block_start\ndata: ${JSON.stringify({
                                 type: 'content_block_start',
@@ -161,7 +215,17 @@ class AnthropicProxy {
                                     type: 'tool_use', 
                                     id: tc.id, 
                                     name: tc.function.name, 
-                                    input: parsedInput 
+                                    input: {} 
+                                }
+                            })}\n\n`);
+
+                            const inputStr = JSON.stringify(parsedInput);
+                            res.write(`event: content_block_delta\ndata: ${JSON.stringify({
+                                type: 'content_block_delta',
+                                index: blockIndex,
+                                delta: {
+                                    type: 'input_json_delta',
+                                    partial_json: inputStr
                                 }
                             })}\n\n`);
 
@@ -193,10 +257,7 @@ class AnthropicProxy {
                     }
                     if (choice.tool_calls) {
                         for (const tc of choice.tool_calls) {
-                            let parsedInput = {};
-                            try {
-                                parsedInput = JSON.parse(tc.function.arguments);
-                            } catch (e) {}
+                            const parsedInput = parseToolInput(tc, choice.content);
 
                             content.push({
                                 type: 'tool_use',
