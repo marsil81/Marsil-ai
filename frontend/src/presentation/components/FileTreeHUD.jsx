@@ -1,22 +1,134 @@
-import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronDown, FileText, FolderClosed, FolderOpen, Plus } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { ChevronRight, ChevronDown, FileText, FolderClosed, FolderOpen, Plus, GitBranch, Trash2, Edit3 } from 'lucide-react';
 
+// ── Git Branch Selector ────────────────────────────────────────────────────────
+function GitBranchSelector() {
+  const [branches, setBranches] = useState([]);
+  const [current, setCurrent] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const fetchBranches = useCallback(() => {
+    fetch('http://localhost:3001/api/git/branches')
+      .then(r => r.json())
+      .then(data => {
+        if (data.branches) {
+          setBranches(data.branches);
+          setCurrent(data.current);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchBranches();
+    const id = setInterval(fetchBranches, 15000);
+    return () => clearInterval(id);
+  }, [fetchBranches]);
+
+  const handleSwitch = (name) => {
+    if (name === current) return;
+    setLoading(true);
+    fetch('http://localhost:3001/api/git/branch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, action: 'switch' })
+    })
+    .then(() => {
+      setLoading(false);
+      fetchBranches();
+    })
+    .catch(() => setLoading(false));
+  };
+
+  const handleCreateBranch = () => {
+    const name = prompt('Enter new branch name:');
+    if (name) {
+      setLoading(true);
+      fetch('http://localhost:3001/api/git/branch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, action: 'create' })
+      })
+      .then(() => {
+        setLoading(false);
+        fetchBranches();
+      })
+      .catch(() => setLoading(false));
+    }
+  };
+
+  return (
+    <div style={{
+      marginBottom: '8px',
+      padding: '6px 8px',
+      background: 'rgba(0,162,255,0.04)',
+      border: '1px solid rgba(0,162,255,0.12)',
+      borderRadius: '4px',
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: '6px',
+        marginBottom: '4px',
+      }}>
+        <GitBranch size={10} style={{ color: 'var(--accent)' }} />
+        <span style={{
+          fontSize: '0.45rem', color: 'var(--text-dim)',
+          letterSpacing: '1px', flex: 1,
+        }}>
+          BRANCH
+        </span>
+        <button onClick={handleCreateBranch} title="New branch"
+          style={{
+            background: 'transparent', border: 'none',
+            color: 'var(--accent)', cursor: 'pointer',
+            padding: '1px', display: 'flex',
+          }}>
+          <Plus size={9} />
+        </button>
+      </div>
+      <select
+        value={current}
+        onChange={(e) => handleSwitch(e.target.value)}
+        disabled={loading}
+        style={{
+          width: '100%',
+          background: 'rgba(0,0,0,0.4)',
+          border: '1px solid rgba(0,255,213,0.15)',
+          color: 'var(--text)',
+          fontFamily: "'Share Tech Mono', monospace",
+          fontSize: '0.55rem',
+          padding: '3px 4px',
+          borderRadius: '3px',
+          outline: 'none',
+          cursor: 'pointer',
+        }}
+      >
+        {branches.map(b => (
+          <option key={b.name} value={b.name}>
+            {b.current ? `★ ${b.name}` : `  ${b.name}`}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+// ── File Tree ──────────────────────────────────────────────────────────────────
 export function FileTreeHUD({ onFileSelect }) {
   const [tree, setTree] = useState([]);
   const [expanded, setExpanded] = useState({});
 
-  const fetchTree = () => {
+  const fetchTree = useCallback(() => {
     fetch('http://localhost:3001/api/files')
       .then(r => r.json())
       .then(data => setTree(data))
       .catch(() => {});
-  };
+  }, []);
 
   useEffect(() => {
     fetchTree();
     const id = setInterval(fetchTree, 6000);
     return () => clearInterval(id);
-  }, []);
+  }, [fetchTree]);
 
   const toggle = (path) => {
     setExpanded(prev => ({ ...prev, [path]: !prev[path] }));
@@ -36,6 +148,40 @@ export function FileTreeHUD({ onFileSelect }) {
     }
   };
 
+  const handleDeleteFile = (filePath) => {
+    if (!confirm(`Delete "${filePath}"? This cannot be undone.`)) return;
+    fetch(`http://localhost:3001/api/file?path=${encodeURIComponent(filePath)}`, {
+      method: 'DELETE',
+    }).then(() => fetchTree());
+  };
+
+  const handleRenameFile = (oldPath) => {
+    const newName = prompt('Rename to:', oldPath.split('/').pop());
+    if (newName && newName !== oldPath.split('/').pop()) {
+      const parts = oldPath.split('/');
+      parts[parts.length - 1] = newName;
+      const newPath = parts.join('/');
+      fetch('http://localhost:3001/api/file/rename', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ oldPath, newPath })
+      }).then(() => fetchTree());
+    }
+  };
+
+  const [contextMenu, setContextMenu] = useState(null);
+
+  const handleContextMenu = (e, node) => {
+    e.preventDefault();
+    setContextMenu({ x: e.clientX, y: e.clientY, node });
+  };
+
+  useEffect(() => {
+    const close = () => setContextMenu(null);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, []);
+
   const renderNode = (node) => {
     if (node.isDirectory) {
       const isExp = expanded[node.path];
@@ -43,11 +189,14 @@ export function FileTreeHUD({ onFileSelect }) {
         <div key={node.path} style={{ marginLeft: '8px' }}>
           <div
             onClick={() => toggle(node.path)}
+            onContextMenu={(e) => handleContextMenu(e, node)}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
               fontSize: '0.65rem', color: 'var(--text)', padding: '3px 0',
-              fontFamily: 'monospace'
+              fontFamily: 'monospace', transition: 'color 0.15s',
             }}
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text)'}
           >
             {isExp ? <ChevronDown size={11} style={{color: 'var(--accent)'}} /> : <ChevronRight size={11} style={{color: 'var(--accent)'}} />}
             {isExp ? <FolderOpen size={12} style={{ color: 'var(--primary)' }} /> : <FolderClosed size={12} style={{ color: 'var(--primary)' }} />}
@@ -61,11 +210,12 @@ export function FileTreeHUD({ onFileSelect }) {
         <div
           key={node.path}
           onClick={() => onFileSelect && onFileSelect(node.path)}
+          onContextMenu={(e) => handleContextMenu(e, node)}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '22px',
             fontSize: '0.6rem', color: 'var(--text-dim)', padding: '2px 0',
             cursor: 'pointer', fontFamily: 'monospace',
-            transition: 'color 0.2s ease'
+            transition: 'color 0.2s ease',
           }}
           onMouseEnter={(e) => e.currentTarget.style.color = 'var(--primary)'}
           onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-dim)'}
@@ -78,17 +228,72 @@ export function FileTreeHUD({ onFileSelect }) {
   };
 
   return (
-    <div style={{ maxHeight: '180px', overflowY: 'auto', paddingRight: '4px' }}>
+    <div style={{ maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
+      {/* Git Branch Selector */}
+      <GitBranchSelector />
+
+      {/* New File Button */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
         <button onClick={handleNewFile} style={{
           background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)',
           fontSize: '0.45rem', padding: '2px 6px', borderRadius: '3px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: '2px'
-        }}>
+          display: 'flex', alignItems: 'center', gap: '2px', transition: 'all 0.2s',
+        }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,255,213,0.08)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+        >
           <Plus size={8} /> NEW FILE
         </button>
       </div>
+
+      {/* Tree */}
       {tree.map(node => renderNode(node))}
+
+      {/* Context Menu */}
+      {contextMenu && (
+        <div style={{
+          position: 'fixed',
+          top: contextMenu.y,
+          left: contextMenu.x,
+          zIndex: 9999,
+          background: 'rgba(5,10,25,0.95)',
+          backdropFilter: 'blur(12px)',
+          border: '1px solid rgba(0,255,213,0.2)',
+          borderRadius: '6px',
+          padding: '4px',
+          boxShadow: '0 0 20px rgba(0,0,0,0.5)',
+          minWidth: '140px',
+        }}>
+          {!contextMenu.node.isDirectory && (
+            <>
+              <div onClick={() => { onFileSelect(contextMenu.node.path); setContextMenu(null); }}
+                style={contextItemStyle}>
+                <FileText size={10} /> OPEN
+              </div>
+              <div onClick={() => { handleRenameFile(contextMenu.node.path); setContextMenu(null); }}
+                style={contextItemStyle}>
+                <Edit3 size={10} /> RENAME
+              </div>
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '2px 0' }} />
+              <div onClick={() => { handleDeleteFile(contextMenu.node.path); setContextMenu(null); }}
+                style={{ ...contextItemStyle, color: '#ef4444' }}>
+                <Trash2 size={10} /> DELETE
+              </div>
+            </>
+          )}
+          {contextMenu.node.isDirectory && (
+            <div style={{ ...contextItemStyle, color: 'var(--text-dim)', cursor: 'default' }}>
+              {contextMenu.node.name.toUpperCase()}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
+
+const contextItemStyle = {
+  display: 'flex', alignItems: 'center', gap: '8px',
+  padding: '6px 10px', fontSize: '0.6rem', color: 'var(--text-dim)',
+  cursor: 'pointer', borderRadius: '4px', fontFamily: "'Share Tech Mono', monospace",
+};

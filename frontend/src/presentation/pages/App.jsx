@@ -230,6 +230,26 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
   );
 }
 
+// ── Diagnostics Dot ────────────────────────────────────────────────────────────
+function DiagDot({ label, ok }) {
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '3px',
+      fontSize: '0.45rem',
+      color: ok ? 'var(--accent)' : 'rgba(255,255,255,0.2)',
+      fontFamily: "'Share Tech Mono', monospace",
+    }}>
+      <span style={{
+        width: '5px', height: '5px', borderRadius: '50%',
+        background: ok ? '#22c55e' : '#ef4444',
+        boxShadow: ok ? '0 0 6px rgba(34,197,94,0.6)' : 'none',
+        display: 'inline-block',
+      }} />
+      {label}
+    </span>
+  );
+}
+
 // ── Toast Notification System ───────────────────────────────────────────────────
 function useToasts() {
   const [toasts, setToasts] = useState([]);
@@ -256,7 +276,7 @@ function useToasts() {
 
 function App() {
   const { t, i18n } = useTranslation();
-  const { agentStatus, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
+  const { agentStatus, connectionStatus, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
   const { ToastContainer } = useToasts();
   const [showSettings, setShowSettings] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
@@ -265,6 +285,12 @@ function App() {
   const [clock, setClock] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [sysConfig, setSysConfig] = useState({ provider: 'anthropic', model: 'claude-opus-4-5', budget: 0 });
+  const [diagState, setDiagState] = useState({
+    wsConnected: false,
+    claudeAvailable: false,
+    keyValid: false,
+    proxyRunning: false,
+  });
 
   const fetchConfig = () => {
     fetch('http://localhost:3001/api/config')
@@ -340,9 +366,72 @@ function App() {
     tick(); const id = setInterval(tick, 50); return () => clearInterval(id);
   }, []);
 
+  // ── Diagnostics Polling ────────────────────────────────────────────────────
+  useEffect(() => {
+    const check = () => {
+      fetch('http://localhost:3001/api/proxy/status')
+        .then(r => r.json())
+        .then(d => {
+          setDiagState({
+            wsConnected: connectionStatus === 'connected',
+            claudeAvailable: d.claudeAvailable || false,
+            keyValid: d.keyValid || false,
+            proxyRunning: d.proxyRunning || false,
+          });
+        })
+        .catch(() => {
+          setDiagState({ wsConnected: false, claudeAvailable: false, keyValid: false, proxyRunning: false });
+        });
+    };
+    check();
+    const id = setInterval(check, 10000);
+    return () => clearInterval(id);
+  }, [connectionStatus]);
+
   const [chatLayout, setChatLayout] = useState('bottom'); // 'bottom' or 'side'
   const [chatWidth, setChatWidth] = useState(450); // width in side layout
   const isDraggingRef = useRef(false);
+
+  // ── Global Keyboard Shortcuts ──────────────────────────────────────────────
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Ctrl+K: Focus chat input
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const input = document.querySelector('.chat-input');
+        if (input) input.focus();
+        return;
+      }
+      // Ctrl+Shift+C: Toggle Console
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'C') {
+        e.preventDefault();
+        setShowConsole(prev => !prev);
+        return;
+      }
+      // Ctrl+Shift+S: Toggle Settings
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'S') {
+        e.preventDefault();
+        setShowSettings(prev => !prev);
+        return;
+      }
+      // Escape: Close modals
+      if (e.key === 'Escape') {
+        if (showSettings) { setShowSettings(false); return; }
+        if (showConsole) { setShowConsole(false); return; }
+        if (showEvolution) { setShowEvolution(false); return; }
+        if (selectedFile) { setSelectedFile(null); return; }
+        return;
+      }
+      // Ctrl+L: Clear chat
+      if ((e.ctrlKey || e.metaKey) && e.key === 'l') {
+        e.preventDefault();
+        clearChat();
+        return;
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showSettings, showConsole, showEvolution, selectedFile, clearChat]);
 
   const handleMouseDown = () => {
     isDraggingRef.current = true;
@@ -462,6 +551,7 @@ function App() {
 
   let circleCls = 'status-circle';
   if (agentStatus === 'thinking' || agentStatus === 'executing_tool') circleCls += ' thinking';
+  const isConnected = connectionStatus === 'connected';
 
   const dateStr = new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
 
@@ -499,8 +589,11 @@ function App() {
             <button className="nav-btn" onClick={toggleLang}>LANG</button>
             <button className="nav-btn" onClick={abortAgent} style={{ color: '#ff5555' }}>{t("emergency_stop")}</button>
           </div>
-          <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)' }}>
-            SYS.LOC: LAT 31.95°N | {t("active_threads")}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <DiagDot label="WS" ok={isConnected} />
+            <DiagDot label="API" ok={diagState.keyValid} />
+            <DiagDot label="CLD" ok={diagState.claudeAvailable} />
+            <DiagDot label="PRX" ok={diagState.proxyRunning} />
           </div>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { AgentWebSocketClient } from '../infrastructure/WebSocketClient';
 
 export function useAgentConnection() {
   const [agentStatus, setAgentStatus]   = useState('idle');
+  const [connectionStatus, setConnectionStatus] = useState('disconnected');
   const [metrics, setMetrics]           = useState({ cpu: 0, ram: 0 });
   const TERM_OUTPUT_MAX = 1000;
   const [termOutput, setTermOutput]     = useState([]);
@@ -26,6 +27,7 @@ export function useAgentConnection() {
 
     wsClient.onStatusChange   = setAgentStatus;
     wsClient.onMetricsChange  = setMetrics;
+    wsClient.onConnectionChange = setConnectionStatus;
     wsClient.onTerminalOutput = (output) =>
       setTermOutput(prev => { const next = [...prev, output]; return next.length > TERM_OUTPUT_MAX ? next.slice(-TERM_OUTPUT_MAX) : next; });
     wsClient.onSystemLog      = (message) =>
@@ -94,7 +96,7 @@ export function useAgentConnection() {
   const clearChat   = () => { setChatHistory([]); setTermOutput([]); localStorage.removeItem('marsil_chat'); };
 
   return {
-    agentStatus, metrics, termOutput, chatHistory,
+    agentStatus, connectionStatus, metrics, termOutput, chatHistory,
     sendCommand, abortAgent,
     tokenData, clearTokens, clearChat,
     // legacy alias so existing code using totalTokens doesn't break

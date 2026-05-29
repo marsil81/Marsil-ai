@@ -199,6 +199,25 @@ app.post('/api/file', async (req, res) => {
     } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
 });
 
+// ── File Delete ────────────────────────────────────────────────────────────────
+app.delete('/api/file', async (req, res) => {
+    try {
+        const filePath = safePath(req.query.path);
+        await fs.unlink(filePath);
+        res.json({ success: true });
+    } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
+});
+
+// ── File Rename ────────────────────────────────────────────────────────────────
+app.post('/api/file/rename', async (req, res) => {
+    try {
+        const oldPath = safePath(req.body.oldPath);
+        const newPath = safePath(req.body.newPath);
+        await fs.rename(oldPath, newPath);
+        res.json({ success: true });
+    } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
+});
+
 // ── Git Operations ────────────────────────────────────────────────────────────
 app.post('/api/revert', async (req, res) => {
     const result = await gitAdapter.revert();
@@ -272,6 +291,7 @@ app.get('/api/proxy/status', async (req, res) => {
         model: config.model,
         hasKey: !!config.apiKey,
         keyValid: config.apiKey ? config.apiKey.length > 10 : false,
+        claudeAvailable: claudeCode.isAvailable(),
     });
 });
 
