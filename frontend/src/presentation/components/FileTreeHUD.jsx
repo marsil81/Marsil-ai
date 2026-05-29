@@ -141,12 +141,16 @@ function GitBranchSelector() {
 export function FileTreeHUD({ onFileSelect }) {
   const [tree, setTree] = useState([]);
   const [expanded, setExpanded] = useState({});
+  const [loading, setLoading] = useState(true);
 
   const fetchTree = useCallback(() => {
     fetch('http://localhost:3001/api/files')
       .then(r => r.json())
-      .then(data => setTree(data))
-      .catch(() => {});
+      .then(data => {
+        setTree(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -271,8 +275,30 @@ export function FileTreeHUD({ onFileSelect }) {
         </button>
       </div>
 
+      {/* Loading Skeleton */}
+      {loading && (
+        <div style={{ padding: '8px 4px' }}>
+          {[1,2,3,4,5,6].map(i => {
+            const widths = [55, 70, 45, 60, 50, 65];
+            return (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: '6px',
+                padding: '4px 0', marginLeft: i % 2 === 0 ? '16px' : '0',
+              }}>
+                <div className="skeleton-box" style={{ width: i % 2 === 0 ? '10px' : '12px', height: '10px', borderRadius: '2px' }} />
+                <div className="skeleton-box" style={{
+                  width: `${widths[i]}%`,
+                  height: '8px',
+                  borderRadius: '2px',
+                }} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+
       {/* Tree */}
-      {tree.map(node => renderNode(node))}
+      {!loading && tree.map(node => renderNode(node))}
 
       {/* Context Menu */}
       {contextMenu && (

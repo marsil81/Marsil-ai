@@ -184,10 +184,20 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   color: var(--text-dim); padding: 5px 14px;
   font-family: 'Share Tech Mono'; font-size: 0.65rem;
   letter-spacing: 1px; cursor: pointer; transition: all 0.2s;
+  position: relative;
 }
 .nav-btn:hover, .nav-btn.active {
   color: var(--accent); border-color: var(--accent);
   background: var(--primary-dim); text-shadow: 0 0 8px var(--primary-glow);
+}
+.nav-btn:hover .kbd-hint {
+  opacity: 1;
+}
+.kbd-hint {
+  font-size: 0.45rem;
+  opacity: 0.3;
+  margin-right: 2px;
+  transition: opacity 0.2s;
 }
 
 /* ═══ INTERACTIVE FORMS & INPUTS ═══ */
@@ -210,6 +220,10 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   position: relative;
   transition: all 0.2s ease;
 }
+.chat-msg:hover {
+  border-color: rgba(0, 162, 255, 0.25);
+  background: rgba(0, 162, 255, 0.06);
+}
 .chat-msg.user {
   color: var(--text);
   text-align: right;
@@ -219,6 +233,15 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   color: var(--accent);
   text-align: left;
   border-left: 3px solid var(--accent);
+}
+.chat-msg.agent.streaming {
+  border-left-color: #00ffd5;
+  box-shadow: 0 0 12px rgba(0, 255, 213, 0.12), inset 0 0 20px rgba(0, 255, 213, 0.03);
+  animation: streamPulse 1.5s ease-in-out infinite;
+}
+@keyframes streamPulse {
+  0%, 100% { border-left-color: var(--accent); }
+  50% { border-left-color: rgba(0, 255, 213, 0.4); }
 }
 .chat-tag {
   font-family: 'Orbitron';
@@ -263,6 +286,15 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   0% { box-shadow: 0 0 0 0 rgba(0,184,255,0.4); }
   70% { box-shadow: 0 0 0 10px rgba(0,184,255,0); }
   100% { box-shadow: 0 0 0 0 rgba(0,184,255,0); }
+}
+.cursor-blink {
+  animation: blink 0.8s step-end infinite;
+  color: var(--accent);
+  opacity: 0.8;
+  margin-left: 2px;
+}
+@keyframes blink {
+  50% { opacity: 0; }
 }
 
 /* ═══ RESPONSIVE DESIGN — TABLETS & SMALL SCREENS ═══ */
@@ -424,6 +456,17 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
 ::-webkit-scrollbar { width: 3px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(0,184,255,0.15); border-radius: 2px; }
+
+/* ═══ SKELETON LOADING ANIMATION ═══ */
+.skeleton-box {
+  background: linear-gradient(90deg, rgba(0,162,255,0.06) 25%, rgba(0,255,213,0.08) 50%, rgba(0,162,255,0.06) 75%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+}
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
 /* ═══ DOCK TO SIDEBAR DYNAMIC LAYOUT ═══ */
 

@@ -294,6 +294,9 @@ function App() {
     keyValid: false,
     proxyRunning: false,
   });
+  // Token history for sparkline (last 20 data points)
+  const [tokenHistory, setTokenHistory] = useState([]);
+  const tokenHistoryRef = useRef([]);
 
   const fetchConfig = () => {
     fetch('http://localhost:3001/api/config')
@@ -352,10 +355,10 @@ function App() {
     if (textToSend.trim()) {
       playChirp(1300, 0.08);
       if (stopListeningRef.current) stopListeningRef.current(); // SECURITY GATING
-      sendCommand(textToSend);
+      sendCommand(textToSend, i18n.language);
       setChatInput('');
     }
-  }, [playChirp, sendCommand]);
+  }, [playChirp, sendCommand, i18n.language]);
   // eslint-disable-next-line react-hooks/immutability
   useEffect(() => { handleSendRef.current = handleSend; }, [handleSend]);
 
@@ -390,6 +393,17 @@ function App() {
     const id = setInterval(check, 10000);
     return () => clearInterval(id);
   }, [connectionStatus]);
+
+  // ── Token History Sparkline ──────────────────────────────────────────────────
+  const prevTotalRef = useRef(0);
+  useEffect(() => {
+    const total = tokenData.totalTokens || 0;
+    if (total !== prevTotalRef.current) {
+      prevTotalRef.current = total;
+      tokenHistoryRef.current = [...tokenHistoryRef.current.slice(-19), total];
+      setTokenHistory(tokenHistoryRef.current);
+    }
+  }, [tokenData.totalTokens]);
 
   // ── Chat Layout Persistence ─────────────────────────────────────────────────
   const [chatLayout, setChatLayout] = useState(() => {
@@ -596,9 +610,9 @@ function App() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
           <div className="nav-btns">
-            <button className={`nav-btn ${showConsole ? 'active' : ''}`} onClick={() => setShowConsole(true)}>CONSOLE</button>
+            <button className={`nav-btn ${showConsole ? 'active' : ''}`} onClick={() => setShowConsole(true)} title="Ctrl+Shift+C"><span className="kbd-hint">⌨</span> CONSOLE</button>
             <button className={`nav-btn ${showEvolution ? 'active' : ''}`} onClick={() => setShowEvolution(true)} style={{ color: 'var(--primary)', borderColor: 'var(--primary)' }}>EVOLUTION</button>
-            <button className="nav-btn" onClick={() => setShowSettings(true)}>SETTINGS</button>
+            <button className="nav-btn" onClick={() => setShowSettings(true)} title="Ctrl+Shift+S"><span className="kbd-hint">⌨</span> SETTINGS</button>
             <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} style={{ color: voiceEnabled ? (handsFreeMode ? '#00ffd5' : 'var(--accent)') : 'var(--text-dim)' }}>
               VOICE: {voiceEnabled ? (handsFreeMode ? 'HANDS-FREE' : 'ACTIVE') : 'MUTED'}
             </button>
@@ -724,6 +738,30 @@ function App() {
             }}>{(tokenData.totalTokens || 0).toLocaleString()} <span style={{ fontSize: '0.5rem', color: 'var(--text-dim)' }}>TKN</span></div>
           </div>
 
+          {/* Token Sparkline */}
+          {tokenHistory.length > 1 && (
+            <div style={{ marginBottom: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.4rem', color: 'var(--text-dim)', marginBottom: '2px' }}>
+                <span>TOKEN FLOW</span>
+                <span>{tokenHistory.length} pts</span>
+              </div>
+              <div style={{ height: '20px', display: 'flex', alignItems: 'flex-end', gap: '1px' }}>
+                {tokenHistory.map((val, i) => {
+                  const max = Math.max(...tokenHistory, 1);
+                  const h = Math.max(2, (val / max) * 18);
+                  return (
+                    <div key={i} style={{
+                      flex: 1, height: `${h}px`,
+                      background: `linear-gradient(to top, rgba(0,162,255,0.4), rgba(0,255,213,${0.3 + (val/max) * 0.5}))`,
+                      borderRadius: '1px 1px 0 0',
+                      transition: 'height 0.3s ease',
+                    }} />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: 'var(--accent)', fontSize: '0.45rem', letterSpacing: '1px' }}>ESTIMATED COST</span>
@@ -782,9 +820,9 @@ function App() {
               <div style={{ color: 'var(--text-muted)', fontSize: '0.52rem', letterSpacing: '1px' }}>{t("placeholder_command")}</div>
             )}
             {chatHistory.map((msg, i) => (
-              <div key={i} className={`chat-msg ${msg.role === 'user' ? 'user' : 'agent'}`}>
+              <div key={i} className={`chat-msg ${msg.role === 'user' ? 'user' : 'agent'}${msg.isStreaming ? ' streaming' : ''}`}>
                 <div className="chat-tag">{msg.role === 'user' ? t("you") : t("ironman")}</div>
-                <div>{msg.content}</div>
+                <div>{msg.content}{msg.isStreaming && <span className="cursor-blink">▊</span>}</div>
               </div>
             ))}
           </div>
@@ -828,13 +866,21 @@ function App() {
         </div>
       </motion.div>
 
-      {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
-      {showEvolution && <EvolutionModal onClose={() => setShowEvolution(false)} sendCommand={sendCommand} agentStatus={agentStatus} termOutput={termOutput} />}
+      {showSettings && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <SettingsModal onClose={() => setShowSettings(false)} />
+        </motion.div>
+      )}
+      {showEvolution && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
+          <EvolutionModal onClose={() => setShowEvolution(false)} sendCommand={sendCommand} agentStatus={agentStatus} termOutput={termOutput} />
+        </motion.div>
+      )}
 
       <ToastContainer toasts={toasts} />
       {showConsole && (
-        <div className="modal-overlay" onClick={() => setShowConsole(false)} style={{ zIndex: 100 }}>
-          <div className="modal-box" onClick={e => e.stopPropagation()} style={{ width: '85%', height: '85%', maxWidth: '1200px', display: 'flex', flexDirection: 'column', background: 'rgba(5, 10, 20, 0.95)', border: '1px solid var(--accent)' }}>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="modal-overlay" onClick={() => setShowConsole(false)} style={{ zIndex: 100 }}>
+          <motion.div initial={{ opacity: 0, scale: 0.95, y: -10 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.2, ease: 'easeOut' }} className="modal-box" onClick={e => e.stopPropagation()} style={{ width: '85%', height: '85%', maxWidth: '1200px', display: 'flex', flexDirection: 'column', background: 'rgba(5, 10, 20, 0.95)', border: '1px solid var(--accent)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
               <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Orbitron', fontSize: '1.2rem', letterSpacing: '2px' }}>SYSTEM CONSOLE</h2>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -845,8 +891,8 @@ function App() {
             <div style={{ flex: 1, minHeight: 0, border: '1px solid rgba(0, 255, 213, 0.2)', background: '#000', borderRadius: '4px', overflow: 'hidden' }}>
               <Terminal output={termOutput} />
             </div>
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
       )}
     </div>
   );

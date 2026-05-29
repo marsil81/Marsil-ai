@@ -85,9 +85,9 @@ export class AgentWebSocketClient {
         };
     }
 
-    sendChat(text) {
+    sendChat(text, lang = 'en') {
         if (this.socket && this.socket.readyState === WebSocket.OPEN)
-            this.socket.send(JSON.stringify({ type: 'chat', text }));
+            this.socket.send(JSON.stringify({ type: 'chat', text, lang }));
     }
 
     sendAbort() {

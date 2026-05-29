@@ -66,7 +66,7 @@ class WebSocketHandler {
                     return;
                 }
                 if (msg.type === 'chat') {
-                    const reply = await agentService.processUserMessage(msg.text);
+                    const reply = await agentService.processUserMessage(msg.text, false, msg.lang || 'en');
                     if (reply) {
                         ws.send(JSON.stringify({ type: 'chat_reply', text: reply }));
                     }

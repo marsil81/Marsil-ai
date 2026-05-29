@@ -76,7 +76,7 @@ export function useAgentConnection() {
     return () => wsClient.disconnect();
   }, []);
 
-  const sendCommand = (text) => {
+  const sendCommand = (text, lang = 'en') => {
     if (!clientRef.current) return;
     
     // Only add to UI Chat History if it's not a background system command
@@ -88,7 +88,7 @@ export function useAgentConnection() {
       ]);
     }
     
-    clientRef.current.sendChat(text);
+    clientRef.current.sendChat(text, lang);
   };
 
   const abortAgent  = () => { if (clientRef.current) clientRef.current.sendAbort(); };

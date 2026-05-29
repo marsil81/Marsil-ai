@@ -1,5 +1,35 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { Save, X, Copy, Check } from 'lucide-react';
+import { Save, X, Copy, Check, FileCode, FileJson, FileText, FileType, File } from 'lucide-react';
+
+// ── File type detection ────────────────────────────────────────────────────────
+const FILE_TYPE_ICONS = {
+  js:   { icon: FileCode,  color: '#f7df1e' },
+  jsx:  { icon: FileCode,  color: '#61dafb' },
+  ts:   { icon: FileCode,  color: '#3178c6' },
+  tsx:  { icon: FileCode,  color: '#3178c6' },
+  json: { icon: FileJson,  color: '#5a5a5a' },
+  css:  { icon: FileType,  color: '#663399' },
+  html: { icon: FileType,  color: '#e34f26' },
+  md:   { icon: FileText,  color: '#083fa1' },
+  py:   { icon: FileCode,  color: '#3776ab' },
+  cpp:  { icon: FileCode,  color: '#00599c' },
+  c:    { icon: FileCode,  color: '#a8b9cc' },
+  java: { icon: FileCode,  color: '#b07219' },
+  go:   { icon: FileCode,  color: '#00add8' },
+  rs:   { icon: FileCode,  color: '#dea584' },
+  yml:  { icon: FileText,  color: '#cb171e' },
+  yaml: { icon: FileText,  color: '#cb171e' },
+  sh:   { icon: FileCode,  color: '#4eaa25' },
+  bat:  { icon: FileCode,  color: '#4eaa25' },
+  ps1:  { icon: FileCode,  color: '#012456' },
+};
+
+function getFileTypeInfo(filePath) {
+  const ext = filePath?.split('.').pop()?.toLowerCase() || '';
+  const info = FILE_TYPE_ICONS[ext];
+  if (info) return info;
+  return { icon: File, color: 'var(--text-dim)' };
+}
 
 // ── Simple Syntax Highlighter ─────────────────────────────────────────────────
 const KEYWORDS = new Set([
@@ -181,8 +211,10 @@ export function CodeEditor({ filePath, onClose }) {
     return content.split('\n').map(line => highlightLine(line));
   }, [content]);
 
-  // Detect file extension for display
+  // Detect file extension for display and icon
   const ext = filePath ? filePath.split('.').pop().toUpperCase() : '';
+  const fileTypeInfo = getFileTypeInfo(filePath);
+  const FileIcon = fileTypeInfo.icon;
 
   if (!filePath) return null;
 
@@ -213,6 +245,7 @@ export function CodeEditor({ filePath, onClose }) {
         background: 'rgba(0, 255, 213, 0.03)',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <FileIcon size={14} color={fileTypeInfo.color} />
           <span style={{
             color: 'var(--primary)',
             fontFamily: 'Orbitron',

@@ -39,7 +39,7 @@ class AgentService {
         }
     }
 
-    async processUserMessage(userMessage, isAutonomous = false) {
+    async processUserMessage(userMessage, isAutonomous = false, userLang = 'en') {
         // Intercept Evolution Commands
         if (userMessage.startsWith('/EVOLUTION_TOGGLE')) {
             const state = userMessage.split(' ')[1] === 'true';
@@ -77,7 +77,29 @@ class AgentService {
             }
 
             this._send('agent_status', { status: 'thinking' });
-            const injectedMessage = isAutonomous ? userMessage : `${MARSIL_CORE_DIRECTIVES}\n\nUSER REQUEST:\n${userMessage}`;
+
+            const hudInspiration = `
+<hud_inspiration_sources>
+Draw heavy visual and user experience inspiration from the gold standards of futuristic cybernetic sci-fi dashboards:
+1. ARWES (arwes.dev): Use augmented hexagonal and corner-cut clipping frames, subtle neon glows (box-shadows / text-shadows), CRT-style scanline overlays, and responsive animations.
+2. Open.Jarvis: Design structured real-time command streams, reactive voice level orbits, and pulsing visual reactor cores.
+3. react-cyber-elements: Incorporate technical widgets, gauge trackers, corner-graphics, and high-contrast diagnostic indicators.
+Always build clean, fully functional components with beautiful interactive glassmorphic panels. Do not use ad-hoc styles; use standardized CSS classes.
+</hud_inspiration_sources>
+`;
+
+            const langInstruction = userLang === 'ar'
+                ? `CRITICAL LANGUAGE REQUIREMENT:
+- The user's active interface language is set to ARABIC.
+- You MUST respond ONLY in Arabic. Do NOT use any English sentences or explanations.
+- All headings, text details, and descriptions MUST be in high-end, cybernetic, professional Arabic.
+- Only code syntax, terminal commands, or file names should remain in English.`
+                : `CRITICAL LANGUAGE REQUIREMENT:
+- The user's active interface language is set to ENGLISH.
+- You MUST respond ONLY in English. Do NOT use any Arabic characters or translation in your final reply.
+- All headings, text details, and descriptions MUST be in high-end, cybernetic, professional English.`;
+
+            const injectedMessage = isAutonomous ? userMessage : `${MARSIL_CORE_DIRECTIVES}\n\n${hudInspiration}\n\n${langInstruction}\n\nUSER REQUEST:\n${userMessage}`;
             const response = await claudeCode.run(injectedMessage, process.cwd(), this.wsClient, isAutonomous);
             this._send('agent_status', { status: 'idle' });
             this.isWorking = false;

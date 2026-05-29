@@ -153,7 +153,10 @@ function safePath(relativePath) {
     return resolved;
 }
 
-// ── File Tree ────────────────────────────────────────────────────────────────
+// ── File Tree with Caching ─────────────────────────────────────────────────────
+const fileTreeCache = { data: null, timestamp: 0 };
+const FILE_TREE_TTL = 3000; // 3 seconds cache TTL
+
 async function getFileTree(dir) {
     try {
         const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -177,8 +180,16 @@ async function getFileTree(dir) {
 }
 
 app.get('/api/files', async (req, res) => {
-    try { res.json(await getFileTree(WORKSPACE_ROOT)); }
-    catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
+    const now = Date.now();
+    if (fileTreeCache.data && (now - fileTreeCache.timestamp) < FILE_TREE_TTL) {
+      return res.json(fileTreeCache.data);
+    }
+    try {
+      const data = await getFileTree(WORKSPACE_ROOT);
+      fileTreeCache.data = data;
+      fileTreeCache.timestamp = now;
+      res.json(data);
+    } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
 });
 
 // ── File Read / Write ────────────────────────────────────────────────────────
