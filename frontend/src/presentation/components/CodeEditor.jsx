@@ -220,21 +220,15 @@ export function CodeEditor({ filePath, onClose }) {
 
   return (
     <div style={{
-      position: 'absolute',
-      top: '50%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      width: 'min(85vw, 800px)',
-      height: 'min(80vh, 600px)',
-      background: 'rgba(5, 10, 25, 0.88)',
+      position: 'relative',
+      width: '100%',
+      height: '100%',
+      background: 'rgba(3, 10, 25, 0.65)',
       backdropFilter: 'blur(16px)',
       WebkitBackdropFilter: 'blur(16px)',
-      border: '1px solid rgba(0, 255, 213, 0.25)',
-      borderRadius: '12px',
       display: 'flex',
       flexDirection: 'column',
-      zIndex: 100,
-      boxShadow: '0 0 60px rgba(0, 162, 255, 0.15), 0 0 120px rgba(0, 255, 213, 0.05)',
+      zIndex: 10,
       overflow: 'hidden',
     }}>
       {/* ── Header ── */}

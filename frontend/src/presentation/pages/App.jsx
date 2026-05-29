@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid, Radio, X } from 'lucide-react';
+import { SendHorizontal, Mic, MicOff, Volume2, VolumeX, Radio, X } from 'lucide-react';
 import '../styles/App.css';
 import { ParticleReactor } from '../components/ParticleReactor';
 import { SettingsModal, estimateCost } from '../components/SettingsModal';
@@ -16,7 +16,6 @@ import { HexGrid } from '../components/HexGrid';
 import { PerfMonitor } from '../components/PerfMonitor';
 import { DataFlow } from '../components/DataFlow';
 import { AudioVisualizer } from '../components/AudioVisualizer';
-import { SystemStatus } from '../components/SystemStatus';
 import { useAgentConnection } from '../../application/useAgentConnection';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useVoiceSystem } from '../hooks/useVoiceSystem';
@@ -299,63 +298,6 @@ function App() {
     }
   }, [tokenData.totalTokens]);
 
-  // ── Chat Layout Persistence ─────────────────────────────────────────────────
-  const [chatLayout, setChatLayout] = useState(() => {
-    try { return localStorage.getItem('marsil_chatLayout') || 'bottom'; } catch { return 'bottom'; }
-  });
-  const [chatWidth, setChatWidth] = useState(() => {
-    try { return parseInt(localStorage.getItem('marsil_chatWidth')) || 450; } catch { return 450; }
-  });
-  const isDraggingRef = useRef(false);
-
-  // Persist layout preferences
-  useEffect(() => {
-    try { localStorage.setItem('marsil_chatLayout', chatLayout); } catch { /* localStorage unavailable */ }
-  }, [chatLayout]);
-  useEffect(() => {
-    try { localStorage.setItem('marsil_chatWidth', String(chatWidth)); } catch { /* localStorage unavailable */ }
-  }, [chatWidth]);
-
-  const handleMouseDown = () => {
-    isDraggingRef.current = true;
-    document.body.style.cursor = 'ew-resize';
-    document.body.style.userSelect = 'none';
-    playTick();
-  };
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!isDraggingRef.current) return;
-      const margin = 30;
-      let newWidth = window.innerWidth - e.clientX - margin;
-
-      // If Arabic (RTL), resize works in reverse direction
-      if (document.body.dir === 'rtl') {
-        newWidth = e.clientX - margin;
-      }
-
-      const maxWidth = Math.floor(window.innerWidth / 2);
-      if (newWidth < 320) newWidth = 320;
-      if (newWidth > maxWidth) newWidth = maxWidth;
-      setChatWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      if (isDraggingRef.current) {
-        isDraggingRef.current = false;
-        document.body.style.cursor = 'default';
-        document.body.style.userSelect = 'auto';
-        playTick();
-      }
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [playTick]);
 
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const lastSpokenIndexRef = useRef(-1);
@@ -507,7 +449,7 @@ function App() {
   const dateStr = new Date().toLocaleDateString('en-US', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase();
 
   return (
-    <div className={`hud-root ${chatLayout === 'side' ? 'layout-side-active' : ''}`}>
+    <div className="hud-root">
       <div className="scan-line"></div>
       <div className="crt-overlay" />
       <div className="vignette-overlay" />
@@ -517,9 +459,8 @@ function App() {
       <HexGrid status={agentStatus} />
       <DataFlow active={agentStatus} />
 
-      {/* Conditionally hide reactor if file is open, or render editor above it */}
-      <ParticleReactor status={agentStatus} style={{ opacity: selectedFile ? 0.3 : 1 }} />
-      {selectedFile && <CodeEditor filePath={selectedFile} onClose={() => setSelectedFile(null)} />}
+      {/* Background Matrix Reactor */}
+      <ParticleReactor status={agentStatus} style={{ opacity: 0.2 }} />
 
       {/* TOP HEADER */}
       <div className="top-bar data-stream">
@@ -538,7 +479,7 @@ function App() {
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
           <div className="nav-btns">
-            <button className={`nav-btn ${showConsole ? 'active' : ''}`} onClick={() => setShowConsole(true)} title="Ctrl+Shift+C"><span className="kbd-hint">⌨</span> CONSOLE</button>
+            <button className={`nav-btn ${showConsole ? 'active' : ''}`} onClick={() => setShowConsole(prev => !prev)} title="Ctrl+Shift+C"><span className="kbd-hint">⌨</span> CONSOLE</button>
             <button className={`nav-btn ${showEvolution ? 'active' : ''}`} onClick={() => setShowEvolution(true)} title="Ctrl+Shift+E" style={{ color: 'var(--primary)', borderColor: 'var(--primary)' }}><span className="kbd-hint">⌨</span> EVOLUTION</button>
             <button className="nav-btn" onClick={() => setShowSettings(true)} title="Ctrl+Shift+S"><span className="kbd-hint">⌨</span> SETTINGS</button>
             <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} title={voiceEnabled ? 'Mute Voice' : 'Unmute Voice'} style={{ color: voiceEnabled ? (handsFreeMode ? '#00ffd5' : 'var(--accent)') : 'var(--text-dim)' }}>
@@ -557,281 +498,224 @@ function App() {
         </div>
       </div>
 
-      {/* LEFT: SYSTEM DETAILS */}
-      <motion.div drag dragMomentum={false} className="tech-panel sys-details-panel">
-        <div className="panel-scan" />
-        <span className="corner-tl" /><span className="corner-br" />
-        <div className="tech-panel-header">
-          <span>⌂ {t("system_engine")}</span>
-          <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("sec")}</span>
-        </div>
-        {!panelsLoaded ? <SkeletonPanel lines={7} /> : <><div className="sys-row"><span>SIGNAL CORE</span><span className="val">{agentStatus.toUpperCase()}</span></div>
-        <div className="sys-row"><span>{t("mem_usage")}</span><span className="val">{metrics.ram || 0}%</span></div>
-        <div className="sys-row"><span>{t("cpu_load")}</span><span className="val">{metrics.cpu || 0}%</span></div>
-        <div className="sys-row"><span>UPTIME</span><span className="val">{uptime}</span></div>
-        <div className="sys-row"><span>{t("temp")}</span><span className="val">54.8 °C</span></div>
-        <div className="sys-row"><span>{t("link")}</span><span className="val">STABLE</span></div>
-        <div className="sys-row"><span>{t("workspace")}</span><span className="val">D:\IRON MAN</span></div></>}
-
-        {/* Holographic File Tree integrated natively */}
-        <div style={{ marginTop: '10px', borderTop: '1px solid var(--border)', paddingTop: '8px', cursor: 'default' }} onPointerDown={(e) => e.stopPropagation()}>
-          <div style={{ fontSize: '0.45rem', color: 'var(--text-dim)', marginBottom: '5px', letterSpacing: '1px' }}>📁 LIVE WORKSPACE</div>
-          <FileTreeHUD onFileSelect={setSelectedFile} />
-        </div>
-      </motion.div>
-
-      {/* LEFT: TELEMETRY */}
-      <motion.div drag dragMomentum={false} className="tech-panel telemetry-panel">
-        <div className="panel-scan" />
-        <span className="corner-tl" /><span className="corner-br" />
-        <div className="tech-panel-header">
-          <span>⌁ {t("system_metrics")}</span>
-          <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("live")}</span>
-        </div>
-        <div className="chat-msgs" style={{ height: 'calc(100% - 25px)', cursor: 'default' }} onPointerDown={(e) => e.stopPropagation()}>
-          {!panelsLoaded ? <SkeletonPanel lines={8} /> : <>
-          {termOutput.length === 0 && <div className="log-line">Marsil AI Terminal Operational...</div>}
-          {termOutput.slice(-30).map((line, i) => (
-            <div key={i} className="log-line">{line}</div>
-          ))}
-          </>}
-        </div>
-      </motion.div>
-
-      {/* RIGHT: DEPLOYMENT PROTOCOLS */}
-      <motion.div drag dragMomentum={false} className="tech-panel priority-panel">
-        <div className="panel-scan" />
-        <span className="corner-tl" /><span className="corner-br" />
-        <div className="tech-panel-header">
-          <span>▸ {t("protocols")}</span>
-        </div>
-        <div className="sys-row"><span>01. ENGINE</span><span className="val">CLAUDE CODE</span></div>
-        <div className="sys-row"><span>02. PROTOCOL</span><span className="val">WEBSOCKETS</span></div>
-        <div className="sys-row"><span>03. GATEWAY</span><span className="val">CONNECTED</span></div>
-      </motion.div>
-
-      {/* RIGHT: VOICE PULSE SPECTROMETER */}
-      <motion.div drag dragMomentum={false} className="tech-panel radar-container-panel">
-        <div className="panel-scan" />
-        <span className="corner-tl" /><span className="corner-br" />
-        <AudioVisualizer
-          isListening={isListening}
-          isSpeaking={isSpeaking}
-          agentStatus={agentStatus}
-          size={90}
-        />
-      </motion.div>
-
-      {/* CENTER: CYBERNETIC SYSTEM STATUS (orbital rings) */}
-      <SystemStatus
-        agentStatus={agentStatus}
-        metrics={metrics}
-        uptime={uptime}
-        connectionStatus={connectionStatus}
-        wsLatency={wsLatency}
-        diagState={diagState}
-      />
-
-      {/* RIGHT: RESOURCE METRICS */}
-      <motion.div drag dragMomentum={false} className="tech-panel data-panel">
-        <div className="panel-scan" />
-        <span className="corner-tl" /><span className="corner-br" />
-        <div className="tech-panel-header">
-          <span>⚙ {t("gauges")}</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '4px 0' }}>
-          <CircularGauge label="CPU" value={metrics.cpu || 0} color="#00a2ff" size={80} />
-          <CircularGauge label="RAM" value={metrics.ram || 0} color="#00ffd5" size={80} />
-        </div>
-        <div className="data-bar-row" style={{ marginTop: '4px' }}>
-          <span className="data-bar-label">NET</span>
-          <div className="data-bar-track"><div className="data-bar-fill" style={{ width: '48%' }}></div></div>
-          <span className="data-bar-val">48%</span>
-        </div>
-      </motion.div>
-
-      {/* ═══ RIGHT PANEL: RESOURCE MONITORING (Swapped to bottom right) ═══ */}
-      <motion.div drag dragMomentum={false} className="tech-panel resource-panel-right" style={{ minHeight: '195px' }}>
-        <div className="panel-scan" />
-        <span className="corner-tl" /><span className="corner-br" />
-        <div className="tech-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span>◉ {t("monitor")}</span>
-          <button onPointerDown={(e) => e.stopPropagation()} onClick={clearTokens} style={{
-            background: 'transparent', border: 'none', color: 'var(--accent)',
-            fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace'
-          }}>CLEAR</button>
-        </div>
-        {!panelsLoaded ? <SkeletonPanel lines={6} /> :
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: 'calc(100% - 25px)', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-              <Volume2 size={10} style={{ color: 'var(--accent)' }} />
-              <span style={{ fontSize: '0.45rem', color: 'var(--text-muted)' }}>{sysConfig.provider?.toUpperCase()} / {sysConfig.model}</span>
+      {/* ═══ CYBERNETIC IDE 3-COLUMN LAYOUT CONTAINER ═══ */}
+      <div className="ide-layout-container" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+        
+        {/* ── COLUMN 1: LEFT SIDEBAR (File Manager & System details) ── */}
+        <div className="ide-column ide-left-col">
+          
+          {/* Left Top Pane: Workspace Files */}
+          <div className="tech-panel ide-panel left-top-pane">
+            <div className="panel-scan" />
+            <span className="corner-tl" /><span className="corner-br" />
+            <div className="tech-panel-header">
+              <span>📁 {t("workspace").toUpperCase()}</span>
+              <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>D:\IRON MAN</span>
             </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
-              <div>
-                <div style={{ fontSize: '0.4rem', color: 'var(--text-dim)' }}>TOKENS IN</div>
-                <div style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text)' }}>{(tokenData.tokensIn || 0).toLocaleString()}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.4rem', color: 'var(--text-dim)' }}>TOKENS OUT</div>
-                <div style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--text)' }}>{(tokenData.tokensOut || 0).toLocaleString()}</div>
-              </div>
+            <div style={{ flex: 1, overflowY: 'auto', marginTop: '8px' }}>
+              <FileTreeHUD onFileSelect={setSelectedFile} />
             </div>
-
-            <div style={{ fontSize: '0.45rem', color: 'var(--text-dim)', marginBottom: '2px' }}>TOTAL TOKENS</div>
-            <div style={{
-              fontFamily: 'Orbitron', fontSize: '1.05rem', fontWeight: '700',
-              color: 'var(--primary)', textShadow: '0 0 10px var(--primary-glow)',
-              marginBottom: '2px'
-            }}>{(tokenData.totalTokens || 0).toLocaleString()} <span style={{ fontSize: '0.5rem', color: 'var(--text-dim)' }}>TKN</span></div>
           </div>
 
-          {/* Token Sparkline */}
-          {tokenHistory.length > 1 && (
-            <div style={{ marginBottom: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.4rem', color: 'var(--text-dim)', marginBottom: '2px' }}>
-                <span>TOKEN FLOW</span>
-                <span>{tokenHistory.length} pts · PEAK: {Math.max(...tokenHistory).toLocaleString()}</span>
-              </div>
-              <div style={{ height: '24px', display: 'flex', alignItems: 'flex-end', gap: '1px', position: 'relative' }}>
-                {(() => {
-                  const max = Math.max(...tokenHistory, 1);
-                  return tokenHistory.map((val, i) => {
-                    const h = Math.max(2, (val / max) * 22);
-                    const isPeak = val === max;
-                    const opacity = 0.3 + (val / max) * 0.7;
-                    return (
-                      <div key={i} style={{
-                        flex: 1, height: `${h}px`, position: 'relative',
-                        background: `linear-gradient(to top, rgba(0,162,255,0.5), rgba(0,255,213,${opacity}))`,
-                        borderRadius: '1px 1px 0 0',
-                        transition: 'height 0.3s ease, opacity 0.3s ease',
-                        boxShadow: isPeak ? '0 0 4px rgba(0,255,213,0.4)' : 'none',
-                      }}>
-                        {isPeak && (
-                          <div style={{
-                            position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)',
-                            width: '3px', height: '3px', borderRadius: '50%',
-                            background: 'var(--accent)', boxShadow: '0 0 6px var(--accent)',
-                          }} />
-                        )}
-                      </div>
-                    );
-                  });
-                })()}
-              </div>
+          {/* Left Bottom Pane: System Engine Diagnostics */}
+          <div className="tech-panel ide-panel left-bottom-pane">
+            <div className="panel-scan" />
+            <span className="corner-tl" /><span className="corner-br" />
+            <div className="tech-panel-header">
+              <span>⌂ {t("system_engine")}</span>
+              <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("sec")}</span>
             </div>
-          )}
-
-          <div style={{ borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: 'var(--accent)', fontSize: '0.45rem', letterSpacing: '1px' }}>ESTIMATED COST</span>
-              {sysConfig.budget > 0 && (
-                <span style={{ fontSize: '0.45rem', color: 'var(--text-dim)' }}>LIMIT: ${sysConfig.budget}</span>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', marginTop: '6px', fontSize: '0.55rem' }}>
+              {!panelsLoaded ? <SkeletonPanel lines={6} /> : (
+                <>
+                  <div className="sys-row"><span>SIGNAL CORE</span><span className="val">{agentStatus.toUpperCase()}</span></div>
+                  <div className="sys-row"><span>{t("mem_usage")}</span><span className="val">{metrics.ram || 0}%</span></div>
+                  <div className="sys-row"><span>{t("cpu_load")}</span><span className="val">{metrics.cpu || 0}%</span></div>
+                  <div className="sys-row"><span>UPTIME</span><span className="val">{uptime}</span></div>
+                  <div className="sys-row"><span>{t("temp")}</span><span className="val">54.8 °C</span></div>
+                  <div className="sys-row"><span>{t("link")}</span><span className="val">STABLE</span></div>
+                </>
               )}
             </div>
-            <div style={{ fontSize: '0.85rem', fontWeight: '700', color: 'var(--text)', marginTop: '2px', display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              ${estimateCost(sysConfig.model, tokenData.tokensIn, tokenData.tokensOut).toFixed(5)}
-              <span style={{ fontSize: '0.45rem', color: 'var(--text-dim)', fontWeight: 'normal' }}>USD</span>
-            </div>
+          </div>
+        </div>
 
-            {sysConfig.budget > 0 && (() => {
-              const est = estimateCost(sysConfig.model, tokenData.tokensIn, tokenData.tokensOut);
-              const pct = Math.min(100, (est / sysConfig.budget) * 100);
-              const barColor = pct > 90 ? '#ef4444' : pct > 75 ? '#d97706' : 'var(--primary)';
-              return (
-                <div style={{ marginTop: '5px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.4rem', color: 'var(--text-dim)', marginBottom: '2px' }}>
-                    <span>BUDGET USED</span>
-                    <span>{pct.toFixed(1)}%</span>
-                  </div>
-                  <div style={{ height: '3px', background: 'rgba(255,255,255,0.06)', borderRadius: '2px', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: barColor, boxShadow: `0 0 8px ${barColor}` }}></div>
-                  </div>
+        {/* ── COLUMN 2: MIDDLE PANE (Code Editor & Live Terminal) ── */}
+        <div className="ide-column ide-mid-col">
+          
+          {/* Middle Top Pane: The Code Editor or central landing core */}
+          <div className="tech-panel ide-panel mid-top-pane" style={{ padding: 0 }}>
+            <div className="panel-scan" />
+            <span className="corner-tl" /><span className="corner-br" />
+            {selectedFile ? (
+              <CodeEditor filePath={selectedFile} onClose={() => setSelectedFile(null)} />
+            ) : (
+              <div className="reactor-editor-fallback">
+                <div style={{
+                  position: 'absolute', top: '16px', left: '16px',
+                  fontFamily: 'Orbitron', fontSize: '0.6rem', color: 'rgba(0, 162, 255, 0.6)',
+                  letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '8px'
+                }}>
+                  <span className="cursor-blink">▶</span> SYSTEM REACTOR CORE
                 </div>
-              );
-            })()}
-          </div>
-        </div>}
-      </motion.div>
-
-      {/* ═══ BOTTOM CENTER PANEL: SYSTEM DIRECTIVES (Swapped to bottom center wide) ═══ */}
-      <motion.div
-        drag={chatLayout === 'bottom'}
-        dragMomentum={false}
-        animate={chatLayout === 'side' ? { x: 0, y: 0 } : undefined}
-        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-        className="bottom-chat-container"
-      >
-        <div className="bottom-chat-panel" style={chatLayout === 'side' ? { width: `${chatWidth}px` } : {}}>
-          <div className="panel-scan" />
-          {chatLayout === 'side' && (
-            <div className="chat-resize-handle" onMouseDown={handleMouseDown} />
-          )}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px', marginBottom: '6px', cursor: 'default' }} onPointerDown={e => e.stopPropagation()}>
-            <span style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-              {chatHistory.length > 0 && (
-                <button onClick={clearChat} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace' }}>CLEAR</button>
-              )}
-              <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>AWAITING COMMANDS</span>
-            </div>
-          </div>
-          <div className="chat-msgs">
-            {chatHistory.length === 0 && (
-              <div style={{ color: 'var(--text-muted)', fontSize: '0.52rem', letterSpacing: '1px' }}>{t("placeholder_command")}</div>
+                <div style={{
+                  fontFamily: "'Share Tech Mono', monospace", fontSize: '0.65rem',
+                  color: 'var(--text-dim)', letterSpacing: '1px', textAlign: 'center', zIndex: 10,
+                  maxWidth: '320px', padding: '18px', background: 'rgba(3,12,30,0.85)',
+                  border: '1px solid rgba(0,255,213,0.15)', borderRadius: '4px',
+                  boxShadow: '0 0 20px rgba(0,184,255,0.15)',
+                  animation: 'pulse 3s infinite'
+                }}>
+                  <div style={{ color: 'var(--accent)', fontWeight: 'bold', marginBottom: '4px' }}>NO BUFFER ACTIVE</div>
+                  SELECT A SOURCE FILE FROM THE LEFT TREE PANEL TO MOUNT AND EDIT BUFFER IN ACTIVE MEMORY.
+                </div>
+              </div>
             )}
-            {chatHistory.map((msg, i) => (
-              <div key={i} className={`chat-msg ${msg.role === 'user' ? 'user' : 'agent'}${msg.isStreaming ? ' streaming' : ''}`}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div className="chat-tag">{msg.role === 'user' ? t("you") : t("ironman")}</div>
-                  {msg.ts && <span style={{ fontSize: '0.4rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{new Date(msg.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>}
-                </div>
-                <div>{msg.content}{msg.isStreaming && <span className="cursor-blink">▊</span>}</div>
-              </div>
-            ))}
           </div>
-          <div className="chat-input-row" style={{ alignItems: 'center', marginTop: '6px' }}>
-            {/* Layout Toggle Button */}
-            <button className={`hud-btn hud-btn-icon ${chatLayout === 'side' ? 'active' : ''}`}
-                    onClick={() => { playTick(); setChatLayout(l => l === 'bottom' ? 'side' : 'bottom'); }}
-                    title={chatLayout === 'bottom' ? "Dock to Side" : "Dock to Bottom"}>
-              {chatLayout === 'bottom' ? <Columns size={12} /> : <LayoutGrid size={12} />}
-            </button>
 
-            {/* Voice Response Toggle Button */}
-            <button className={`hud-btn hud-btn-icon ${voiceEnabled ? 'active' : ''}`}
-                    onClick={toggleVoice}
-                    title={voiceEnabled ? "Mute Voice Response" : "Unmute Voice Response"}>
-              {voiceEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
-            </button>
-
-            {/* Microphone Voice Input Button */}
-            <button className={`hud-btn hud-btn-icon ${isListening && !handsFreeMode ? 'active' : ''}`}
-                    onClick={toggleListening}
-                    disabled={handsFreeMode}
-                    title={isListening ? "Stop Recording" : "Record Voice"}>
-              {isListening && !handsFreeMode ? <Mic size={12} className="thinking" /> : <MicOff size={12} />}
-            </button>
-
-            {/* Hands-Free Dialog Mode Button */}
-            <button className={`hud-btn hud-btn-icon ${handsFreeMode ? 'active' : ''}`}
-                    onClick={toggleHandsFree}
-                    title={handsFreeMode ? "Disable Hands-Free Dialog" : "Enable Hands-Free Dialog"}>
-              <Radio size={12} className={handsFreeMode ? "thinking" : ""} />
-            </button>
-
-            <input className="chat-input" value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleSend()}
-              placeholder={handsFreeMode ? (i18n.language === 'ar' ? 'يتنصت الآن تلقائياً...' : 'Listening hands-free...') : t("placeholder_command")} />
-
-            <button className="hud-btn hud-btn-icon" onClick={handleSend}><SendHorizontal size={11} /></button>
+          {/* Middle Bottom Pane: The Live Terminal (Always Open) */}
+          <div className="tech-panel ide-panel mid-bottom-pane" style={{ padding: 0 }}>
+            <div className="panel-scan" />
+            <span className="corner-tl" /><span className="corner-br" />
+            <Terminal output={termOutput || []} />
           </div>
         </div>
-      </motion.div>
+
+        {/* ── COLUMN 3: RIGHT PANEL (Spectrometer & Conversation Chat) ── */}
+        <div className="ide-column ide-right-col">
+          
+          {/* Right Top Pane: Spectrometer, Circular gauges and Token flows */}
+          <div className="tech-panel ide-panel" style={{ flex: 1.1, minHeight: 0 }}>
+            <div className="panel-scan" />
+            <span className="corner-tl" /><span className="corner-br" />
+            <div className="tech-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>⌁ TELEMETRY</span>
+              <button onClick={clearTokens} style={{
+                background: 'transparent', border: 'none', color: 'var(--accent)',
+                fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace'
+              }}>{t("clear") || "CLEAR"}</button>
+            </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, marginTop: '6px', fontSize: '0.55rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+                <AudioVisualizer
+                  isListening={isListening}
+                  isSpeaking={isSpeaking}
+                  agentStatus={agentStatus}
+                  size={75}
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <CircularGauge label="CPU" value={metrics.cpu || 0} color="#00a2ff" size={54} />
+                  <CircularGauge label="RAM" value={metrics.ram || 0} color="#00ffd5" size={54} />
+                </div>
+              </div>
+
+              {/* Sparkline & Cost info */}
+              <div style={{ borderTop: '1px solid rgba(0,255,213,0.1)', paddingTop: '6px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '4px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.38rem', color: 'var(--text-dim)' }}>TOKENS IN</div>
+                    <div style={{ fontSize: '0.55rem', fontWeight: 'bold', color: 'var(--text)' }}>{(tokenData.tokensIn || 0).toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.38rem', color: 'var(--text-dim)' }}>TOKENS OUT</div>
+                    <div style={{ fontSize: '0.55rem', fontWeight: 'bold', color: 'var(--text)' }}>{(tokenData.tokensOut || 0).toLocaleString()}</div>
+                  </div>
+                </div>
+
+                {tokenHistory.length > 1 && (
+                  <div style={{ marginTop: '6px', marginBottom: '6px' }}>
+                    <div style={{ height: '18px', display: 'flex', alignItems: 'flex-end', gap: '1px' }}>
+                      {(() => {
+                        const max = Math.max(...tokenHistory, 1);
+                        return tokenHistory.slice(-25).map((val, i) => {
+                          const h = Math.max(2, (val / max) * 16);
+                          return (
+                            <div key={i} style={{
+                              flex: 1, height: `${h}px`,
+                              background: `linear-gradient(to top, rgba(0,162,255,0.4), rgba(0,255,213,0.7))`
+                            }} />
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
+                
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', borderTop: '1px solid rgba(0,255,213,0.08)', paddingTop: '4px' }}>
+                  <span style={{ color: 'var(--accent)', fontSize: '0.4rem', letterSpacing: '0.5px' }}>ESTIMATED COST</span>
+                  <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--primary)' }}>
+                    ${estimateCost(sysConfig.model, tokenData.tokensIn, tokenData.tokensOut).toFixed(5)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Bottom Pane: Conversational Chat Panel */}
+          <div className="tech-panel ide-panel right-chat-pane" style={{ flex: 1.9, minHeight: 0 }}>
+            <div className="panel-scan" />
+            <span className="corner-tl" /><span className="corner-br" />
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px', marginBottom: '6px', cursor: 'default' }}>
+              <span style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {chatHistory.length > 0 && (
+                  <button onClick={clearChat} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace' }}>{t("clear") || "CLEAR"}</button>
+                )}
+                <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>AWAITING</span>
+              </div>
+            </div>
+
+            <div className="chat-msgs" style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
+              {chatHistory.length === 0 && (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.52rem', letterSpacing: '1px' }}>{t("placeholder_command")}</div>
+              )}
+              {chatHistory.map((msg, i) => (
+                <div key={i} className={`chat-msg ${msg.role === 'user' ? 'user' : 'agent'}${msg.isStreaming ? ' streaming' : ''}`}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="chat-tag">{msg.role === 'user' ? t("you") : t("ironman")}</div>
+                    {msg.ts && <span style={{ fontSize: '0.4rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{new Date(msg.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>}
+                  </div>
+                  <div style={{ wordBreak: 'break-word', marginTop: '2px' }}>{msg.content}{msg.isStreaming && <span className="cursor-blink">▊</span>}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="chat-input-row" style={{ alignItems: 'center', marginTop: '8px', gap: '6px' }}>
+              {/* Voice Response Toggle Button */}
+              <button className={`hud-btn hud-btn-icon ${voiceEnabled ? 'active' : ''}`}
+                      onClick={toggleVoice}
+                      title={voiceEnabled ? "Mute Voice Response" : "Unmute Voice Response"}>
+                {voiceEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
+              </button>
+
+              {/* Microphone Voice Input Button */}
+              <button className={`hud-btn hud-btn-icon ${isListening && !handsFreeMode ? 'active' : ''}`}
+                      onClick={toggleListening}
+                      disabled={handsFreeMode}
+                      title={isListening ? "Stop Recording" : "Record Voice"}>
+                {isListening && !handsFreeMode ? <Mic size={12} className="thinking" /> : <MicOff size={12} />}
+              </button>
+
+              {/* Hands-Free Dialog Mode Button */}
+              <button className={`hud-btn hud-btn-icon ${handsFreeMode ? 'active' : ''}`}
+                      onClick={toggleHandsFree}
+                      title={handsFreeMode ? "Disable Hands-Free Dialog" : "Enable Hands-Free Dialog"}>
+                <Radio size={12} className={handsFreeMode ? "thinking" : ""} />
+              </button>
+
+              <input className="chat-input" value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleSend()}
+                placeholder={handsFreeMode ? (i18n.language === 'ar' ? 'يتنصت الآن تلقائياً...' : 'Listening hands-free...') : t("placeholder_command")}
+                style={{ flex: 1 }} />
+
+              <button className="hud-btn hud-btn-icon" onClick={handleSend}><SendHorizontal size={11} /></button>
+            </div>
+          </div>
+        </div>
+
+      </div>
 
       <AnimatePresence>
         {showSettings && (
