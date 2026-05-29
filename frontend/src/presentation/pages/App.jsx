@@ -12,6 +12,9 @@ import { EvolutionModal } from '../components/EvolutionModal';
 import { KeyboardShortcuts } from '../components/KeyboardShortcuts';
 import { StatusBar } from '../components/StatusBar';
 import { CircularGauge } from '../components/CircularGauge';
+import { HexGrid } from '../components/HexGrid';
+import { PerfMonitor } from '../components/PerfMonitor';
+import { DataFlow } from '../components/DataFlow';
 import { useAgentConnection } from '../../application/useAgentConnection';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useVoiceSystem } from '../hooks/useVoiceSystem';
@@ -720,6 +723,10 @@ function App() {
     <div className={`hud-root ${chatLayout === 'side' ? 'layout-side-active' : ''}`}>
       <div className="scan-line"></div>
 
+      {/* Cybernetic hex grid background */}
+      <HexGrid status={agentStatus} />
+      <DataFlow active={agentStatus} />
+
       {/* Conditionally hide reactor if file is open, or render editor above it */}
       <ParticleReactor status={agentStatus} style={{ opacity: selectedFile ? 0.3 : 1 }} />
       {selectedFile && <CodeEditor filePath={selectedFile} onClose={() => setSelectedFile(null)} />}
@@ -762,6 +769,7 @@ function App() {
 
       {/* LEFT: SYSTEM DETAILS */}
       <motion.div drag dragMomentum={false} className="tech-panel sys-details-panel">
+        <span className="corner-tl" /><span className="corner-br" />
         <div className="tech-panel-header">
           <span>⌂ {t("system_engine")}</span>
           <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("sec")}</span>
@@ -783,6 +791,7 @@ function App() {
 
       {/* LEFT: TELEMETRY */}
       <motion.div drag dragMomentum={false} className="tech-panel telemetry-panel">
+        <span className="corner-tl" /><span className="corner-br" />
         <div className="tech-panel-header">
           <span>⌁ {t("system_metrics")}</span>
           <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("live")}</span>
@@ -799,6 +808,7 @@ function App() {
 
       {/* RIGHT: DEPLOYMENT PROTOCOLS */}
       <motion.div drag dragMomentum={false} className="tech-panel priority-panel">
+        <span className="corner-tl" /><span className="corner-br" />
         <div className="tech-panel-header">
           <span>▸ {t("protocols")}</span>
         </div>
@@ -809,6 +819,7 @@ function App() {
 
       {/* RIGHT: VOICE PULSE SPECTROMETER */}
       <motion.div drag dragMomentum={false} className="tech-panel radar-container-panel">
+        <span className="corner-tl" /><span className="corner-br" />
         <VoicePulseVisualizer
           isListening={isListening}
           isSpeaking={isSpeaking}
@@ -818,6 +829,7 @@ function App() {
 
       {/* RIGHT: RESOURCE METRICS */}
       <motion.div drag dragMomentum={false} className="tech-panel data-panel">
+        <span className="corner-tl" /><span className="corner-br" />
         <div className="tech-panel-header">
           <span>⚙ {t("gauges")}</span>
         </div>
@@ -834,6 +846,7 @@ function App() {
 
       {/* ═══ RIGHT PANEL: RESOURCE MONITORING (Swapped to bottom right) ═══ */}
       <motion.div drag dragMomentum={false} className="tech-panel resource-panel-right" style={{ minHeight: '195px' }}>
+        <span className="corner-tl" /><span className="corner-br" />
         <div className="tech-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>◉ {t("monitor")}</span>
           <button onPointerDown={(e) => e.stopPropagation()} onClick={clearTokens} style={{
@@ -1042,6 +1055,7 @@ function App() {
           <KeyboardShortcuts onClose={() => setShowShortcuts(false)} />
         )}
       </AnimatePresence>
+      <PerfMonitor />
       <AnimatePresence>
       {showConsole && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="modal-overlay" onClick={() => setShowConsole(false)} style={{ zIndex: 100 }}>

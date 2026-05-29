@@ -115,14 +115,19 @@
 - [x] **Toast Sounds:** Distinct audio feedback per toast type.
 - [x] **Network Quality Indicator:** Color-coded latency label in diagnostics bar.
 
-### المرحلة الحادية عشرة: تحسين الأداء البصري وتجربة المستخدم (قيد التنفيذ 🔄)
+### المرحلة الحادية عشرة: التحسين البصري التفاعلي والتجربة الحسية (قيد التنفيذ 🔄)
 - [x] **Animated SVG Circular Gauges:** New CircularGauge component with semi-circular arcs, animated fill, neon glow, and color interpolation.
 - [x] **File Tree Search/Filter:** Real-time recursive search input with clear button and empty state.
 - [x] **Offscreen Canvas Optimization:** Static background layer cached in offscreen canvas, reducing ParticleReactor draw calls by ~40%.
 - [x] **StatusBar Quick Actions:** Compact icon buttons (Terminal, Settings, Abort) in status bar with hover effects.
 - [x] **Radar Panel CSS Fix:** Complete glassmorphic styling with corner brackets and pulsing glow animation.
 - [x] **ESLint Zero Errors:** Extracted CyberSplash component, deterministic skeleton widths, state-based CircularGauge animation.
-- [ ] **Performance Monitoring Dashboard:** Real-time FPS counter, memory usage graph, and frame timing overlay.
+- [x] **Cybernetic HexGrid Background:** Animated hexagonal grid with drift, distance-based alpha, pulsing on agent activity.
+- [x] **Performance Monitoring Dashboard:** Real-time FPS counter, frame timing, memory usage — toggleable with Ctrl+Shift+M.
+- [x] **Enhanced Corner Bracket Animations:** Hover-expanding brackets with neon glow on all 6 draggable panels.
+- [x] **CyberSplash Diagnostic Boot:** Sequential 6-subsystem boot animation with progress bars and status indicators.
+- [x] **Animated Data Flow Lines:** SVG particle streams flowing along bezier curves between panels.
+- [x] **StatusBar Hover Previews:** Glassmorphic tooltips with mini sparklines for CPU/RAM on hover.
 - [ ] **Code Splitting & Lazy Loading:** Route-based splitting for EvolutionModal, SettingsModal, CodeEditor.
 - [ ] **Unit Tests for Backend:** Jest/Vitest test suite for GitAdapter, Logger, and AgentService.  
 - [ ] **System Hardware Integration:** Read CPU temperature, GPU stats, disk I/O via OS-level APIs.

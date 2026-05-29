@@ -3,6 +3,17 @@
 هذا الملف مخصص لتسجيل التحديثات التلقائية، التحسينات المعمارية، وإصلاح الأخطاء التي يقوم بها **مارسيل** بشكل ذاتي في الخلفية.
 
 ---
+### [Continuous Enhancement Pack: HexGrid, PerfMonitor, DataFlow, CyberSplash Boot, Corner Animations, StatusBar Hover] - 2026-05-29
+**Summary:** Executed 6 high-visibility UI/UX improvements in a single continuous evolution cycle:
+- **Cybernetic HexGrid Background:** New `HexGrid.jsx` component — animated hexagonal grid rendered on offscreen canvas with slow drift, distance-based alpha falloff, and pulsing intensity based on agent status. Integrated as z-index 0 background layer.
+- **Performance Monitoring Dashboard:** New `PerfMonitor.jsx` component — real-time FPS counter, frame timing, and memory usage overlay. Toggle with Ctrl+Shift+M. Includes mini FPS sparkline with color-coded bars (green/yellow/red). Glassmorphic styling with system status label.
+- **Animated Data Flow Lines:** New `DataFlow.jsx` component — SVG-based glowing particle streams flowing along cubic bezier curves between panels. 3 connection paths with 4-6 particles each, fade in/out at endpoints, speed increases when agent is active.
+- **CyberSplash Diagnostic Boot Sequence:** Enhanced `CyberSplash.jsx` — sequential subsystem boot animation (WS, API, CLD, PRX, MEM, SYS) with progress bars, status indicators (PENDING → ONLINE/WARN), and staggered timing. Final "ALL SYSTEMS NOMINAL" state.
+- **Enhanced Corner Bracket Animations:** CSS upgrade for all tech panels — corner brackets expand from 12px to 20px on hover with neon glow box-shadow. Added `.corner-tl`/`.corner-br` secondary corner accents on all 6 draggable panels.
+- **StatusBar Hover Previews:** Enhanced `StatusBar.jsx` — CPU/RAM hover tooltips with glassmorphic popup showing current value, mini sparkline preview, and status label (IDLE/MODERATE/HIGH LOAD). Added `MiniSparkline` component for inline bar charts.
+- **ESLint Zero Errors:** Fixed all React 19 strict-mode violations (no ref access during render, no impure functions in initial state, no setState in effects/useMemo). Frontend and backend both pass with 0 errors, 0 warnings. Vite production build compiles in 743ms (480KB JS, 15.57KB CSS).
+
+---
 ### [Continuous Enhancement Pack: Circular Gauges, File Search, Offscreen Canvas, StatusBar Quick Actions, ESLint Fixes] - 2026-05-29
 **Summary:** Executed 6 high-impact improvements in a single continuous evolution cycle:
 - **Animated SVG Circular Gauges:** New `CircularGauge.jsx` component — semi-circular SVG arc gauges with animated fill (ease-out cubic), neon glow filter, color interpolation (cyan→green→yellow→red), and Orbitron digital readout. Replaced simple bar gauges in data-panel with dual CPU/RAM circular gauges.
