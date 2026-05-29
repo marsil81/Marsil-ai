@@ -499,7 +499,7 @@ function App() {
       </div>
 
       {/* ═══ CYBERNETIC IDE 3-COLUMN LAYOUT CONTAINER ═══ */}
-      <div className="ide-layout-container" dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
+      <div className="ide-layout-container" dir="ltr">
         
         {/* ── COLUMN 1: LEFT SIDEBAR (File Manager & System details) ── */}
         <div className="ide-column ide-left-col">
@@ -676,7 +676,7 @@ function App() {
                     <div className="chat-tag">{msg.role === 'user' ? t("you") : t("ironman")}</div>
                     {msg.ts && <span style={{ fontSize: '0.4rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{new Date(msg.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>}
                   </div>
-                  <div style={{ wordBreak: 'break-word', marginTop: '2px' }}>{msg.content}{msg.isStreaming && <span className="cursor-blink">▊</span>}</div>
+                  <div style={{ wordBreak: 'break-word', marginTop: '2px', textAlign: 'initial' }} dir="auto">{msg.content}{msg.isStreaming && <span className="cursor-blink">▊</span>}</div>
                 </div>
               ))}
             </div>
@@ -708,7 +708,8 @@ function App() {
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && handleSend()}
                 placeholder={handsFreeMode ? (i18n.language === 'ar' ? 'يتنصت الآن تلقائياً...' : 'Listening hands-free...') : t("placeholder_command")}
-                style={{ flex: 1 }} />
+                style={{ flex: 1 }}
+                dir="auto" />
 
               <button className="hud-btn hud-btn-icon" onClick={handleSend}><SendHorizontal size={11} /></button>
             </div>
