@@ -316,6 +316,10 @@ class AnthropicProxy {
     stop() {
         if (this.server) this.server.close();
     }
+
+    isRunning() {
+        return this.server && this.server.listening;
+    }
 }
 
 module.exports = new AnthropicProxy();

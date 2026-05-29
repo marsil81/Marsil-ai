@@ -1,14 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Save, X } from 'lucide-react';
 
 export function CodeEditor({ filePath, onClose }) {
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const prevPathRef = useRef(null);
 
   useEffect(() => {
     if (!filePath) return;
-    setLoading(true);
+    if (prevPathRef.current !== filePath) {
+      prevPathRef.current = filePath;
+      setLoading(true);
+    }
     fetch(`http://localhost:3001/api/file?path=${encodeURIComponent(filePath)}`)
       .then(res => res.json())
       .then(data => {

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { Settings, SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid, Radio, X } from 'lucide-react';
+import { SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid, Radio, X } from 'lucide-react';
 import '../styles/App.css';
 import { ParticleReactor } from '../components/ParticleReactor';
 import { SettingsModal, estimateCost } from '../components/SettingsModal';
@@ -23,7 +23,8 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
 
   // Pre-compute trig values for 12-bar spectrogram (avoids Math.cos/Math.sin per frame)
   const trigCacheRef = useRef(null);
-  if (!trigCacheRef.current) {
+  // Initialize ref only once — safe pattern for refs
+  if (trigCacheRef.current === null) {
     const angles = [];
     for (let i = 0; i < 12; i++) {
       angles.push({
@@ -256,7 +257,7 @@ function useToasts() {
 function App() {
   const { t, i18n } = useTranslation();
   const { agentStatus, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
-  const { addToast, ToastContainer } = useToasts();
+  const { ToastContainer } = useToasts();
   const [showSettings, setShowSettings] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
   const [showEvolution, setShowEvolution] = useState(false);
@@ -286,16 +287,17 @@ function App() {
 
   const [handsFreeMode, setHandsFreeMode] = useState(false);
   const handsFreeModeRef = useRef(false);
+  const isSpeakingRef = useRef(false);
 
-  // Hook into voice system (STT & TTS)
+  // Hook into voice system (STT & TTS) — declare before handleSend since it provides stopListening
   const { isListening, isSpeaking, toggleListening, startListening, stopListening, speak } = useVoiceSystem((text) => {
     // SECURITY GUARD: If the Agent is already busy thinking, running tools, or speaking,
     // we absolutely discard any background murmurs or accidental captures.
-    if (agentStatus !== 'idle' || isSpeaking) {
+    if (agentStatus !== 'idle' || isSpeakingRef.current) {
       console.log("Discarded transcript because Agent is busy/speaking:", text);
       return;
     }
-    
+
     // Ignore extremely short garbage words (e.g. less than 2 characters unless it's an Arabic word)
     const trimmed = text.trim();
     if (trimmed.length < 2) {
@@ -305,10 +307,28 @@ function App() {
 
     setChatInput(trimmed);
     playChirp(1200, 0.1);
-    if (handsFreeModeRef.current) {
-      handleSend(trimmed);
+    if (handsFreeModeRef.current && handleSendRef.current) {
+      handleSendRef.current(trimmed);
     }
   });
+
+  // Sync values to refs for use in voice callback (avoids hook ordering issues)
+  const stopListeningRef = useRef(null);
+  const handleSendRef = useRef(null);
+  useEffect(() => { stopListeningRef.current = stopListening; }, [stopListening]);
+  useEffect(() => { isSpeakingRef.current = isSpeaking; }, [isSpeaking]);
+
+  const handleSend = (textOverride) => {
+    const textToSend = typeof textOverride === 'string' ? textOverride : chatInput;
+    if (textToSend.trim()) {
+      playChirp(1300, 0.08);
+      if (stopListeningRef.current) stopListeningRef.current(); // SECURITY GATING
+      sendCommand(textToSend);
+      setChatInput('');
+    }
+  };
+  // eslint-disable-next-line react-hooks/immutability
+  useEffect(() => { handleSendRef.current = handleSend; }, [handleSend]);
 
   useEffect(() => { document.body.dir = i18n.language === 'ar' ? 'rtl' : 'ltr'; }, [i18n.language]);
   useEffect(() => {
@@ -324,7 +344,7 @@ function App() {
   const [chatWidth, setChatWidth] = useState(450); // width in side layout
   const isDraggingRef = useRef(false);
 
-  const handleMouseDown = (e) => {
+  const handleMouseDown = () => {
     isDraggingRef.current = true;
     document.body.style.cursor = 'ew-resize';
     document.body.style.userSelect = 'none';
@@ -438,16 +458,6 @@ function App() {
   const toggleLang = () => {
     playChirp(1000, 0.05);
     i18n.changeLanguage(i18n.language === 'en' ? 'ar' : 'en');
-  };
-
-  const handleSend = (textOverride) => {
-    const textToSend = typeof textOverride === 'string' ? textOverride : chatInput;
-    if (textToSend.trim()) {
-      playChirp(1300, 0.08);
-      stopListening(); // SECURITY GATING: Shut down Speech Recognition IMMEDIATELY upon sending to prevent overlap loops
-      sendCommand(textToSend);
-      setChatInput('');
-    }
   };
 
   let circleCls = 'status-circle';

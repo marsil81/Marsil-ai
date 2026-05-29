@@ -13,6 +13,11 @@ const webSocketHandler = require('./WebSocketHandler');
 const anthropicProxy = require('../infrastructure/AnthropicProxy');
 const logger = require('../infrastructure/Logger');
 
+// ── Standardized Error Helper ─────────────────────────────────────────────────────
+function apiError(res, status, code, message) {
+    return res.status(status).json({ error: { code, message } });
+}
+
 const app = express();
 
 // ── Security Middleware ─────────────────────────────────────────────────────
@@ -92,6 +97,7 @@ app.get('/api/config', async (req, res) => {
         budget:         config.budget,
         hasKey:         !!config.apiKey,
         maskedKey:      config.apiKey ? '••••••••' + config.apiKey.slice(-4) : '',
+        keyPrefix:      config.apiKey ? config.apiKey.slice(0, 3) + '•••' : '',
         claudeAvailable: claudeCode.isAvailable(),
         claudeVersion:  claudeCode.version || null
     });
@@ -101,10 +107,10 @@ app.get('/api/config', async (req, res) => {
 app.post('/api/config', async (req, res) => {
     const body = req.body || {};
     if (body.provider && !['anthropic', 'openai', 'deepseek', 'gemini', 'ollama'].includes(body.provider)) {
-        return res.status(400).json({ error: `Invalid provider: "${body.provider}". Supported: anthropic, openai, deepseek, gemini, ollama` });
+        return res.status(400).json({ error: { code: 'INVALID_PROVIDER', message: `Invalid provider: "${body.provider}". Supported: anthropic, openai, deepseek, gemini, ollama` } });
     }
     if (body.budget !== undefined && (typeof body.budget !== 'number' || body.budget < 0)) {
-        return res.status(400).json({ error: 'Budget must be a non-negative number' });
+        return res.status(400).json({ error: { code: 'INVALID_BUDGET', message: 'Budget must be a non-negative number' } });
     }
     const existing = await loadConfig();
     const newConfig = {
@@ -172,7 +178,7 @@ async function getFileTree(dir) {
 
 app.get('/api/files', async (req, res) => {
     try { res.json(await getFileTree(WORKSPACE_ROOT)); }
-    catch (err) { res.status(500).json({ error: err.message }); }
+    catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
 });
 
 // ── File Read / Write ────────────────────────────────────────────────────────
@@ -181,7 +187,7 @@ app.get('/api/file', async (req, res) => {
         const filePath = safePath(req.query.path);
         const content = await fs.readFile(filePath, 'utf-8');
         res.json({ content });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
 });
 
 app.post('/api/file', async (req, res) => {
@@ -190,7 +196,7 @@ app.post('/api/file', async (req, res) => {
         await fs.mkdir(path.dirname(filePath), { recursive: true });
         await fs.writeFile(filePath, req.body.content || '', 'utf-8');
         res.json({ success: true });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
 });
 
 // ── Git Operations ────────────────────────────────────────────────────────────
@@ -203,14 +209,14 @@ app.get('/api/git/status', async (req, res) => {
     try {
         const result = await gitAdapter.status();
         res.json(result);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
 });
 
 app.get('/api/git/diff', async (req, res) => {
     try {
         const result = await gitAdapter.diff();
         res.json(result);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
 });
 
 app.get('/api/git/log', async (req, res) => {
@@ -218,7 +224,7 @@ app.get('/api/git/log', async (req, res) => {
         const count = Math.min(Math.max(parseInt(req.query.count) || 10, 1), 50);
         const result = await gitAdapter.log(count);
         res.json(result);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
 });
 
 // ── Git Branch Operations ──────────────────────────────────────────────────────
@@ -226,7 +232,7 @@ app.get('/api/git/branches', async (req, res) => {
     try {
         const result = await gitAdapter.branches();
         res.json(result);
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
 });
 
 app.post('/api/git/branch', async (req, res) => {
@@ -239,7 +245,7 @@ app.post('/api/git/branch', async (req, res) => {
             const result = await gitAdapter.createBranch(name);
             res.json(result);
         }
-    } catch (err) { res.status(500).json({ error: err.message }); }
+    } catch (err) { apiError(res, 500, 'INTERNAL_ERROR', err.message); }
 });
 
 // ── Health Check ─────────────────────────────────────────────────────────────
@@ -255,6 +261,20 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
+// ── GET /api/proxy/status ──────────────────────────────────────────────────────
+app.get('/api/proxy/status', async (req, res) => {
+    const config = await loadConfig();
+    const proxyRunning = anthropicProxy.isRunning ? anthropicProxy.isRunning() : false;
+    res.json({
+        proxyRunning,
+        proxyPort: 3002,
+        provider: config.provider,
+        model: config.model,
+        hasKey: !!config.apiKey,
+        keyValid: config.apiKey ? config.apiKey.length > 10 : false,
+    });
+});
+
 // ── GET /api/logs ─────────────────────────────────────────────────────────────
 app.get('/api/logs', async (req, res) => {
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 500);
@@ -264,9 +284,7 @@ app.get('/api/logs', async (req, res) => {
 // ── Global Error Handler ─────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {
     logger.error(`Unhandled error on ${req.method} ${req.path}`, { message: err.message });
-    res.status(err.status || 500).json({
-        error: err.message || 'Internal Server Error'
-    });
+    apiError(res, err.status || 500, 'UNHANDLED_ERROR', err.message || 'Internal Server Error');
 });
 
 // ── WebSocket ────────────────────────────────────────────────────────────────

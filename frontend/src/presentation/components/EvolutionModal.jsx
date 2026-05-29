@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Play, Pause, RefreshCw, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Play, RefreshCw, Zap } from 'lucide-react';
 import { Terminal } from './Terminal';
 
 export function EvolutionModal({ onClose, sendCommand, agentStatus, termOutput }) {

@@ -1,6 +1,21 @@
 const os = require('os');
 const agentService = require('../application/AgentService');
 
+// ── Input Validation ────────────────────────────────────────────────────────────
+const MAX_MESSAGE_SIZE = 1024 * 100; // 100KB max per WebSocket message
+const MAX_TEXT_LENGTH = 50000;       // 50K chars max for chat text
+const ALLOWED_TYPES = ['chat', 'abort', 'pong'];
+
+function validateMessage(msg) {
+    if (!msg || typeof msg !== 'object') return { valid: false, error: 'Message must be a JSON object' };
+    if (!msg.type || !ALLOWED_TYPES.includes(msg.type)) return { valid: false, error: `Invalid message type: "${msg.type}"` };
+    if (msg.type === 'chat') {
+        if (typeof msg.text !== 'string') return { valid: false, error: 'Chat text must be a string' };
+        if (msg.text.length > MAX_TEXT_LENGTH) return { valid: false, error: `Chat text exceeds ${MAX_TEXT_LENGTH} characters` };
+    }
+    return { valid: true };
+}
+
 // CPU load snapshot for differential measurement
 let prevCpuTimes = null;
 
@@ -35,8 +50,18 @@ class WebSocketHandler {
         let isAlive = true;
 
         ws.on('message', async (message) => {
+            // Enforce message size limit
+            if (Buffer.byteLength(message, 'utf-8') > MAX_MESSAGE_SIZE) {
+                ws.send(JSON.stringify({ type: 'error', message: `Message exceeds ${MAX_MESSAGE_SIZE / 1024}KB limit` }));
+                return;
+            }
             try {
                 const msg = JSON.parse(message);
+                const validation = validateMessage(msg);
+                if (!validation.valid) {
+                    ws.send(JSON.stringify({ type: 'error', message: validation.error }));
+                    return;
+                }
                 if (msg.type === 'pong') {
                     isAlive = true;
                     return;
@@ -52,7 +77,7 @@ class WebSocketHandler {
                     ws.send(JSON.stringify({ type: 'agent_status', status: 'idle' }));
                 }
             } catch {
-                ws.send(JSON.stringify({ type: 'error', message: 'Invalid message format' }));
+                ws.send(JSON.stringify({ type: 'error', message: 'Invalid JSON message format' }));
             }
         });
 

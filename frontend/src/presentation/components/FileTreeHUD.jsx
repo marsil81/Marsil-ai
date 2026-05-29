@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronRight, ChevronDown, FileText, FolderClosed, FolderOpen, Plus } from 'lucide-react';
 
 export function FileTreeHUD({ onFileSelect }) {

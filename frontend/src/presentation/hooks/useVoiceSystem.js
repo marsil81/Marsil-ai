@@ -61,7 +61,7 @@ export function useVoiceSystem(onTranscript) {
     if (!recognitionRef.current) return;
     try {
       recognitionRef.current.stop();
-    } catch {}
+    } catch { /* recognition already stopped */ }
   };
 
   const toggleListening = () => {
@@ -94,7 +94,7 @@ export function useVoiceSystem(onTranscript) {
     let cleanText = text;
     cleanText = cleanText.replace(/```[\s\S]*?```/g, ''); // Remove block code
     cleanText = cleanText.replace(/`.*?`/g, '');          // Remove inline code
-    cleanText = cleanText.replace(/[*#`_\-]/g, '');        // Remove markdown symbols
+    cleanText = cleanText.replace(/[*#`_-]/g, '');        // Remove markdown symbols
     cleanText = cleanText.replace(/https?:\/\/\S+/g, '');  // Remove URLs
     cleanText = cleanText.trim();
 

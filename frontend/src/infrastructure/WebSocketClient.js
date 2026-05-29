@@ -63,7 +63,7 @@ export class AgentWebSocketClient {
             }
         };
 
-        this.socket.onclose = (event) => {
+        this.socket.onclose = () => {
             console.log('Disconnected from Marsil Core');
             // Auto-reconnect with exponential backoff unless intentionally closed
             if (!this._disposed && this._reconnectAttempts < this._maxReconnectAttempts) {

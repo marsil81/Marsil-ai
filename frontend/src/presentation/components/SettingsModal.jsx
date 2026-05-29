@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { X, Eye, EyeOff, ShieldCheck, CheckCircle, AlertCircle, Zap } from 'lucide-react';
 
 // ── Provider definitions ──────────────────────────────────────────────────────
@@ -118,6 +118,7 @@ const COST_PER_M_OUT = {
   'gemini-1.5-flash': 0.3,
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function estimateCost(model, tokensIn, tokensOut) {
   const inCost  = ((tokensIn  || 0) / 1_000_000) * (COST_PER_M_IN[model]  || 2);
   const outCost = ((tokensOut || 0) / 1_000_000) * (COST_PER_M_OUT[model] || 8);
@@ -138,6 +139,7 @@ export function SettingsModal({ onClose }) {
   const [claudeAvailable, setClaudeAvailable] = useState(false);
   const [claudeVersion,   setClaudeVersion]   = useState(null);
 
+  // Reset model when provider changes — derive default during render
   const providerDef = PROVIDERS.find(p => p.id === provider) || PROVIDERS[0];
 
   useEffect(() => {
@@ -156,10 +158,18 @@ export function SettingsModal({ onClose }) {
       .catch(() => {});
   }, []);
 
-  // Reset model when provider changes
+  // Reset model when provider changes — derive during render
+  // Reset model when provider changes — schedule outside effect to avoid cascading render warning
+  const prevProviderRef = useRef(provider);
   useEffect(() => {
-    const def = PROVIDERS.find(p => p.id === provider);
-    if (def && def.models.length > 0) setModel(def.models[0].value);
+    if (prevProviderRef.current !== provider) {
+      prevProviderRef.current = provider;
+      const def = PROVIDERS.find(p => p.id === provider);
+      if (def && def.models.length > 0) {
+        // Use microtask to defer state update outside the effect's synchronous execution
+        queueMicrotask(() => setModel(def.models[0].value));
+      }
+    }
   }, [provider]);
 
   const handleSave = async () => {

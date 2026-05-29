@@ -6,41 +6,23 @@ export function useAgentConnection() {
   const [metrics, setMetrics]           = useState({ cpu: 0, ram: 0 });
   const TERM_OUTPUT_MAX = 1000;
   const [termOutput, setTermOutput]     = useState([]);
-  const [chatHistory, setChatHistory]   = useState(() => {
-    try { 
-      const saved = localStorage.getItem('marsil_chat'); 
-      if (saved) {
-        let parsed = JSON.parse(saved);
-        parsed = parsed.filter(msg => {
-          if (!msg.content) return true;
-          if (msg.content.includes('/EVOLUTION_')) return false;
-          if (msg.content.includes('System: Autonomous Evolutionary Cycle Triggered')) return false;
-          if (msg.content.includes('System: Agent is already working on a task')) return false;
-          return true;
-        });
-        return parsed;
-      }
-      return []; 
-    } catch { return []; }
-  });
+  const [chatHistory, setChatHistory]   = useState([]);
   const [tokenData, setTokenData]       = useState(() => {
     try { const saved = localStorage.getItem('marsil_tokens'); return saved ? JSON.parse(saved) : { tokensIn: 0, tokensOut: 0, totalTokens: 0, provider: '', model: '' }; } catch { return { tokensIn: 0, tokensOut: 0, totalTokens: 0, provider: '', model: '' }; }
   });
-  const [client, setClient] = useState(null);
-  const bottomRef = useRef(null);
+  const clientRef = useRef(null);
 
   useEffect(() => { localStorage.setItem('marsil_chat', JSON.stringify(chatHistory)); }, [chatHistory]);
   useEffect(() => { localStorage.setItem('marsil_tokens', JSON.stringify(tokenData)); }, [tokenData]);
 
-  // Force-clear chat history on mount to clean the chat box completely for the user as requested
+  // Clear stale chat data on mount
   useEffect(() => {
-    setChatHistory([]);
     localStorage.removeItem('marsil_chat');
   }, []);
 
   useEffect(() => {
     const wsClient = new AgentWebSocketClient();
-    setClient(wsClient);
+    clientRef.current = wsClient;
 
     wsClient.onStatusChange   = setAgentStatus;
     wsClient.onMetricsChange  = setMetrics;
@@ -93,7 +75,7 @@ export function useAgentConnection() {
   }, []);
 
   const sendCommand = (text) => {
-    if (!client) return;
+    if (!clientRef.current) return;
     
     // Only add to UI Chat History if it's not a background system command
     if (!text.startsWith('/')) {
@@ -104,10 +86,10 @@ export function useAgentConnection() {
       ]);
     }
     
-    client.sendChat(text);
+    clientRef.current.sendChat(text);
   };
 
-  const abortAgent  = () => { if (client) client.sendAbort(); };
+  const abortAgent  = () => { if (clientRef.current) clientRef.current.sendAbort(); };
   const clearTokens = () => setTokenData({ tokensIn: 0, tokensOut: 0, totalTokens: 0, provider: '', model: '' });
   const clearChat   = () => { setChatHistory([]); setTermOutput([]); localStorage.removeItem('marsil_chat'); };
 

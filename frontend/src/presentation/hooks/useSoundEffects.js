@@ -149,7 +149,7 @@ export function useSoundEffects(status) {
               currentHum.osc.stop();
               currentHum.lfo.stop();
             }
-          } catch {}
+          } catch { /* oscillator already stopped */ }
         }, 250);
       }
       humRef.current = null;

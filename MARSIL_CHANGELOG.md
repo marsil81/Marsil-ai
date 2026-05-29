@@ -4,7 +4,16 @@
 
 ---
 
-### [تحسينات شاملة: ESLint احترافي، Auto-Reconnect، Git Branch API، Toast Notifications، تحسين أداء Canvas] - 2026-05-29
+### [حزمة تحسينات شاملة: أمان WebSocket، توحيد الأخطاء، ESLint Frontend، إزالة كود ميت، تحسين HTML] - 2026-05-29
+**الملخص:** تم تنفيذ 7 مهام تحسينية في جلسة تطور مستمرة واحدة:
+- **تأمين مفتاح API:** إضافة `keyPrefix` في استجابة `/api/config` لإظهار أول 3 أحرف من المفتاح مع إخفاء الباقي.
+- **إضافة Proxy Health Check:** نقطة نهاية جديدة `GET /api/proxy/status` للتحقق من حالة Proxy الخادم، مع دالة `isRunning()` في AnthropicProxy.js.
+- **إزالة كود ميت:** حذف 5 ملفات غير مستخدمة بالكامل (Reactor.jsx, EditorPane.jsx, FileTree.jsx, VoiceOrb.jsx, HudMetrics.jsx) لتقليل حجم الحزمة.
+- **تحسين HTML:** تحديث `index.html` بهوية مارسيل (MARSIL — Cybernetic AI Core)، إضافة meta tags، preconnect لـ Google Fonts، ولون خلفية لمنع FOUC.
+- **إصلاح ESLint Frontend:** إصلاح 24 خطأ ESLint في الواجهة الأمامية (وصول من 24 خطأ إلى 0 خطأ) — إزالة imports غير مستخدمة، إصلاح استخدام useRef بدلاً من setState في effects، تصحيح ترتيب hooks، إزالة escapes غير ضرورية.
+- **التحقق من صحة WebSocket:** إضافة validation صارم لرسائل WebSocket — حد أقصى 100KB للحجم، 50K حرف للنص، التحقق من نوع الرسالة (chat/abort/pong فقط).
+- **توحيد رسائل الخطأ:** إنشاء دالة `apiError()` مساعدة وإعادة هيكلة جميع استجابات الخطأ في Server.js لتنسيق موحد `{ error: { code, message } }` مع أكواد خطأ (INVALID_PROVIDER, INVALID_BUDGET, INTERNAL_ERROR, UNHANDLED_ERROR).
+- **إضافة lint scripts:** إضافة `npm run lint` للواجهة الأمامية والخلفية للتحقق التلقائي من جودة الكود.
 **الملخص:** تم تنفيذ حزمة تحسينات شاملة على جودة الكود واستقرار الاتصال وتجربة المستخدم:
 - **إضافة ESLint احترافي (Backend):** تثبيت ESLint مع قواعد قياسية (no-unused-vars, prefer-const, no-var) واستبدال الـ lint script القديم بـ `eslint src/`. تم إصلاح 13 مشكلة (3 أخطاء + 10 تحذيرات) لتصل إلى 0 خطأ و 0 تحذير.
 - **إضافة Auto-Reconnect للـ WebSocketClient (Frontend):** نظام إعادة اتصال ذكي مع Exponential Backoff (يبدأ من 1 ثانية ويتضاعف حتى 30 ثانية كحد أقصى)، مع حد أقصى 10 محاولات، وعرض رسائل الحالة في Toast Notifications.
