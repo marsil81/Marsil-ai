@@ -68,6 +68,7 @@ class ClaudeCodeAdapter {
                 '--verbose',
                 '--output-format', 'stream-json',
                 '--no-session-persistence',
+                '--dangerously-skip-permissions',
                 '--model', this.config.model
             ];
 
@@ -179,6 +180,11 @@ class ClaudeCodeAdapter {
                                 } else {
                                     ws.send(JSON.stringify({ type: 'chat_delta', text: event.delta.text }));
                                 }
+                            }
+                        }
+                        if (event.type === 'error') {
+                            if (ws) {
+                                ws.send(JSON.stringify({ type: 'log', message: `❌ Error: ${event.error?.message || event.message || JSON.stringify(event)}` }));
                             }
                         }
                         if (event.type === 'result') {
