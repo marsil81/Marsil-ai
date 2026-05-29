@@ -145,14 +145,32 @@ class AnthropicProxy {
                     cleanUrl = cleanUrl.slice(0, -3);
                 }
 
-                const response = await fetch(`${cleanUrl}/v1/chat/completions`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.targetApiKey}`
-                    },
-                    body: JSON.stringify(openaiReq)
-                });
+                                let response;
+                let attempts = 0;
+                const maxAttempts = 4;
+                while (attempts < maxAttempts) {
+                    attempts++;
+                    try {
+                        response = await fetch(`${cleanUrl}/v1/chat/completions`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.targetApiKey}`,
+                                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                                'Accept': 'application/json'
+                            },
+                            body: JSON.stringify(openaiReq),
+                            timeout: 60000
+                        });
+                        break;
+                    } catch (fetchErr) {
+                        console.error(`Proxy Fetch Attempt ${attempts} failed: ${fetchErr.message}`);
+                        if (attempts >= maxAttempts) {
+                            throw fetchErr;
+                        }
+                        await new Promise(r => setTimeout(r, 2000 * attempts));
+                    }
+                }
 
                 if (!response.ok) {
                     const errText = await response.text();
