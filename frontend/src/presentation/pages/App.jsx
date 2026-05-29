@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { SendHorizontal, Mic, MicOff, Volume2, VolumeX, Columns, LayoutGrid, Radio, X } from 'lucide-react';
@@ -251,6 +251,17 @@ function DiagDot({ label, ok }) {
 }
 
 // ── Toast Notification System ───────────────────────────────────────────────────
+function ToastContainer({ toasts }) {
+  if (!toasts.length) return null;
+  return (
+    <div className="toast-container">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast-item ${t.type}`}>{t.message}</div>
+      ))}
+    </div>
+  );
+}
+
 function useToasts() {
   const [toasts, setToasts] = useState([]);
   const idRef = useRef(0);
@@ -263,21 +274,13 @@ function useToasts() {
     }, duration);
   };
 
-  const ToastContainer = toasts.length > 0 ? (
-    <div className="toast-container">
-      {toasts.map(t => (
-        <div key={t.id} className={`toast-item ${t.type}`}>{t.message}</div>
-      ))}
-    </div>
-  ) : null;
-
-  return { toasts, addToast, ToastContainer };
+  return { toasts, addToast };
 }
 
 function App() {
   const { t, i18n } = useTranslation();
   const { agentStatus, connectionStatus, metrics, termOutput, chatHistory, sendCommand, abortAgent, tokenData, clearTokens, clearChat } = useAgentConnection();
-  const { ToastContainer } = useToasts();
+  const { toasts } = useToasts();
   const [showSettings, setShowSettings] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
   const [showEvolution, setShowEvolution] = useState(false);
@@ -341,16 +344,18 @@ function App() {
   const handleSendRef = useRef(null);
   useEffect(() => { stopListeningRef.current = stopListening; }, [stopListening]);
   useEffect(() => { isSpeakingRef.current = isSpeaking; }, [isSpeaking]);
+  const chatInputRef = useRef(chatInput);
+  useEffect(() => { chatInputRef.current = chatInput; }, [chatInput]);
 
-  const handleSend = (textOverride) => {
-    const textToSend = typeof textOverride === 'string' ? textOverride : chatInput;
+  const handleSend = useCallback((textOverride) => {
+    const textToSend = typeof textOverride === 'string' ? textOverride : chatInputRef.current;
     if (textToSend.trim()) {
       playChirp(1300, 0.08);
       if (stopListeningRef.current) stopListeningRef.current(); // SECURITY GATING
       sendCommand(textToSend);
       setChatInput('');
     }
-  };
+  }, [playChirp, sendCommand]);
   // eslint-disable-next-line react-hooks/immutability
   useEffect(() => { handleSendRef.current = handleSend; }, [handleSend]);
 
@@ -521,7 +526,7 @@ function App() {
         lastSpokenIndexRef.current = lastIndex;
       }
     }
-  }, [chatHistory, agentStatus, voiceEnabled]);
+  }, [chatHistory, agentStatus, voiceEnabled, speak, playChirp, startListening]);
 
   const toggleVoice = () => {
     playChirp(900, 0.06);
@@ -826,7 +831,7 @@ function App() {
       {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
       {showEvolution && <EvolutionModal onClose={() => setShowEvolution(false)} sendCommand={sendCommand} agentStatus={agentStatus} termOutput={termOutput} />}
 
-      {ToastContainer}
+      <ToastContainer toasts={toasts} />
       {showConsole && (
         <div className="modal-overlay" onClick={() => setShowConsole(false)} style={{ zIndex: 100 }}>
           <div className="modal-box" onClick={e => e.stopPropagation()} style={{ width: '85%', height: '85%', maxWidth: '1200px', display: 'flex', flexDirection: 'column', background: 'rgba(5, 10, 20, 0.95)', border: '1px solid var(--accent)' }}>

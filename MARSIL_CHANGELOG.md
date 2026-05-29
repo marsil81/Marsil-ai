@@ -3,7 +3,15 @@
 هذا الملف مخصص لتسجيل التحديثات التلقائية، التحسينات المعمارية، وإصلاح الأخطاء التي يقوم بها **مارسيل** بشكل ذاتي في الخلفية.
 
 ---
-### [حزمة تحسينات شاملة: إزالة StrictMode، تنظيف الكونسول، حفظ تخطيط الشات، CSS متجاوب، حذف الفروع] - 2026-05-29
+### [حزمة تحسينات: إصلاح EVOLUTION_TRIGGER، AbortController، ToastContainer، ParticleReactor، ESLint] - 2026-05-29
+**الملخص:** تم تنفيذ 7 مهام تحسينية في جلسة تطور مستمرة واحدة:
+- **إصلاح AgentService EVOLUTION_TRIGGER:** إرجاع رسالة تأكيد نصية (`⚡ Autonomous Evolutionary Cycle initiated.`) للمستخدم في الدردشة بدلاً من `null` الصامت.
+- **إصلاح node-fetch timeout في AnthropicProxy.js:** استبدال خاصية `timeout` غير المدعومة في node-fetch v2 بـ `AbortController` مع إشارة (`signal`) وإلغاء المهلة (`clearTimeout`) لضمان مهلة اتصال صحيحة.
+- **إصلاح ارتباط أسماء الملفات في ParticleReactor.jsx:** تعيين `fileName` لكل جسيم أثناء التهيئة من قائمة `fileNames` المستخلصة من API، لعرض أسماء الملفات العائمة في المجسم الثلاثي الأبعاد.
+- **تحسين ToastContainer في App.jsx:** تحويل `ToastContainer` من متغير JSX يُعاد إنشاؤه في كل render إلى مكون React منفصل (`function ToastContainer`) يمرر إليه `toasts` كـ props، مما يقلل إعادة التصيير غير الضرورية.
+- **إصلاح قياس CPU التفاضلي:** تغيير القيمة الافتراضية للقراءة الأولى من `calculateCpuLoad()` من حمل تراكمي مضلل إلى `'0.0'`، لتعود القراءة الثانية فرقاً حقيقياً. استخدام جمع مباشر للحقول (`user + nice + sys + irq + idle`) بدلاً من `for...in` لتجنب خصائص prototype.
+- **تحديث config.example.json:** مزامنة القالب مع الهيكل الجديد (provider, baseUrl, budget) بدلاً من الحقل القديم `engine`.
+- **إصلاح ESLint وحل 4 تحذيرات:** إضافة `AbortController` إلى globals في ESLint، إضافة `onVisualizerRef` إلى dependencies، إضافة `useCallback` لـ `handleSend` مع `chatInputRef`، إضافة التبعيات المفقودة في useSoundEffects و voice readout useEffect. الوصول إلى 0 خطأ و 0 تحذير في الواجهتين.
 **الملخص:** تم تنفيذ 8 مهام تحسينية في جلسة تطور مستمرة واحدة:
 - **إصلاح StrictMode في main.jsx:** إزالة StrictMode لمنع الـ double-rendering في بيئة التطوير (Vite HMR).
 - **إزالة console.log من hooks الصوتية:** استبدال جميع `console.log` في useSoundEffects.js و useVoiceSystem.js و App.jsx بـ catch صامت لمنع ضوضاء الكونسول.

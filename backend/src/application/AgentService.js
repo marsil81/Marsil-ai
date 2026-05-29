@@ -62,7 +62,7 @@ class AgentService {
             // Do not wait, run immediately
             this.runAutonomousCycle();
             this._send('log', { message: 'System: Autonomous Evolutionary Cycle Triggered.' });
-            return null;
+            return '⚡ Autonomous Evolutionary Cycle initiated. Check the Evolution panel for live output.';
         }
 
         try {

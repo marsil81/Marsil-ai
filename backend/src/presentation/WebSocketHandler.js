@@ -25,9 +25,7 @@ function calculateCpuLoad() {
     let totalIdle = 0;
     let totalTick = 0;
     for (const cpu of cpus) {
-        for (const type in cpu.times) {
-            totalTick += cpu.times[type];
-        }
+        totalTick += cpu.times.user + cpu.times.nice + cpu.times.sys + cpu.times.irq + cpu.times.idle;
         totalIdle += cpu.times.idle;
     }
     const idle = totalIdle / cpus.length;
@@ -42,7 +40,7 @@ function calculateCpuLoad() {
     }
 
     prevCpuTimes = { idle, tick };
-    return ((1 - idle / tick) * 100).toFixed(1);
+    return '0.0'; // First call — return baseline, next call will be differential
 }
 
 class WebSocketHandler {

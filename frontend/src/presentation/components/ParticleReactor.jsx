@@ -68,10 +68,12 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
         const theta = i * Math.PI * (3 - Math.sqrt(5));
         const x = Math.cos(theta) * radiusAtY;
         const z = Math.sin(theta) * radiusAtY;
+        const fileName = fileNames.length > 0 ? fileNames[i % fileNames.length] : null;
         particles.push({
           x: x * radius, y: y * radius, z: z * radius,
           baseX: x, baseY: y, baseZ: z,
           size: Math.random() * 2.2 + 1, scale: 1,
+          fileName,
         });
       }
     }
@@ -234,7 +236,7 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
     if (onVisualizerRef) onVisualizerRef(vizRef.current);
 
     return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', handleResize); };
-  }, [status, fileNames]);
+  }, [status, fileNames, onVisualizerRef]);
 
   return <canvas ref={canvasRef} style={{
     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 1, pointerEvents: 'none',

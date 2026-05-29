@@ -177,6 +177,7 @@ export function useSoundEffects(status) {
         stopThinkingHum();
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status]);
 
   return { playChirp, playTick, playAlert };

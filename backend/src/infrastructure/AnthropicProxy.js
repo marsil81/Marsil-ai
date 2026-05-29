@@ -148,6 +148,8 @@ class AnthropicProxy {
                 const maxAttempts = 4;
                 while (attempts < maxAttempts) {
                     attempts++;
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 60000);
                     try {
                         response = await fetch(`${cleanUrl}/v1/chat/completions`, {
                             method: 'POST',
@@ -158,10 +160,12 @@ class AnthropicProxy {
                                 'Accept': 'application/json'
                             },
                             body: JSON.stringify(openaiReq),
-                            timeout: 60000
+                            signal: controller.signal
                         });
+                        clearTimeout(timeoutId);
                         break;
                     } catch (fetchErr) {
+                        clearTimeout(timeoutId);
                         logger.error(`Proxy Fetch Attempt ${attempts} failed: ${fetchErr.message}`);
                         if (attempts >= maxAttempts) {
                             throw fetchErr;
