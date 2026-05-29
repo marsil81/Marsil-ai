@@ -76,14 +76,14 @@ class AgentService {
             this._send('agent_status', { status: 'idle' });
             this.isWorking = false;
 
-            this._scheduleNextEvolutionCycle();
+            if (this.autoEvolutionEnabled) this._scheduleNextEvolutionCycle();
             return response;
 
         } catch (error) {
             this.isWorking = false;
             this._send('agent_status', { status: 'error' });
             this._send('log', { message: `❌ Error: ${error.message}` });
-            this._scheduleNextEvolutionCycle();
+            if (this.autoEvolutionEnabled) this._scheduleNextEvolutionCycle();
             return `Error: ${error.message}`;
         }
     }

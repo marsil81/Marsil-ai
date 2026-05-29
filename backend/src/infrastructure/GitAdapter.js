@@ -1,5 +1,6 @@
 const { execFile, exec } = require('child_process');
 const path = require('path');
+const logger = require('./Logger');
 
 const WORKSPACE_DIR = path.resolve(__dirname, '../../..');
 

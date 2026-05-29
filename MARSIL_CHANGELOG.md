@@ -4,6 +4,16 @@
 
 ---
 
+### [تحسين أمني وهيكلي: Helmet, Rate Limiting, وسجل منظم] - 2026-05-29
+**الملخص:** تم تنفيذ حزمة تحسينات أمنية وهيكلية على النواة الخلفية:
+- **إضافة Helmet (الخوذة الأمنية):** تفعيل رؤوس أمان HTTP (X-Content-Type-Options, X-Frame-Options, HSTS) لحماية الخادم من هجمات XSS والتصيد.
+- **إضافة Rate Limiting (تحديد المعدل):** حد أقصى 120 طلب في الدقيقة لكل نقطة نهاية `/api/` مع رؤوس قياسية (RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset).
+- **إضافة CORS مقيد:** تحديد الأصول المسموح بها (localhost:5173, localhost:3000) بدلاً من `cors()` المفتوح بالكامل.
+- **إضافة نظام تسجيل منظم (Logger):** ملف `Logger.js` جديد مع طابع زمني (timestamp)، مستويات (INFO/WARN/ERROR/DEBUG)، وألوان للتمييز في الطرفية.
+- **استبدال جميع `console.log/error`:** تم استبدال كافة جمل الطباعة الخام في Server.js, ClaudeCodeAdapter.js, AnthropicProxy.js, GitAdapter.js بـ `logger.info/error/warn`.
+- **إضافة Validation لـ POST /api/config:** التحقق من صحة الـ provider (القيم المسموحة) والـ budget (رقم غير سالب) قبل الحفظ.
+- **إضافة Request Logger وسيط:** تسجيل تلقائي لكل طلب مع زمن الاستجابة (مثال: `GET /api/config → 200 (12ms)`).
+
 ### [تنظيف الكود الميت وإضافة دعم .env] - 2026-05-29
 **الملخص:** تم تنفيذ عملية تنظيف هيكلي للكود الخلفي وتحسين الأمان:
 - **إضافة دعم المتغيرات البيئية (.env)** عبر `dotenv` — يمكن الآن وضع `MARSIL_API_KEY` و `MARSIL_PROVIDER` و `MARSIL_MODEL` في ملف `.env` بدلاً من `config.json` لحماية المفاتيح السرية.

@@ -1,5 +1,6 @@
 const express = require('express');
 const fetch = require('node-fetch');
+const logger = require('./Logger');
 
 function cleanSchema(schema) {
     if (!schema || typeof schema !== 'object') return schema;
@@ -17,9 +18,7 @@ function cleanSchema(schema) {
 }
 
 function parseToolInput(tc, choiceContent) {
-    console.log("=== PROXY parseToolInput Incoming ===");
-    console.log("NAME:", tc.function.name);
-    console.log("RAW ARGS:", tc.function.arguments);
+    logger.debug("parseToolInput", { name: tc.function.name });
     
     let parsedInput = {};
     try {
@@ -45,8 +44,7 @@ function parseToolInput(tc, choiceContent) {
             parsedInput.command = extracted;
         }
     }
-    console.log("=== PROXY parseToolInput Outgoing ===");
-    console.log(JSON.stringify(parsedInput));
+    logger.debug("parseToolInput outgoing", { command: parsedInput.command });
     return parsedInput;
 }
 
@@ -164,7 +162,7 @@ class AnthropicProxy {
                         });
                         break;
                     } catch (fetchErr) {
-                        console.error(`Proxy Fetch Attempt ${attempts} failed: ${fetchErr.message}`);
+                        logger.error(`Proxy Fetch Attempt ${attempts} failed: ${fetchErr.message}`);
                         if (attempts >= maxAttempts) {
                             throw fetchErr;
                         }
@@ -174,18 +172,18 @@ class AnthropicProxy {
 
                 if (!response.ok) {
                     const errText = await response.text();
-                    console.error('Proxy upstream error:', errText);
+                    logger.error('Proxy upstream error:', errText);
                     return res.status(response.status).json({ error: { message: errText } });
                 }
 
                 const data = await response.json();
                 const choice = data.choices?.[0]?.message || { content: '' };
                 if (choice.tool_calls) {
-                    console.log("=== PROXY RECEIVED TOOL CALLS ===");
-                    console.log(JSON.stringify(choice.tool_calls, null, 2));
+                    logger.info("=== PROXY RECEIVED TOOL CALLS ===");
+                    logger.info(JSON.stringify(choice.tool_calls, null, 2));
                 } else {
-                    console.log("=== PROXY RECEIVED TEXT ONLY ===");
-                    console.log(choice.content);
+                    logger.info("=== PROXY RECEIVED TEXT ONLY ===");
+                    logger.info(choice.content);
                 }
 
                 // 4. Translate Response back to Anthropic
@@ -300,7 +298,7 @@ class AnthropicProxy {
                 }
 
             } catch (err) {
-                console.error('Proxy Error:', err);
+                logger.error('Proxy Error:', err);
                 res.status(500).json({ error: { message: err.message } });
             }
         });
@@ -309,7 +307,7 @@ class AnthropicProxy {
     start(port = 3002) {
         return new Promise((resolve) => {
             this.server = this.app.listen(port, () => {
-                console.log(`Anthropic -> OpenAI Proxy running on port ${port}`);
+                logger.info(`Anthropic -> OpenAI Proxy running on port ${port}`);
                 resolve(port);
             });
         });

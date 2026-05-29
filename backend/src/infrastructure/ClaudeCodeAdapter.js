@@ -10,6 +10,9 @@ const PROVIDER_URLS = {
     ollama:    'http://localhost:11434/v1',
 };
 
+// Strip ANSI escape codes (colors, cursor movement) from terminal output
+const ANSI_REGEX = /[][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
+
 class ClaudeCodeAdapter {
     constructor() {
         this.available = false;
@@ -21,18 +24,18 @@ class ClaudeCodeAdapter {
             const out = execSync('claude --version', { timeout: 5000, encoding: 'utf-8' });
             this.version = out.trim();
             this.available = true;
-            console.log(`Claude Code detected: ${this.version}`);
+            logger.info(`Claude Code detected: ${this.version}`);
         } catch {
             this.available = false;
-            console.log('Claude Code not found on PATH');
+            logger.info('Claude Code not found on PATH');
         }
     }
 
     isAvailable() { return this.available; }
 
-    setWebSocket(ws) { 
-        this.ws = ws; 
-        console.log("WebSocket client dynamically updated in ClaudeCodeAdapter!");
+    setWebSocket(ws) {
+        this.ws = ws;
+        logger.info("WebSocket client dynamically updated in ClaudeCodeAdapter!");
     }
 
     /**
@@ -104,7 +107,7 @@ class ClaudeCodeAdapter {
 
             const finalizeText = () => {
                 if (isAutonomous && autoBuffer.trim() && this.ws) {
-                    this.ws.send(JSON.stringify({ type: 'log', message: `💭 ${autoBuffer}` }));
+                    this.ws.send(JSON.stringify({ type: 'log', message: `\u{1F4AD} ${autoBuffer}` }));
                     autoBuffer = '';
                 }
                 if (!hasDeltas && assistantTextBuffer) {
@@ -131,7 +134,7 @@ class ClaudeCodeAdapter {
                             currentToolName = event.content_block.name;
                             currentToolInput = '';
                         }
-                        
+
                         if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta') {
                             currentToolInput += event.delta.partial_json;
                         }
@@ -141,7 +144,7 @@ class ClaudeCodeAdapter {
                                 try {
                                     const inputObj = JSON.parse(currentToolInput);
                                     let argsSummary = '';
-                                    
+
                                     // Make logs highly readable for the user based on tool type
                                     if (currentToolName === 'Bash' || currentToolName === 'PowerShell' || currentToolName === 'run_command') {
                                         argsSummary = inputObj.command || inputObj.CommandLine || '';
@@ -154,7 +157,7 @@ class ClaudeCodeAdapter {
                                     } else {
                                         argsSummary = Object.values(inputObj).join(' ').substring(0, 50);
                                     }
-                                    
+
                                     // Clean up long paths for better UI readability
                                     if (argsSummary.length > 60) argsSummary = '...' + argsSummary.slice(-57);
 
@@ -176,7 +179,7 @@ class ClaudeCodeAdapter {
                                         if (isAutonomous) {
                                             const lines = block.text.split('\n');
                                             for (const line of lines) {
-                                                if (line.trim()) this.ws.send(JSON.stringify({ type: 'log', message: `💭 ${line}` }));
+                                                if (line.trim()) this.ws.send(JSON.stringify({ type: 'log', message: `\u{1F4AD} ${line}` }));
                                             }
                                         } else {
                                             this.ws.send(JSON.stringify({ type: 'chat_delta', text: block.text }));
@@ -186,7 +189,7 @@ class ClaudeCodeAdapter {
                                     const toolName = block.name;
                                     const inputObj = block.input || {};
                                     let argsSummary = '';
-                                    
+
                                     if (toolName === 'Bash' || toolName === 'PowerShell' || toolName === 'run_command') {
                                         argsSummary = inputObj.command || inputObj.CommandLine || '';
                                     } else if (toolName === 'Glob' || toolName === 'Grep' || toolName === 'grep_search') {
@@ -220,7 +223,7 @@ class ClaudeCodeAdapter {
                                 }
                             }
                         }
-                        
+
                         if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta' && event.delta?.text) {
                             hasDeltas = true;
                             fullResponse += event.delta.text;
@@ -230,7 +233,7 @@ class ClaudeCodeAdapter {
                                     const aLines = autoBuffer.split('\n');
                                     autoBuffer = aLines.pop();
                                     for (const al of aLines) {
-                                        if (al.trim()) this.ws.send(JSON.stringify({ type: 'log', message: `💭 ${al}` }));
+                                        if (al.trim()) this.ws.send(JSON.stringify({ type: 'log', message: `\u{1F4AD} ${al}` }));
                                     }
                                 } else {
                                     this.ws.send(JSON.stringify({ type: 'chat_delta', text: event.delta.text }));
@@ -266,7 +269,7 @@ class ClaudeCodeAdapter {
                     } catch {
                         fullResponse += line;
                         if (this.ws) {
-                            const cleanLine = line.replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').trim();
+                            const cleanLine = line.replace(ANSI_REGEX, '').trim();
                             if (cleanLine) this.ws.send(JSON.stringify({ type: 'log', message: cleanLine }));
                         }
                     }
@@ -274,7 +277,7 @@ class ClaudeCodeAdapter {
             });
 
             proc.stderr.on('data', (data) => {
-                const cleanMsg = data.toString().replace(/[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g, '').trim();
+                const cleanMsg = data.toString().replace(ANSI_REGEX, '').trim();
                 if (cleanMsg && this.ws) {
                     this.ws.send(JSON.stringify({ type: 'log', message: cleanMsg }));
                 }
@@ -288,7 +291,7 @@ class ClaudeCodeAdapter {
                         this.ws.send(JSON.stringify({ type: 'log', message: `❌ Claude Code process exited with error code ${code}` }));
                     }
                 }
-                console.log(`Claude Code process closed with code ${code}`);
+                logger.info(`Claude Code process closed with code ${code}`);
                 resolve(fullResponse || 'Done.');
             });
 
@@ -296,7 +299,7 @@ class ClaudeCodeAdapter {
                 if (this.ws) {
                     this.ws.send(JSON.stringify({ type: 'log', message: `❌ Claude Code process error: ${err.message}` }));
                 }
-                console.error("Claude Code process error:", err);
+                logger.error("Claude Code process error:", err);
                 reject(new Error(`Claude Code error: ${err.message}`));
             });
 
