@@ -108,6 +108,31 @@ function GitBranchSelector() {
           </option>
         ))}
       </select>
+      {current && !current.startsWith('main') && (
+        <button onClick={() => {
+          const name = current;
+          if (!confirm(`Delete branch "${name}"?`)) return;
+          setLoading(true);
+          fetch('http://localhost:3001/api/git/branch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, action: 'delete' })
+          })
+          .then(() => {
+            setLoading(false);
+            fetchBranches();
+          })
+          .catch(() => setLoading(false));
+        }} title="Delete current branch"
+          style={{
+            background: 'transparent', border: 'none',
+            color: '#ef4444', cursor: 'pointer',
+            padding: '1px', display: 'flex', marginTop: '3px',
+            fontSize: '0.45rem', gap: '3px', alignItems: 'center',
+          }}>
+          <Trash2 size={8} /> DELETE BRANCH
+        </button>
+      )}
     </div>
   );
 }

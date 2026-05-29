@@ -3,6 +3,17 @@
 هذا الملف مخصص لتسجيل التحديثات التلقائية، التحسينات المعمارية، وإصلاح الأخطاء التي يقوم بها **مارسيل** بشكل ذاتي في الخلفية.
 
 ---
+### [حزمة تحسينات شاملة: إزالة StrictMode، تنظيف الكونسول، حفظ تخطيط الشات، CSS متجاوب، حذف الفروع] - 2026-05-29
+**الملخص:** تم تنفيذ 8 مهام تحسينية في جلسة تطور مستمرة واحدة:
+- **إصلاح StrictMode في main.jsx:** إزالة StrictMode لمنع الـ double-rendering في بيئة التطوير (Vite HMR).
+- **إزالة console.log من hooks الصوتية:** استبدال جميع `console.log` في useSoundEffects.js و useVoiceSystem.js و App.jsx بـ catch صامت لمنع ضوضاء الكونسول.
+- **حفظ تخطيط الشات (Layout Persistence):** إضافة حفظ chatLayout (bottom/side) وعرض الشات في localStorage لاستعادتها بعد تحديث الصفحة.
+- **تحسين WebSocketHandler:** إضافة معالج للرسائل غير المعروفة (unknown message types) مع تسجيل debug.
+- **تحسين CSS المتجاوب (Responsive Design):** إضافة 3 مستويات من Media Queries (1200px, 900px, 640px) لتقليص/إخفاء اللوحات على الشاشات الصغيرة والأجهزة اللوحية.
+- **إضافة حذف الفروع (Delete Branch):** دالة `deleteBranch()` جديدة في GitAdapter.js، دعم `action: 'delete'` في POST /api/git/branch، وزر DELETE BRANCH في GitBranchSelector مع تأكيد.
+- **إصلاح أخطاء ESLint:** إصلاح خطأين (logger غير معرف في WebSocketHandler، متغير e غير مستخدم) للوصول إلى 0 خطأ في الخلفية والأمامية.
+
+---
 
 ### [حزمة تحسينات مستمرة: CodeEditor محسّن، Git Branch UI، Terminal ذكي، اختصارات كيبورد، تشخيص ذاتي] - 2026-05-29
 **الملخص:** تم تنفيذ 6 مهام تحسينية في جلسة تطور مستمرة واحدة:

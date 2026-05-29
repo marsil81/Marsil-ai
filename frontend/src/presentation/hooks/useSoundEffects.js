@@ -35,8 +35,8 @@ export function useSoundEffects(status) {
 
       osc.start();
       osc.stop(ctx.currentTime + duration);
-    } catch (e) {
-      console.log('Audio error:', e);
+    } catch {
+      // Audio not available — skip silently
     }
   };
 
@@ -59,8 +59,8 @@ export function useSoundEffects(status) {
 
       osc.start();
       osc.stop(ctx.currentTime + 0.03);
-    } catch (e) {
-      console.log('Audio error:', e);
+    } catch {
+      // Audio not available — skip silently
     }
   };
 
@@ -83,8 +83,8 @@ export function useSoundEffects(status) {
 
       osc.start();
       osc.stop(ctx.currentTime + 0.25);
-    } catch (e) {
-      console.log('Audio error:', e);
+    } catch {
+      // Audio not available — skip silently
     }
   };
 
@@ -96,19 +96,19 @@ export function useSoundEffects(status) {
 
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
-      
+
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(75, ctx.currentTime);
-      
+
       // Low frequency modulation (LFO) for realistic cyber pulse
       const lfo = ctx.createOscillator();
       const lfoGain = ctx.createGain();
       lfo.frequency.setValueAtTime(2.5, ctx.currentTime); // 2.5 Hz pulse
       lfoGain.gain.setValueAtTime(8, ctx.currentTime);    // Modulate +/- 8 Hz
-      
+
       lfo.connect(lfoGain);
       lfoGain.connect(osc.frequency);
-      
+
       // Low pass filter to make it deeply warm and sci-fi
       const filter = ctx.createBiquadFilter();
       filter.type = 'lowpass';
@@ -122,13 +122,13 @@ export function useSoundEffects(status) {
       osc.connect(filter);
       filter.connect(gain);
       gain.connect(ctx.destination);
-      
+
       osc.start();
 
       humRef.current = { osc, lfo };
       humGainRef.current = gain;
-    } catch (e) {
-      console.log('Hum start error:', e);
+    } catch {
+      // Audio not available — skip silently
     }
   };
 
@@ -141,7 +141,7 @@ export function useSoundEffects(status) {
         humGainRef.current.gain.cancelScheduledValues(ctx.currentTime);
         humGainRef.current.gain.setValueAtTime(humGainRef.current.gain.value, ctx.currentTime);
         humGainRef.current.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
-        
+
         const currentHum = humRef.current;
         setTimeout(() => {
           try {
@@ -154,8 +154,8 @@ export function useSoundEffects(status) {
       }
       humRef.current = null;
       humGainRef.current = null;
-    } catch (e) {
-      console.log('Hum stop error:', e);
+    } catch {
+      // Audio context already closed — skip silently
     }
   };
 

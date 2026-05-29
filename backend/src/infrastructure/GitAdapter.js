@@ -152,6 +152,24 @@ class GitAdapter {
             });
         });
     }
+    /**
+     * Delete a branch
+     */
+    deleteBranch(branchName) {
+        return new Promise((resolve) => {
+            if (!branchName || typeof branchName !== 'string' || !/^[\w./-]+$/.test(branchName)) {
+                resolve({ error: 'Invalid branch name' });
+                return;
+            }
+            execFile('git', ['branch', '-d', branchName], { cwd: WORKSPACE_DIR }, (error, stdout) => {
+                if (error) {
+                    resolve({ error: error.message });
+                    return;
+                }
+                resolve({ message: stdout.trim() || `Deleted branch: ${branchName}` });
+            });
+        });
+    }
 }
 
 module.exports = new GitAdapter();

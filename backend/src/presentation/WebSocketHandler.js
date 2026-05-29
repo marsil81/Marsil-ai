@@ -1,5 +1,6 @@
 const os = require('os');
 const agentService = require('../application/AgentService');
+const logger = require('../infrastructure/Logger');
 
 // ── Input Validation ────────────────────────────────────────────────────────────
 const MAX_MESSAGE_SIZE = 1024 * 100; // 100KB max per WebSocket message
@@ -75,6 +76,8 @@ class WebSocketHandler {
                     const reply = agentService.abortCurrentTask();
                     ws.send(JSON.stringify({ type: 'log', message: reply }));
                     ws.send(JSON.stringify({ type: 'agent_status', status: 'idle' }));
+                } else {
+                    logger.debug(`Unknown WebSocket message type: "${msg.type}"`);
                 }
             } catch {
                 ws.send(JSON.stringify({ type: 'error', message: 'Invalid JSON message format' }));

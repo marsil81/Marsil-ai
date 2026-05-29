@@ -260,6 +260,9 @@ app.post('/api/git/branch', async (req, res) => {
         if (action === 'switch') {
             const result = await gitAdapter.switchBranch(name);
             res.json(result);
+        } else if (action === 'delete') {
+            const result = await gitAdapter.deleteBranch(name);
+            res.json(result);
         } else {
             const result = await gitAdapter.createBranch(name);
             res.json(result);

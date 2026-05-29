@@ -15,8 +15,8 @@ export function useVoiceSystem(onTranscript) {
 
       rec.onstart = () => setIsListening(true);
       rec.onend = () => setIsListening(false);
-      rec.onerror = (e) => {
-        console.warn("Speech recognition error:", e);
+      rec.onerror = () => {
+        // Speech recognition error — handled by state reset below
         setIsListening(false);
       };
       rec.onresult = (e) => {
@@ -52,8 +52,8 @@ export function useVoiceSystem(onTranscript) {
     try {
       recognitionRef.current.lang = document.body.dir === 'rtl' ? 'ar-SA' : 'en-US';
       recognitionRef.current.start();
-    } catch (e) {
-      console.log("Speech recognition start error (might already be running):", e);
+    } catch {
+      // Recognition may already be running — handled silently
     }
   };
 
@@ -132,7 +132,7 @@ export function useVoiceSystem(onTranscript) {
     // Safety Timeout fallback (130ms per char + 2.5s padding) to prevent hanging
     const estimateMs = (briefText.length * 130) + 2500;
     safetyTimeoutRef.current = setTimeout(() => {
-      console.warn("SpeechSynthesis onend safety fallback triggered to prevent hang.");
+      // SpeechSynthesis safety fallback — prevents hanging on missing onend event
       handleSpeechEnd();
     }, estimateMs);
 

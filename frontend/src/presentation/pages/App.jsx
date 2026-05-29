@@ -63,8 +63,8 @@ function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
           analyser.fftSize = 64;
           source.connect(analyser);
           analyserRef.current = analyser;
-        } catch (e) {
-          console.warn("Microphone access denied or failed for visualizer, using simulation mode:", e);
+        } catch {
+          // Microphone access denied or failed — using simulation mode
         }
       };
       initAudio();
@@ -320,14 +320,12 @@ function App() {
     // SECURITY GUARD: If the Agent is already busy thinking, running tools, or speaking,
     // we absolutely discard any background murmurs or accidental captures.
     if (agentStatus !== 'idle' || isSpeakingRef.current) {
-      console.log("Discarded transcript because Agent is busy/speaking:", text);
       return;
     }
 
     // Ignore extremely short garbage words (e.g. less than 2 characters unless it's an Arabic word)
     const trimmed = text.trim();
     if (trimmed.length < 2) {
-      console.log("Discarded very short accidental capture:", trimmed);
       return;
     }
 
@@ -388,9 +386,22 @@ function App() {
     return () => clearInterval(id);
   }, [connectionStatus]);
 
-  const [chatLayout, setChatLayout] = useState('bottom'); // 'bottom' or 'side'
-  const [chatWidth, setChatWidth] = useState(450); // width in side layout
+  // ── Chat Layout Persistence ─────────────────────────────────────────────────
+  const [chatLayout, setChatLayout] = useState(() => {
+    try { return localStorage.getItem('marsil_chatLayout') || 'bottom'; } catch { return 'bottom'; }
+  });
+  const [chatWidth, setChatWidth] = useState(() => {
+    try { return parseInt(localStorage.getItem('marsil_chatWidth')) || 450; } catch { return 450; }
+  });
   const isDraggingRef = useRef(false);
+
+  // Persist layout preferences
+  useEffect(() => {
+    try { localStorage.setItem('marsil_chatLayout', chatLayout); } catch { /* localStorage unavailable */ }
+  }, [chatLayout]);
+  useEffect(() => {
+    try { localStorage.setItem('marsil_chatWidth', String(chatWidth)); } catch { /* localStorage unavailable */ }
+  }, [chatWidth]);
 
   // ── Global Keyboard Shortcuts ──────────────────────────────────────────────
   useEffect(() => {
@@ -445,12 +456,12 @@ function App() {
       if (!isDraggingRef.current) return;
       const margin = 30;
       let newWidth = window.innerWidth - e.clientX - margin;
-      
+
       // If Arabic (RTL), resize works in reverse direction
       if (document.body.dir === 'rtl') {
         newWidth = e.clientX - margin;
       }
-      
+
       const maxWidth = Math.floor(window.innerWidth / 2);
       if (newWidth < 320) newWidth = 320;
       if (newWidth > maxWidth) newWidth = maxWidth;
@@ -530,7 +541,7 @@ function App() {
     const newVal = !handsFreeMode;
     setHandsFreeMode(newVal);
     handsFreeModeRef.current = newVal;
-    
+
     if (newVal) {
       setVoiceEnabled(true);
       speak(i18n.language === 'ar' ? 'تم تفعيل الاتصال المباشر. أنا أستمع إليك الآن.' : 'Hands-free dialog active. I am listening.', () => {
@@ -558,7 +569,7 @@ function App() {
   return (
     <div className={`hud-root ${chatLayout === 'side' ? 'layout-side-active' : ''}`}>
       <div className="scan-line"></div>
-      
+
       {/* Conditionally hide reactor if file is open, or render editor above it */}
       <ParticleReactor status={agentStatus} style={{ opacity: selectedFile ? 0.3 : 1 }} />
       {selectedFile && <CodeEditor filePath={selectedFile} onClose={() => setSelectedFile(null)} />}
@@ -610,7 +621,7 @@ function App() {
         <div className="sys-row"><span>{t("temp")}</span><span className="val">54.8 °C</span></div>
         <div className="sys-row"><span>{t("link")}</span><span className="val">STABLE</span></div>
         <div className="sys-row"><span>{t("workspace")}</span><span className="val">D:\IRON MAN</span></div>
-        
+
         {/* Holographic File Tree integrated natively */}
         <div style={{ marginTop: '10px', borderTop: '1px solid var(--border)', paddingTop: '8px', cursor: 'default' }} onPointerDown={(e) => e.stopPropagation()}>
           <div style={{ fontSize: '0.45rem', color: 'var(--text-dim)', marginBottom: '5px', letterSpacing: '1px' }}>📁 LIVE WORKSPACE</div>
@@ -644,10 +655,10 @@ function App() {
 
       {/* RIGHT: VOICE PULSE SPECTROMETER */}
       <motion.div drag dragMomentum={false} className="tech-panel radar-container-panel">
-        <VoicePulseVisualizer 
-          isListening={isListening} 
-          isSpeaking={isSpeaking} 
-          agentStatus={agentStatus} 
+        <VoicePulseVisualizer
+          isListening={isListening}
+          isSpeaking={isSpeaking}
+          agentStatus={agentStatus}
         />
       </motion.div>
 
@@ -685,10 +696,10 @@ function App() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', height: 'calc(100% - 25px)', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-              <Volume2 size={10} style={{ color: 'var(--accent)' }} /> 
+              <Volume2 size={10} style={{ color: 'var(--accent)' }} />
               <span style={{ fontSize: '0.45rem', color: 'var(--text-muted)' }}>{sysConfig.provider?.toUpperCase()} / {sysConfig.model}</span>
             </div>
-            
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
               <div>
                 <div style={{ fontSize: '0.4rem', color: 'var(--text-dim)' }}>TOKENS IN</div>
@@ -707,7 +718,7 @@ function App() {
               marginBottom: '2px'
             }}>{(tokenData.totalTokens || 0).toLocaleString()} <span style={{ fontSize: '0.5rem', color: 'var(--text-dim)' }}>TKN</span></div>
           </div>
-          
+
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: '6px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: 'var(--accent)', fontSize: '0.45rem', letterSpacing: '1px' }}>ESTIMATED COST</span>
@@ -741,9 +752,9 @@ function App() {
       </motion.div>
 
       {/* ═══ BOTTOM CENTER PANEL: SYSTEM DIRECTIVES (Swapped to bottom center wide) ═══ */}
-      <motion.div 
-        drag={chatLayout === 'bottom'} 
-        dragMomentum={false} 
+      <motion.div
+        drag={chatLayout === 'bottom'}
+        dragMomentum={false}
         animate={chatLayout === 'side' ? { x: 0, y: 0 } : undefined}
         transition={{ type: "spring", bounce: 0, duration: 0.4 }}
         className="bottom-chat-container"
@@ -774,21 +785,21 @@ function App() {
           </div>
           <div className="chat-input-row" style={{ alignItems: 'center', marginTop: '6px' }}>
             {/* Layout Toggle Button */}
-            <button className={`hud-btn hud-btn-icon ${chatLayout === 'side' ? 'active' : ''}`} 
+            <button className={`hud-btn hud-btn-icon ${chatLayout === 'side' ? 'active' : ''}`}
                     onClick={() => { playTick(); setChatLayout(l => l === 'bottom' ? 'side' : 'bottom'); }}
                     title={chatLayout === 'bottom' ? "Dock to Side" : "Dock to Bottom"}>
               {chatLayout === 'bottom' ? <Columns size={12} /> : <LayoutGrid size={12} />}
             </button>
 
             {/* Voice Response Toggle Button */}
-            <button className={`hud-btn hud-btn-icon ${voiceEnabled ? 'active' : ''}`} 
+            <button className={`hud-btn hud-btn-icon ${voiceEnabled ? 'active' : ''}`}
                     onClick={toggleVoice}
                     title={voiceEnabled ? "Mute Voice Response" : "Unmute Voice Response"}>
               {voiceEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
             </button>
 
             {/* Microphone Voice Input Button */}
-            <button className={`hud-btn hud-btn-icon ${isListening && !handsFreeMode ? 'active' : ''}`} 
+            <button className={`hud-btn hud-btn-icon ${isListening && !handsFreeMode ? 'active' : ''}`}
                     onClick={toggleListening}
                     disabled={handsFreeMode}
                     title={isListening ? "Stop Recording" : "Record Voice"}>
@@ -796,17 +807,17 @@ function App() {
             </button>
 
             {/* Hands-Free Dialog Mode Button */}
-            <button className={`hud-btn hud-btn-icon ${handsFreeMode ? 'active' : ''}`} 
+            <button className={`hud-btn hud-btn-icon ${handsFreeMode ? 'active' : ''}`}
                     onClick={toggleHandsFree}
                     title={handsFreeMode ? "Disable Hands-Free Dialog" : "Enable Hands-Free Dialog"}>
               <Radio size={12} className={handsFreeMode ? "thinking" : ""} />
             </button>
-            
+
             <input className="chat-input" value={chatInput}
               onChange={e => setChatInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
               placeholder={handsFreeMode ? (i18n.language === 'ar' ? 'يتنصت الآن تلقائياً...' : 'Listening hands-free...') : t("placeholder_command")} />
-            
+
             <button className="hud-btn hud-btn-icon" onClick={handleSend}><SendHorizontal size={11} /></button>
           </div>
         </div>
