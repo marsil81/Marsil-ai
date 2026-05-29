@@ -39,7 +39,7 @@ function parseToolInput(tc, choiceContent) {
                 }
             }
             if (!extracted) {
-                extracted = "git status --porcelain";
+                extracted = "";
             }
             parsedInput.command = extracted;
         }

@@ -4,6 +4,7 @@ import { AgentWebSocketClient } from '../infrastructure/WebSocketClient';
 export function useAgentConnection() {
   const [agentStatus, setAgentStatus]   = useState('idle');
   const [metrics, setMetrics]           = useState({ cpu: 0, ram: 0 });
+  const TERM_OUTPUT_MAX = 1000;
   const [termOutput, setTermOutput]     = useState([]);
   const [chatHistory, setChatHistory]   = useState(() => {
     try { 
@@ -44,9 +45,9 @@ export function useAgentConnection() {
     wsClient.onStatusChange   = setAgentStatus;
     wsClient.onMetricsChange  = setMetrics;
     wsClient.onTerminalOutput = (output) =>
-      setTermOutput(prev => [...prev, output]);
+      setTermOutput(prev => { const next = [...prev, output]; return next.length > TERM_OUTPUT_MAX ? next.slice(-TERM_OUTPUT_MAX) : next; });
     wsClient.onSystemLog      = (message) =>
-      setTermOutput(prev => [...prev, `[SYS]: ${message}`]);
+      setTermOutput(prev => { const next = [...prev, `[SYS]: ${message}`]; return next.length > TERM_OUTPUT_MAX ? next.slice(-TERM_OUTPUT_MAX) : next; });
 
     wsClient.onChatReply = (text) => {
       setChatHistory(prev => {

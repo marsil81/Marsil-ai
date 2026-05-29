@@ -77,6 +77,7 @@ async function loadConfig() {
         return config;
     } catch {
         const config = { ...DEFAULT_CONFIG };
+        claudeCode.setProviderConfig(config);
         anthropicProxy.setTarget(config.baseUrl, config.apiKey, config.model);
         return config;
     }

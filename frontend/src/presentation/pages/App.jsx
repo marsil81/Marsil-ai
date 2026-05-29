@@ -680,7 +680,10 @@ function App() {
           <div className="modal-box" onClick={e => e.stopPropagation()} style={{ width: '85%', height: '85%', maxWidth: '1200px', display: 'flex', flexDirection: 'column', background: 'rgba(5, 10, 20, 0.95)', border: '1px solid var(--accent)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
               <h2 style={{ margin: 0, color: 'var(--primary)', fontFamily: 'Orbitron', fontSize: '1.2rem', letterSpacing: '2px' }}>SYSTEM CONSOLE</h2>
-              <button onClick={() => setShowConsole(false)} className="hud-btn hud-btn-icon"><X size={16} /></button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button onClick={() => clearChat()} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: 'var(--text-dim)', padding: '4px 12px', cursor: 'pointer', fontFamily: 'monospace', fontSize: '0.55rem', borderRadius: '3px' }}>CLEAR</button>
+                <button onClick={() => setShowConsole(false)} className="hud-btn hud-btn-icon"><X size={16} /></button>
+              </div>
             </div>
             <div style={{ flex: 1, minHeight: 0, border: '1px solid rgba(0, 255, 213, 0.2)', background: '#000', borderRadius: '4px', overflow: 'hidden' }}>
               <Terminal output={termOutput} />
