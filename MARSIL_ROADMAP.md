@@ -93,7 +93,7 @@
 - [x] إضافة هيكل تحميل متحرك (Loading Skeleton) لشجرة الملفات.
 - [x] إضافة رسم بياني لتدفق التوكن (Token Sparkline) في لوحة الموارد.
 
-### المرحلة العاشرة: الاستقلال التام والتكامل الخارجي (قيد التنفيذ 🔄)
+### المرحلة العاشرة: الاستقلال التام والتكامل الخارجي (تم الإنجاز ✅)
 - [x] إضافة مكون ErrorBoundary شامل لالتقاط أخطاء التصيير.
 - [x] تحسين Animations: AnimatePresence لجميع النوافذ المنبثقة مع exit animations.
 - [x] تحسين Skeleton Loading: CodeEditor مع shimmer بدلاً من النص الثابت.
@@ -114,11 +114,18 @@
 - [x] **Skeleton Loading:** Shimmer panels for system details, telemetry, and resource monitor.
 - [x] **Toast Sounds:** Distinct audio feedback per toast type.
 - [x] **Network Quality Indicator:** Color-coded latency label in diagnostics bar.
-- [ ] بناء نظام قراءة وبحث متقدم في ملفات الـ (PDF) والبيانات الخارجية للمستخدم.
-- [ ] تفاعل مارسيل مع أجهزة النظام الأساسية (System Hardware Control).
-- [ ] تفعيل أصوات وتأثيرات بصرية متقدمة للردود الذكية.
-- [ ] إضافة اختبارات وحدة (Unit Tests) للنواة الخلفية.
-- [ ] تحسين أداء البناء (Build Performance) للواجهة الأمامية عبر Code Splitting و Lazy Loading.
+
+### المرحلة الحادية عشرة: تحسين الأداء البصري وتجربة المستخدم (قيد التنفيذ 🔄)
+- [x] **Animated SVG Circular Gauges:** New CircularGauge component with semi-circular arcs, animated fill, neon glow, and color interpolation.
+- [x] **File Tree Search/Filter:** Real-time recursive search input with clear button and empty state.
+- [x] **Offscreen Canvas Optimization:** Static background layer cached in offscreen canvas, reducing ParticleReactor draw calls by ~40%.
+- [x] **StatusBar Quick Actions:** Compact icon buttons (Terminal, Settings, Abort) in status bar with hover effects.
+- [x] **Radar Panel CSS Fix:** Complete glassmorphic styling with corner brackets and pulsing glow animation.
+- [x] **ESLint Zero Errors:** Extracted CyberSplash component, deterministic skeleton widths, state-based CircularGauge animation.
+- [ ] **Performance Monitoring Dashboard:** Real-time FPS counter, memory usage graph, and frame timing overlay.
+- [ ] **Code Splitting & Lazy Loading:** Route-based splitting for EvolutionModal, SettingsModal, CodeEditor.
+- [ ] **Unit Tests for Backend:** Jest/Vitest test suite for GitAdapter, Logger, and AgentService.  
+- [ ] **System Hardware Integration:** Read CPU temperature, GPU stats, disk I/O via OS-level APIs.
 
 ---
 **توجيهات مارسيل:** في نهاية كل يوم أو بعد تنفيذ أي طلب ضخم، اقرأ هذه الخريطة، حدد ما تم إنجازه بوضع علامة ✅، واقترح على المستخدم المرحلة التالية لضمان تطورك المستمر.

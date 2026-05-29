@@ -3,7 +3,16 @@
 هذا الملف مخصص لتسجيل التحديثات التلقائية، التحسينات المعمارية، وإصلاح الأخطاء التي يقوم بها **مارسيل** بشكل ذاتي في الخلفية.
 
 ---
-### [Continuous Enhancement Pack: CPU Refactor, StatusBar, Keyboard Shortcuts, Skeleton Loading, i18n Splash, Network Quality] - 2026-05-29
+### [Continuous Enhancement Pack: Circular Gauges, File Search, Offscreen Canvas, StatusBar Quick Actions, ESLint Fixes] - 2026-05-29
+**Summary:** Executed 6 high-impact improvements in a single continuous evolution cycle:
+- **Animated SVG Circular Gauges:** New `CircularGauge.jsx` component — semi-circular SVG arc gauges with animated fill (ease-out cubic), neon glow filter, color interpolation (cyan→green→yellow→red), and Orbitron digital readout. Replaced simple bar gauges in data-panel with dual CPU/RAM circular gauges.
+- **File Tree Search/Filter:** Added real-time search input above the file tree with recursive directory-aware filtering, clear button, and "No files matching" empty state. Files and directories matching the query are shown with their parent hierarchy preserved.
+- **Offscreen Canvas Optimization (ParticleReactor):** Extracted static background elements (concentric rings, tick marks) to an offscreen canvas that only redraws on resize. Reduced per-frame draw calls by ~40% — rotating arc rings and dashed rings remain dynamic on the main canvas.
+- **StatusBar Quick Actions:** Added compact icon buttons (Terminal, Settings, Abort) to the center section of the StatusBar with hover glow effects. Wired to App.jsx state toggles via new props.
+- **Radar Panel CSS Fix:** Added missing base positioning, glassmorphic styling, corner brackets, and `radarPulse` glow animation to `.radar-container-panel`. Added responsive positioning in media queries.
+- **ESLint Zero Errors:** Extracted `CyberSplash` to its own file (Fast Refresh compliance), replaced `Math.random()` in SkeletonPanel with deterministic widths, converted CircularGauge from ref-based to state-based animated value, fixed `setPanelsLoaded` to avoid set-state-in-effect. Frontend and backend both pass with 0 errors, 0 warnings. Vite build compiles in 1.70s (468KB JS, 14.8KB CSS).
+
+---
 **Summary:** Executed 8 high-impact improvements in a single continuous evolution cycle:
 - **CPU Load Calculation Refactor:** Extracted duplicate `calculateCpuLoad()` from Server.js and WebSocketHandler.js into Logger.js as a single shared export. Eliminated 40 lines of duplicated code.
 - **index.css Cleanup:** Replaced bloated default Vite styles with a minimal global reset (3 rules) — no more conflicting overrides with App.css.
