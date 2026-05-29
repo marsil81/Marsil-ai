@@ -1,4 +1,4 @@
-const { execFile, exec } = require('child_process');
+const { execFile } = require('child_process');
 const path = require('path');
 const logger = require('./Logger');
 
@@ -7,8 +7,8 @@ const WORKSPACE_DIR = path.resolve(__dirname, '../../..');
 class GitAdapter {
     checkpoint(message) {
         return new Promise((resolve) => {
-            // Stage all files first
-            exec('git add .', { cwd: WORKSPACE_DIR }, (addErr) => {
+            // Stage all files first using execFile (no shell) for security
+            execFile('git', ['add', '.'], { cwd: WORKSPACE_DIR }, (addErr) => {
                 if (addErr) {
                     resolve(`Git checkpoint skipped: ${addErr.message}`);
                     return;

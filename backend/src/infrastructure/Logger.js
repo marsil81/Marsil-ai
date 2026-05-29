@@ -9,6 +9,10 @@ const COLORS = {
 
 const currentLevel = LEVELS[process.env.LOG_LEVEL] ?? LEVELS.info;
 
+// ── In-Memory Circular Log Buffer ────────────────────────────────────────────
+const MAX_BUFFER = 500;
+const buffer = [];
+
 function formatTimestamp() {
     return new Date().toISOString().replace('T', ' ').slice(0, 19);
 }
@@ -17,8 +21,18 @@ function log(level, message, meta) {
     if (LEVELS[level] < currentLevel) return;
     const color = COLORS[level] || '';
     const ts = formatTimestamp();
-    const metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
+    let metaStr = '';
+    try {
+        metaStr = meta ? ` ${JSON.stringify(meta)}` : '';
+    } catch {
+        metaStr = ' [unserializable meta]';
+    }
     const line = `[${ts}] [${level.toUpperCase()}] ${message}${metaStr}`;
+
+    // Push into circular buffer
+    buffer.push({ ts, level, message, meta: meta || null });
+    if (buffer.length > MAX_BUFFER) buffer.shift();
+
     if (level === 'error') {
         console.error(color + line + COLORS.reset);
     } else {
@@ -31,4 +45,6 @@ module.exports = {
     info:  (msg, meta) => log('info', msg, meta),
     warn:  (msg, meta) => log('warn', msg, meta),
     error: (msg, meta) => log('error', msg, meta),
+    /** Returns a copy of recent log entries (newest first) */
+    getBuffer: (limit = 100) => buffer.slice(-limit).reverse(),
 };

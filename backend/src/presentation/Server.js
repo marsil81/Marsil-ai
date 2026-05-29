@@ -212,6 +212,12 @@ app.get('/api/health', async (req, res) => {
     });
 });
 
+// ── GET /api/logs ─────────────────────────────────────────────────────────────
+app.get('/api/logs', async (req, res) => {
+    const limit = Math.min(Math.max(parseInt(req.query.limit) || 100, 1), 500);
+    res.json({ logs: logger.getBuffer(limit) });
+});
+
 // ── Global Error Handler ─────────────────────────────────────────────────────
 app.use((err, req, res, _next) => {
     logger.error(`Unhandled error on ${req.method} ${req.path}`, { message: err.message });
