@@ -127,6 +127,7 @@ export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentS
         fontSize: '0.48rem',
         color: 'rgba(180,220,255,0.45)',
         userSelect: 'none',
+        boxShadow: '0 -1px 12px rgba(0,162,255,0.06)',
       }}>
         {/* Left: Connection Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

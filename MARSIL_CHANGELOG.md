@@ -3,7 +3,13 @@
 هذا الملف مخصص لتسجيل التحديثات التلقائية، التحسينات المعمارية، وإصلاح الأخطاء التي يقوم بها **مارسيل** بشكل ذاتي في الخلفية.
 
 ---
-### [Continuous Enhancement Pack: HexGrid, PerfMonitor, DataFlow, CyberSplash Boot, Corner Animations, StatusBar Hover] - 2026-05-29
+### [Continuous Enhancement Pack: SystemStatus HUD, AudioVisualizer, Glassmorphic CSS Overhaul] - 2026-05-29
+**Summary:** Executed 5 premium visual evolution tasks in a single continuous cycle:
+- **Cybernetic HUD SystemStatus Widget:** New `SystemStatus.jsx` — animated SVG orbital rings with real-time CPU/RAM progress arcs, pulsing reactor core, rotation speed that varies with agent activity, 4 diagnostic status dots (WS, API, CLD, PRX) positioned around the ring perimeter, and uptime display. Smooth `useAnimatedValue` hook with ease-out cubic interpolation.
+- **Premium AudioVisualizer Component:** New `AudioVisualizer.jsx` — standalone replacement for inline VoicePulseVisualizer with 4 distinct visual modes: 12-bar circular spectrogram with glow dots for listening, 3-layer multi-frequency Siri-style sine waves for speaking, radar sweep with grid wave for thinking, and heartbeat ripple with orbital dots for idle. Canvas shadow glow effects, radial gradient cores, and pre-computed trig cache for performance.
+- **Glassmorphic CSS Overhaul:** Enhanced `App.css` with expanded CSS custom properties (glass-bg, glass-border, danger, warning, success, purple colors), `.glass-card` pattern, `.cyber-btn` with animated sweep effect, `.neon-text` gradient utility, `.data-stream` animation, `.glitch-text` effect, `.cyber-ring` expand animation, and `@keyframes` for glowPulse, floatDrift, shimmer, and ringExpand. All panels now have rounded corners (6px), stronger glassmorphic backdrop-blur(12px), and hover-enhanced border/box-shadow transitions.
+- **Panel Scanline Effect:** New `.panel-scan` CSS pseudo-element on all 6 tech panels — a subtle horizontal gradient sweep that animates across each panel, adding a premium HUD scanline aesthetic. Integrated into all draggable panels and the chat container.
+- **CSS Polish:** Enhanced toast notifications with left-border accent colors and scale animation, modal boxes with expanded hover corners, status bar with subtle top glow shadow, and top-bar with `data-stream` animated background gradient.
 **Summary:** Executed 6 high-visibility UI/UX improvements in a single continuous evolution cycle:
 - **Cybernetic HexGrid Background:** New `HexGrid.jsx` component — animated hexagonal grid rendered on offscreen canvas with slow drift, distance-based alpha falloff, and pulsing intensity based on agent status. Integrated as z-index 0 background layer.
 - **Performance Monitoring Dashboard:** New `PerfMonitor.jsx` component — real-time FPS counter, frame timing, and memory usage overlay. Toggle with Ctrl+Shift+M. Includes mini FPS sparkline with color-coded bars (green/yellow/red). Glassmorphic styling with system status label.

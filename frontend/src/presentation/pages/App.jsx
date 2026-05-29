@@ -15,226 +15,13 @@ import { CircularGauge } from '../components/CircularGauge';
 import { HexGrid } from '../components/HexGrid';
 import { PerfMonitor } from '../components/PerfMonitor';
 import { DataFlow } from '../components/DataFlow';
+import { AudioVisualizer } from '../components/AudioVisualizer';
+import { SystemStatus } from '../components/SystemStatus';
 import { useAgentConnection } from '../../application/useAgentConnection';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useVoiceSystem } from '../hooks/useVoiceSystem';
 
-function VoicePulseVisualizer({ isListening, isSpeaking, agentStatus }) {
-  const canvasRef = useRef(null);
-  const audioCtxRef = useRef(null);
-  const analyserRef = useRef(null);
-  const streamRef = useRef(null);
-  const voiceLevelsRef = useRef(new Float32Array(12));
-  const phaseRef = useRef(0);
-
-  // Pre-compute trig values for 12-bar spectrogram (avoids Math.cos/Math.sin per frame)
-  const trigCacheRef = useRef(null);
-  // Initialize ref only once — safe pattern for refs
-  if (trigCacheRef.current === null) {
-    const angles = [];
-    for (let i = 0; i < 12; i++) {
-      angles.push({
-        cos: Math.cos((i / 12) * Math.PI * 2),
-        sin: Math.sin((i / 12) * Math.PI * 2),
-      });
-    }
-    trigCacheRef.current = angles;
-  }
-
-  // Initialize real microphone input if listening
-  useEffect(() => {
-    if (isListening) {
-      let active = true;
-      const initAudio = async () => {
-        try {
-          // Reuse existing AudioContext if possible
-          if (audioCtxRef.current && audioCtxRef.current.state === 'closed') {
-            audioCtxRef.current = null;
-          }
-          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-          if (!AudioContextClass) return;
-          const ctx = audioCtxRef.current || new AudioContextClass();
-          audioCtxRef.current = ctx;
-          if (ctx.state === 'suspended') await ctx.resume();
-
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          if (!active) {
-            stream.getTracks().forEach(t => t.stop());
-            return;
-          }
-          streamRef.current = stream;
-
-          const source = ctx.createMediaStreamSource(stream);
-          const analyser = ctx.createAnalyser();
-          analyser.fftSize = 64;
-          source.connect(analyser);
-          analyserRef.current = analyser;
-        } catch {
-          // Microphone access denied or failed — using simulation mode
-        }
-      };
-      initAudio();
-      return () => {
-        active = false;
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(t => t.stop());
-          streamRef.current = null;
-        }
-        // Don't close AudioContext on stop — keep it alive for next listening session
-        analyserRef.current = null;
-      };
-    }
-  }, [isListening]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let id;
-    const trig = trigCacheRef.current;
-    const levels = voiceLevelsRef.current;
-
-    // Pre-allocate data array for frequency analysis
-    const freqArray = new Uint8Array(32);
-
-    const draw = () => {
-      ctx.clearRect(0, 0, 90, 90);
-      const cx = 45;
-      const cy = 45;
-      const phase = phaseRef.current;
-      phaseRef.current += 0.15;
-
-      // Outer cybernetic circle boundary
-      ctx.strokeStyle = 'rgba(0, 184, 255, 0.1)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.arc(cx, cy, 42, 0, Math.PI * 2);
-      ctx.stroke();
-
-      if (isListening) {
-        // --- 1. USER SPEAKING (REAL-TIME MIC CAPTURE OR SIMULATION) ---
-        if (analyserRef.current) {
-          analyserRef.current.getByteFrequencyData(freqArray);
-          for (let i = 0; i < 12; i++) {
-            levels[i] = freqArray[i % 32] / 255.0;
-          }
-        } else {
-          // Simulation fallback — write directly to pre-allocated array
-          for (let i = 0; i < 12; i++) {
-            levels[i] = 0.15 + Math.sin(phase + i) * Math.cos(phase * 0.7 + i) * 0.4;
-          }
-        }
-
-        // Draw pulsing arc reactor / circular voice spectrogram
-        ctx.strokeStyle = 'rgba(0, 255, 213, 0.6)';
-        ctx.lineWidth = 2;
-        for (let i = 0; i < 12; i++) {
-          const angle = (i / 12) * Math.PI * 2 + (phase * 0.05);
-          const level = Math.max(0.1, levels[i]);
-          const endR = 20 + level * 20;
-
-          ctx.beginPath();
-          ctx.moveTo(cx + trig[i].cos * 20, cy + trig[i].sin * 20);
-          ctx.lineTo(cx + Math.cos(angle) * endR, cy + Math.sin(angle) * endR);
-          ctx.stroke();
-        }
-
-        // Central glowing core pulsing with average voice level
-        let avgLevel = 0;
-        for (let i = 0; i < 12; i++) avgLevel += levels[i];
-        avgLevel /= 12;
-
-        ctx.fillStyle = `rgba(0, 255, 213, ${0.3 + avgLevel * 0.5})`;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 10 + avgLevel * 8, 0, Math.PI * 2);
-        ctx.fill();
-
-      } else if (isSpeaking) {
-        // --- 2. AI SPEAKING (MULTI-FREQUENCY Siri-style SINE WAVES) ---
-        ctx.lineWidth = 1.5;
-        // Inline wave data to avoid array allocation per frame
-        const waveData = [
-          { freq: 0.2, amp: 14, color: 'rgba(0, 184, 255, 0.7)', speed: 1.5 },
-          { freq: 0.35, amp: 8, color: 'rgba(0, 255, 213, 0.6)', speed: 2.5 },
-          { freq: 0.15, amp: 18, color: 'rgba(138, 43, 226, 0.5)', speed: 1.0 },
-        ];
-
-        for (let w = 0; w < 3; w++) {
-          const { freq, amp, color, speed } = waveData[w];
-          ctx.strokeStyle = color;
-          ctx.beginPath();
-          for (let x = 10; x <= 80; x++) {
-            const scale = Math.sin(((x - 10) / 70) * Math.PI);
-            const y = cy + Math.sin(x * freq + phase * speed) * amp * scale;
-            if (x === 10) ctx.moveTo(x, y);
-            else ctx.lineTo(x, y);
-          }
-          ctx.stroke();
-        }
-
-      } else if (agentStatus === 'thinking' || agentStatus === 'executing_tool') {
-        // --- 3. AI THINKING (RADAR SWEEP WITH GRID WAVE) ---
-        ctx.strokeStyle = 'rgba(0, 184, 255, 0.15)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(cx - 38, cy); ctx.lineTo(cx + 38, cy);
-        ctx.moveTo(cx, cy - 38); ctx.lineTo(cx, cy + 38);
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(0, 255, 213, 0.4)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let i = -3; i <= 3; i++) {
-          const offset = Math.sin(phase + i) * 6;
-          ctx.moveTo(cx - 30, cy + i * 8 + offset);
-          ctx.lineTo(cx + 30, cy + i * 8 + offset);
-        }
-        ctx.stroke();
-
-        ctx.strokeStyle = 'rgba(0, 184, 255, 0.5)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(cx, cy, 35, phase, phase + 0.4);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(cx, cy, 35, phase + Math.PI, phase + Math.PI + 0.4);
-        ctx.stroke();
-
-      } else {
-        // --- 4. IDLE STANDBY (HEARTBEAT BASELINE RIPPLE) ---
-        ctx.strokeStyle = 'rgba(0, 184, 255, 0.35)';
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        for (let x = 10; x <= 80; x++) {
-          let ripple = 0;
-          const distToCenter = Math.abs(x - cx);
-          if (distToCenter < 18) {
-            const scale = Math.cos((distToCenter / 18) * (Math.PI / 2));
-            ripple = Math.sin(phase * 0.4 + x * 0.3) * 2.5 * scale;
-          }
-          const y = cy + ripple;
-          if (x === 10) ctx.moveTo(x, y);
-          else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      }
-
-      id = requestAnimationFrame(draw);
-    };
-
-    draw();
-    return () => cancelAnimationFrame(id);
-  }, [isListening, isSpeaking, agentStatus]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      width={90}
-      height={90}
-      style={{ width: '90px', height: '90px', display: 'block', margin: '0 auto' }}
-    />
-  );
-}
+// VoicePulseVisualizer replaced by the standalone AudioVisualizer component
 
 // ── Diagnostics Dot ────────────────────────────────────────────────────────────
 function DiagDot({ label, ok, sub }) {
@@ -732,7 +519,7 @@ function App() {
       {selectedFile && <CodeEditor filePath={selectedFile} onClose={() => setSelectedFile(null)} />}
 
       {/* TOP HEADER */}
-      <div className="top-bar">
+      <div className="top-bar data-stream">
         <div className="top-row">
           <div className="logo-container">
             <div className={circleCls}></div>
@@ -769,6 +556,7 @@ function App() {
 
       {/* LEFT: SYSTEM DETAILS */}
       <motion.div drag dragMomentum={false} className="tech-panel sys-details-panel">
+        <div className="panel-scan" />
         <span className="corner-tl" /><span className="corner-br" />
         <div className="tech-panel-header">
           <span>⌂ {t("system_engine")}</span>
@@ -791,6 +579,7 @@ function App() {
 
       {/* LEFT: TELEMETRY */}
       <motion.div drag dragMomentum={false} className="tech-panel telemetry-panel">
+        <div className="panel-scan" />
         <span className="corner-tl" /><span className="corner-br" />
         <div className="tech-panel-header">
           <span>⌁ {t("system_metrics")}</span>
@@ -808,6 +597,7 @@ function App() {
 
       {/* RIGHT: DEPLOYMENT PROTOCOLS */}
       <motion.div drag dragMomentum={false} className="tech-panel priority-panel">
+        <div className="panel-scan" />
         <span className="corner-tl" /><span className="corner-br" />
         <div className="tech-panel-header">
           <span>▸ {t("protocols")}</span>
@@ -819,16 +609,29 @@ function App() {
 
       {/* RIGHT: VOICE PULSE SPECTROMETER */}
       <motion.div drag dragMomentum={false} className="tech-panel radar-container-panel">
+        <div className="panel-scan" />
         <span className="corner-tl" /><span className="corner-br" />
-        <VoicePulseVisualizer
+        <AudioVisualizer
           isListening={isListening}
           isSpeaking={isSpeaking}
           agentStatus={agentStatus}
+          size={90}
         />
       </motion.div>
 
+      {/* CENTER: CYBERNETIC SYSTEM STATUS (orbital rings) */}
+      <SystemStatus
+        agentStatus={agentStatus}
+        metrics={metrics}
+        uptime={uptime}
+        connectionStatus={connectionStatus}
+        wsLatency={wsLatency}
+        diagState={diagState}
+      />
+
       {/* RIGHT: RESOURCE METRICS */}
       <motion.div drag dragMomentum={false} className="tech-panel data-panel">
+        <div className="panel-scan" />
         <span className="corner-tl" /><span className="corner-br" />
         <div className="tech-panel-header">
           <span>⚙ {t("gauges")}</span>
@@ -846,6 +649,7 @@ function App() {
 
       {/* ═══ RIGHT PANEL: RESOURCE MONITORING (Swapped to bottom right) ═══ */}
       <motion.div drag dragMomentum={false} className="tech-panel resource-panel-right" style={{ minHeight: '195px' }}>
+        <div className="panel-scan" />
         <span className="corner-tl" /><span className="corner-br" />
         <div className="tech-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span>◉ {t("monitor")}</span>
@@ -959,6 +763,7 @@ function App() {
         className="bottom-chat-container"
       >
         <div className="bottom-chat-panel" style={chatLayout === 'side' ? { width: `${chatWidth}px` } : {}}>
+          <div className="panel-scan" />
           {chatLayout === 'side' && (
             <div className="chat-resize-handle" onMouseDown={handleMouseDown} />
           )}
