@@ -35,6 +35,67 @@ class GitAdapter {
             });
         });
     }
+
+    /**
+     * Get git status (porcelain format, parsed into structured data)
+     */
+    status() {
+        return new Promise((resolve) => {
+            execFile('git', ['status', '--porcelain', '--branch'], { cwd: WORKSPACE_DIR, maxBuffer: 1024 * 1024 }, (error, stdout) => {
+                if (error) {
+                    resolve({ error: error.message });
+                    return;
+                }
+                const lines = stdout.split('\n').filter(Boolean);
+                const branch = lines[0]?.replace('## ', '') || 'unknown';
+                const changes = lines.slice(1).map(line => ({
+                    status: line.substring(0, 2).trim(),
+                    file: line.substring(3).trim()
+                }));
+                resolve({ branch, changes, total: changes.length });
+            });
+        });
+    }
+
+    /**
+     * Get git diff (staged and unstaged)
+     */
+    diff() {
+        return new Promise((resolve) => {
+            execFile('git', ['diff', '--stat', '--no-color'], { cwd: WORKSPACE_DIR, maxBuffer: 1024 * 1024 }, (err, stat) => {
+                if (err) {
+                    resolve({ error: err.message });
+                    return;
+                }
+                execFile('git', ['diff', '--no-color'], { cwd: WORKSPACE_DIR, maxBuffer: 1024 * 1024 }, (err2, diffContent) => {
+                    if (err2) {
+                        resolve({ error: err2.message });
+                        return;
+                    }
+                    resolve({ stat: stat || 'No changes', diff: diffContent || '' });
+                });
+            });
+        });
+    }
+
+    /**
+     * Get recent commit log
+     */
+    log(count = 10) {
+        return new Promise((resolve) => {
+            execFile('git', ['log', `--max-count=${count}`, '--oneline', '--no-color'], { cwd: WORKSPACE_DIR }, (error, stdout) => {
+                if (error) {
+                    resolve({ error: error.message });
+                    return;
+                }
+                const commits = stdout.split('\n').filter(Boolean).map(line => {
+                    const [hash, ...rest] = line.split(' ');
+                    return { hash, message: rest.join(' ') };
+                });
+                resolve({ commits });
+            });
+        });
+    }
 }
 
 module.exports = new GitAdapter();

@@ -38,6 +38,8 @@ class ClaudeCodeAdapter {
         this.version = null;
         this.config = { provider: 'anthropic', apiKey: '', model: 'claude-opus-4-5', baseUrl: null };
         this.ws = null;
+        this._throttleTimers = {};
+        this._toolCallCount = 0;
 
         try {
             const out = execSync('claude --version', { timeout: 5000, encoding: 'utf-8' });
@@ -88,12 +90,47 @@ class ClaudeCodeAdapter {
     }
 
     /**
+     * Throttle rapid WebSocket messages: only send the latest payload every 50ms.
+     * Prevents flooding the connection during high-frequency tool output.
+     */
+    _sendThrottled(type, data) {
+        if (!this.ws || this.ws.readyState !== 1) return;
+        const key = type;
+        if (this._throttleTimers[key]) {
+            this._throttleTimers[key].pending = data;
+            return;
+        }
+        this.ws.send(JSON.stringify({ type, ...data }));
+        this._throttleTimers[key] = setTimeout(() => {
+            const pending = this._throttleTimers[key]?.pending;
+            delete this._throttleTimers[key];
+            if (pending) {
+                this.ws.send(JSON.stringify({ type, ...pending }));
+            }
+        }, 50);
+    }
+
+    /**
+     * Attempt to recover a partial JSON line by accumulating across chunks.
+     * Returns parsed object or null.
+     */
+    _tryParseJsonAccumulated(buffer, line) {
+        // First try normal parse
+        try { return JSON.parse(line); } catch {}
+        // Try accumulating with previous partial line
+        const combined = buffer + line;
+        try { return JSON.parse(combined); } catch {}
+        return null;
+    }
+
+    /**
      * Run Claude Code in non-interactive print mode with streaming JSON output.
      */
     async run(prompt, cwd, wsInput, isAutonomous = false) {
         if (wsInput) {
             this.ws = wsInput;
         }
+        this._toolCallCount = 0;
         return new Promise((resolve, reject) => {
             const args = [
                 '--print',
@@ -123,6 +160,7 @@ class ClaudeCodeAdapter {
             let hasDeltas = false;
             let currentToolName = null;
             let currentToolInput = '';
+            let jsonPartialBuffer = '';
 
             const finalizeText = () => {
                 if (isAutonomous && autoBuffer.trim() && this.ws) {
@@ -145,118 +183,127 @@ class ClaudeCodeAdapter {
 
                 for (const line of lines) {
                     if (!line.trim()) continue;
-                    try {
-                        const event = JSON.parse(line);
-                        this._handleEvent(event, this.ws);
 
-                        if (event.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
-                            currentToolName = event.content_block.name;
-                            currentToolInput = '';
-                        }
+                    // Try to parse with recovery for split JSON chunks
+                    const event = this._tryParseJsonAccumulated(jsonPartialBuffer, line);
+                    jsonPartialBuffer = event ? '' : line;
 
-                        if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta') {
-                            currentToolInput += event.delta.partial_json;
-                        }
-
-                        if (event.type === 'content_block_stop' && currentToolName) {
-                            if (this.ws) {
-                                try {
-                                    const inputObj = JSON.parse(currentToolInput);
-                                    const argsSummary = summarizeToolInput(currentToolName, inputObj);
-                                    this.ws.send(JSON.stringify({ type: 'log', message: `⚡ ${currentToolName}: ${argsSummary}` }));
-                                } catch (e) {
-                                    this.ws.send(JSON.stringify({ type: 'log', message: `⚡ ${currentToolName}` }));
-                                }
-                                this.ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
-                            }
-                            currentToolName = null;
-                            currentToolInput = '';
-                        }
-
-                        if (event.type === 'assistant' && event.message?.content) {
-                            for (const block of event.message.content) {
-                                if (block.type === 'text') {
-                                    assistantTextBuffer += block.text;
-                                    if (this.ws) {
-                                        if (isAutonomous) {
-                                            const lines = block.text.split('\n');
-                                            for (const line of lines) {
-                                                if (line.trim()) this.ws.send(JSON.stringify({ type: 'log', message: `\u{1F4AD} ${line}` }));
-                                            }
-                                        } else {
-                                            this.ws.send(JSON.stringify({ type: 'chat_delta', text: block.text }));
-                                        }
-                                    }
-                                } else if (block.type === 'tool_use') {
-                                    const argsSummary = summarizeToolInput(block.name, block.input || {});
-
-                                    if (this.ws) {
-                                        this.ws.send(JSON.stringify({ type: 'log', message: `⚡ ${block.name}: ${argsSummary}` }));
-                                        this.ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
-                                    }
-                                }
-                            }
-                        }
-
-                        if (event.type === 'user' && event.message?.content) {
-                            for (const block of event.message.content) {
-                                if (block.type === 'tool_result') {
-                                    if (this.ws) {
-                                        let resultSummary = typeof block.content === 'string' ? block.content : JSON.stringify(block.content);
-                                        if (resultSummary.length > 80) resultSummary = resultSummary.substring(0, 77) + '...';
-                                        this.ws.send(JSON.stringify({ type: 'log', message: `✓ Tool output: ${resultSummary}` }));
-                                    }
-                                }
-                            }
-                        }
-
-                        if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta' && event.delta?.text) {
-                            hasDeltas = true;
-                            fullResponse += event.delta.text;
-                            if (this.ws) {
-                                if (isAutonomous) {
-                                    autoBuffer += event.delta.text;
-                                    const aLines = autoBuffer.split('\n');
-                                    autoBuffer = aLines.pop();
-                                    for (const al of aLines) {
-                                        if (al.trim()) this.ws.send(JSON.stringify({ type: 'log', message: `\u{1F4AD} ${al}` }));
-                                    }
-                                } else {
-                                    this.ws.send(JSON.stringify({ type: 'chat_delta', text: event.delta.text }));
-                                }
-                            }
-                        }
-                        if (event.type === 'error') {
-                            if (this.ws) {
-                                this.ws.send(JSON.stringify({ type: 'log', message: `❌ Error: ${event.error?.message || event.message || JSON.stringify(event)}` }));
-                            }
-                        }
-                        if (event.type === 'result') {
-                            finalizeText();
-                            if (event.result && !fullResponse) {
-                                fullResponse = String(event.result);
-                                if (this.ws && !isAutonomous) {
-                                    this.ws.send(JSON.stringify({ type: 'chat_delta', text: String(event.result) }));
-                                }
-                            }
-                            tokensIn  = event.total_tokens_in  || 0;
-                            tokensOut = event.total_tokens_out || 0;
-                            if (this.ws) {
-                                this.ws.send(JSON.stringify({
-                                    type: 'token_usage',
-                                    tokensIn,
-                                    tokensOut,
-                                    totalTokens: tokensIn + tokensOut,
-                                    provider: this.config.provider,
-                                    model: this.config.model
-                                }));
-                            }
-                        }
-                    } catch {
+                    if (!event) {
+                        // Still not valid JSON — treat as raw text
                         fullResponse += line;
                         if (this.ws) {
                             const cleanLine = line.replace(ANSI_REGEX, '').trim();
                             if (cleanLine) this.ws.send(JSON.stringify({ type: 'log', message: cleanLine }));
+                        }
+                        continue;
+                    }
+
+                    this._handleEvent(event, this.ws);
+
+                    if (event.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
+                        currentToolName = event.content_block.name;
+                        currentToolInput = '';
+                    }
+
+                    if (event.type === 'content_block_delta' && event.delta?.type === 'input_json_delta') {
+                        currentToolInput += event.delta.partial_json;
+                    }
+
+                    if (event.type === 'content_block_stop' && currentToolName) {
+                        this._toolCallCount++;
+                        if (this.ws) {
+                            try {
+                                const inputObj = JSON.parse(currentToolInput);
+                                const argsSummary = summarizeToolInput(currentToolName, inputObj);
+                                this.ws.send(JSON.stringify({ type: 'log', message: `⚡ [${this._toolCallCount}] ${currentToolName}: ${argsSummary}` }));
+                            } catch (e) {
+                                this.ws.send(JSON.stringify({ type: 'log', message: `⚡ [${this._toolCallCount}] ${currentToolName}` }));
+                            }
+                            this.ws.send(JSON.stringify({ type: 'agent_status', status: 'executing_tool' }));
+                        }
+                        currentToolName = null;
+                        currentToolInput = '';
+                    }
+
+                    // assistant event: only process text blocks that are NOT also text_deltas
+                    // (stream-json emits both, we prefer text_delta to avoid duplication)
+                    if (event.type === 'assistant' && event.message?.content && !hasDeltas) {
+                        for (const block of event.message.content) {
+                            if (block.type === 'text') {
+                                assistantTextBuffer += block.text;
+                                if (this.ws) {
+                                    if (isAutonomous) {
+                                        const lines = block.text.split('\n');
+                                        for (const line of lines) {
+                                            if (line.trim()) this.ws.send(JSON.stringify({ type: 'log', message: `\u{1F4AD} ${line}` }));
+                                        }
+                                    } else {
+                                        this._sendThrottled('chat_delta', { text: block.text });
+                                    }
+                                }
+                            } else if (block.type === 'tool_use' && !hasDeltas) {
+                                // Only emit tool_use from assistant if we haven't seen it from content_block events
+                                const argsSummary = summarizeToolInput(block.name, block.input || {});
+                                if (this.ws) {
+                                    this._sendThrottled('log', { message: `⚡ ${block.name}: ${argsSummary}` });
+                                    this._sendThrottled('agent_status', { status: 'executing_tool' });
+                                }
+                            }
+                        }
+                    }
+
+                    if (event.type === 'user' && event.message?.content) {
+                        for (const block of event.message.content) {
+                            if (block.type === 'tool_result') {
+                                if (this.ws) {
+                                    let resultSummary = typeof block.content === 'string' ? block.content : JSON.stringify(block.content);
+                                    if (resultSummary.length > 80) resultSummary = resultSummary.substring(0, 77) + '...';
+                                    this.ws.send(JSON.stringify({ type: 'log', message: `✓ Tool output: ${resultSummary}` }));
+                                }
+                            }
+                        }
+                    }
+
+                    if (event.type === 'content_block_delta' && event.delta?.type === 'text_delta' && event.delta?.text) {
+                        hasDeltas = true;
+                        fullResponse += event.delta.text;
+                        if (this.ws) {
+                            if (isAutonomous) {
+                                autoBuffer += event.delta.text;
+                                const aLines = autoBuffer.split('\n');
+                                autoBuffer = aLines.pop();
+                                for (const al of aLines) {
+                                    if (al.trim()) this.ws.send(JSON.stringify({ type: 'log', message: `\u{1F4AD} ${al}` }));
+                                }
+                            } else {
+                                this._sendThrottled('chat_delta', { text: event.delta.text });
+                            }
+                        }
+                    }
+                    if (event.type === 'error') {
+                        if (this.ws) {
+                            this.ws.send(JSON.stringify({ type: 'log', message: `❌ Error: ${event.error?.message || event.message || JSON.stringify(event)}` }));
+                        }
+                    }
+                    if (event.type === 'result') {
+                        finalizeText();
+                        if (event.result && !fullResponse) {
+                            fullResponse = String(event.result);
+                            if (this.ws && !isAutonomous) {
+                                this.ws.send(JSON.stringify({ type: 'chat_delta', text: String(event.result) }));
+                            }
+                        }
+                        tokensIn  = event.total_tokens_in  || 0;
+                        tokensOut = event.total_tokens_out || 0;
+                        if (this.ws) {
+                            this.ws.send(JSON.stringify({
+                                type: 'token_usage',
+                                tokensIn,
+                                tokensOut,
+                                totalTokens: tokensIn + tokensOut,
+                                provider: this.config.provider,
+                                model: this.config.model
+                            }));
                         }
                     }
                 }

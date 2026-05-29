@@ -193,10 +193,32 @@ app.post('/api/file', async (req, res) => {
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── Git Revert ───────────────────────────────────────────────────────────────
+// ── Git Operations ────────────────────────────────────────────────────────────
 app.post('/api/revert', async (req, res) => {
     const result = await gitAdapter.revert();
     res.json({ message: result });
+});
+
+app.get('/api/git/status', async (req, res) => {
+    try {
+        const result = await gitAdapter.status();
+        res.json(result);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/git/diff', async (req, res) => {
+    try {
+        const result = await gitAdapter.diff();
+        res.json(result);
+    } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/git/log', async (req, res) => {
+    try {
+        const count = Math.min(Math.max(parseInt(req.query.count) || 10, 1), 50);
+        const result = await gitAdapter.log(count);
+        res.json(result);
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ── Health Check ─────────────────────────────────────────────────────────────

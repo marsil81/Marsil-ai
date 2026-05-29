@@ -47,4 +47,6 @@ module.exports = {
     error: (msg, meta) => log('error', msg, meta),
     /** Returns a copy of recent log entries (newest first) */
     getBuffer: (limit = 100) => buffer.slice(-limit).reverse(),
+    /** Clear the in-memory log buffer to free memory */
+    clearBuffer: () => { buffer.length = 0; },
 };

@@ -39,6 +39,9 @@
 
 ### المرحلة الرابعة: تحسين أداء الواجهة والتجربة البصرية (قيد التنفيذ 🔄)
 - [x] **تحسين أداء Canvas (ParticleReactor.jsx):** إضافة دعم Retina/HiDPI (devicePixelRatio)، throttled resize، استخدام مربع المسافة بدلاً من `Math.sqrt()` في حلقة التوصيل.
+- [x] **نظام البث الذكي (Smart Streaming) في ClaudeCodeAdapter.js:** إضافة throttling لمنع إغراق WebSocket، استعادة JSON المقطوع عبر الحزم، عداد أدوات لعرض التقدم، إصلاح ازدواجية النص.
+- [x] **إضافة نقاط نهاية Git API:** `GET /api/git/status`، `GET /api/git/diff`، `GET /api/git/log` لتمكين الواجهة من عرض تحكم الإصدار.
+- [x] **إضافة clearBuffer() في Logger.js:** لتفريغ الذاكرة المؤقتة ومنع التسرب في الجلسات الطويلة.
 - [ ] **إضافة Virtual Scrolling** لقائمة شجرة الملفات (FileTreeHUD) لتحسين الأداء مع المشاريع الكبيرة.
 - [ ] **تحسين زمن تحميل المودال** (SettingsModal, EvolutionModal) بإضافة React.lazy و Suspense.
 
