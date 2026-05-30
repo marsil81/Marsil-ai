@@ -24,13 +24,33 @@ function apiError(res, status, code, message) {
 
 const app = express();
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 // ── Security Middleware ─────────────────────────────────────────────────────
+// Enable strong Content Security Policy (CSP) in production, leaving it flexible in development (3.1)
 app.use(helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: isProduction ? {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            connectSrc: ["'self'", "ws://127.0.0.1:*", "wss://127.0.0.1:*", "ws://localhost:*", "wss://localhost:*", "http://127.0.0.1:*", "https://api.anthropic.com", "https://api.openai.com", "https://api.deepseek.com", "https://generativelanguage.googleapis.com"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: [],
+        }
+    } : false,
     crossOriginEmbedderPolicy: false,
 }));
+
+// Restrict CORS origins strictly to loopback interfaces in production for security hardening (3.2)
+const allowedOrigins = isProduction
+    ? ['http://localhost:3001', 'http://127.0.0.1:3001', 'http://localhost:3002', 'http://127.0.0.1:3002']
+    : (process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://localhost:3001', 'http://127.0.0.1:3001']);
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
 }));
@@ -66,8 +86,6 @@ const https = require('https');
 let server;
 const sslKeyPath = path.join(__dirname, '../../ssl/key.pem');
 const sslCertPath = path.join(__dirname, '../../ssl/cert.pem');
-
-const isProduction = process.env.NODE_ENV === 'production';
 
 if (fsSync.existsSync(sslKeyPath) && fsSync.existsSync(sslCertPath)) {
     try {
