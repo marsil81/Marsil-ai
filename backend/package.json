@@ -5,6 +5,7 @@
   "scripts": {
     "start": "node src/presentation/Server.js",
     "test": "node src/test/security.test.js && node src/test/integration.test.js",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint src/",
     "lint:check": "node -c src/presentation/Server.js && node -c src/application/AgentService.js && node -c src/infrastructure/ClaudeCodeAdapter.js && node -c src/infrastructure/Logger.js && node -c src/infrastructure/GitAdapter.js && node -c src/infrastructure/AnthropicProxy.js && node -c src/presentation/WebSocketHandler.js"
   },
