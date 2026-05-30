@@ -41,8 +41,17 @@ export function useAgentConnection() {
         const lastIndex = copy.length - 1;
         const last = copy[lastIndex];
         if (last && last.role === 'agent' && last.isStreaming) {
+          const now = Date.now();
+          const duration = last.startedAt ? ((now - last.startedAt) / 1000).toFixed(1) : null;
           // Clone the object to avoid mutating previous state directly
-          const newLast = { ...last, content: text, ts: Date.now() };
+          const newLast = { 
+            ...last, 
+            content: text, 
+            ts: now,
+            startedAt: last.startedAt,
+            finishedAt: now,
+            duration: duration
+          };
           delete newLast.isStreaming;
           copy[lastIndex] = newLast;
           return copy;
@@ -87,7 +96,7 @@ export function useAgentConnection() {
       setChatHistory(prev => [
         ...prev,
         { role: 'user', content: text, ts: now },
-        { role: 'agent', content: '', isStreaming: true }
+        { role: 'agent', content: '', isStreaming: true, startedAt: now }
       ]);
     }
     

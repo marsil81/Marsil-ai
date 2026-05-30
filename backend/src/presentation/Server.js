@@ -121,7 +121,9 @@ app.post('/api/config', async (req, res) => {
         baseUrl:  body.baseUrl  !== undefined ? body.baseUrl : existing.baseUrl,
         budget:   body.budget   !== undefined ? body.budget  : existing.budget || 0
     };
-    await fs.writeFile(CONFIG_PATH, JSON.stringify(newConfig, null, 2));
+    const tmpPath = `${CONFIG_PATH}.tmp`;
+    await fs.writeFile(tmpPath, JSON.stringify(newConfig, null, 2));
+    await fs.rename(tmpPath, CONFIG_PATH);
     claudeCode.setProviderConfig(newConfig);
     anthropicProxy.setTarget(newConfig.baseUrl, newConfig.apiKey, newConfig.model);
     logger.info('Configuration updated', { provider: newConfig.provider, model: newConfig.model });

@@ -1,22 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SendHorizontal, Mic, MicOff, Volume2, VolumeX, Radio, X } from 'lucide-react';
+import { SendHorizontal, Mic, MicOff, Volume2, VolumeX, Radio, X, Terminal as TerminalIcon, Settings, Globe, XOctagon } from 'lucide-react';
 import '../styles/App.css';
-import { ParticleReactor } from '../components/ParticleReactor';
-import { SettingsModal, estimateCost } from '../components/SettingsModal';
+import { SettingsModal } from '../components/SettingsModal';
 import { FileTreeHUD } from '../components/FileTreeHUD';
 import { CodeEditor } from '../components/CodeEditor';
 import { Terminal } from '../components/Terminal';
-import { EvolutionModal } from '../components/EvolutionModal';
 import { KeyboardShortcuts } from '../components/KeyboardShortcuts';
 import { StatusBar } from '../components/StatusBar';
-import { CircularGauge } from '../components/CircularGauge';
-import { HexGrid } from '../components/HexGrid';
 import { PerfMonitor } from '../components/PerfMonitor';
-import { DataFlow } from '../components/DataFlow';
-import { AudioVisualizer } from '../components/AudioVisualizer';
-import { SparklineChart } from '../components/SparklineChart';
 import { useAgentConnection } from '../../application/useAgentConnection';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useVoiceSystem } from '../hooks/useVoiceSystem';
@@ -27,18 +20,23 @@ import { useVoiceSystem } from '../hooks/useVoiceSystem';
 function DiagDot({ label, ok, sub }) {
   return (
     <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: '3px',
-      fontSize: '0.45rem',
-      color: ok ? 'var(--accent)' : 'rgba(255,255,255,0.2)',
-      fontFamily: "'Share Tech Mono', monospace",
+      display: 'inline-flex', alignItems: 'center', gap: '5px',
+      fontSize: '0.52rem',
+      fontWeight: '600',
+      color: ok ? 'var(--text)' : 'var(--text-dim)',
+      fontFamily: "'Outfit', sans-serif",
+      background: 'rgba(255, 255, 255, 0.03)',
+      border: '1px solid rgba(255, 255, 255, 0.05)',
+      padding: '3px 8px',
+      borderRadius: '4px',
     }}>
       <span style={{
         width: '5px', height: '5px', borderRadius: '50%',
-        background: ok ? '#22c55e' : '#ef4444',
-        boxShadow: ok ? '0 0 6px rgba(34,197,94,0.6)' : 'none',
+        background: ok ? 'var(--success)' : 'var(--danger)',
+        boxShadow: ok ? '0 0 6px var(--success)' : 'none',
         display: 'inline-block',
       }} />
-      {label}{sub != null && <span style={{ opacity: 0.5, marginLeft: '1px' }}>{sub}</span>}
+      {label}{sub != null && <span style={{ opacity: 0.5, marginLeft: '2px' }}>{sub}</span>}
     </span>
   );
 }
@@ -132,7 +130,6 @@ function App() {
   const { toasts, addToast } = useToasts(soundFx);
   const [showSettings, setShowSettings] = useState(false);
   const [showConsole, setShowConsole] = useState(false);
-  const [showEvolution, setShowEvolution] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [chatInput, setChatInput] = useState('');
   const [clock, setClock] = useState('');
@@ -146,14 +143,6 @@ function App() {
   });
   const [uptime, setUptime] = useState('00:00:00');
   const [panelsLoaded, setPanelsLoaded] = useState(false);
-  // Token history for sparkline (last 20 data points)
-  const [tokenHistory, setTokenHistory] = useState([]);
-  const tokenHistoryRef = useRef([]);
-  // CPU & RAM history for sparklines
-  const [cpuHistory, setCpuHistory] = useState([]);
-  const [ramHistory, setRamHistory] = useState([]);
-  const cpuHistoryRef = useRef([]);
-  const ramHistoryRef = useRef([]);
 
   const fetchConfig = () => {
     fetch('http://localhost:3001/api/config')
@@ -278,15 +267,6 @@ function App() {
               String(secs).padStart(2, '0')
             );
           }
-          // Track CPU & RAM history for sparklines
-          if (data.cpu != null) {
-            cpuHistoryRef.current = [...cpuHistoryRef.current.slice(-39), data.cpu];
-            setCpuHistory(cpuHistoryRef.current);
-          }
-          if (data.ram != null) {
-            ramHistoryRef.current = [...ramHistoryRef.current.slice(-39), data.ram];
-            setRamHistory(ramHistoryRef.current);
-          }
         })
         .catch(() => {});
     };
@@ -295,23 +275,10 @@ function App() {
     return () => clearInterval(id);
   }, []);
 
-  // Mark panels as loaded once we have metrics data (derived state)
-  const panelsReady = panelsLoaded || (metrics.cpu !== 0 && metrics.ram !== 0);
-  if (!panelsLoaded && panelsReady) {
-    // Trigger once outside render cycle via setTimeout
-    setTimeout(() => setPanelsLoaded(true), 0);
-  }
-
-  // ── Token History Sparkline ──────────────────────────────────────────────────
-  const prevTotalRef = useRef(0);
+  // Mark panels as loaded immediately
   useEffect(() => {
-    const total = tokenData.totalTokens || 0;
-    if (total !== prevTotalRef.current) {
-      prevTotalRef.current = total;
-      tokenHistoryRef.current = [...tokenHistoryRef.current.slice(-19), total];
-      setTokenHistory(tokenHistoryRef.current);
-    }
-  }, [tokenData.totalTokens]);
+    setPanelsLoaded(true);
+  }, []);
 
 
   const [voiceEnabled, setVoiceEnabled] = useState(true);
@@ -420,7 +387,6 @@ function App() {
         if (showShortcuts) { setShowShortcuts(false); return; }
         if (showSettings) { setShowSettings(false); return; }
         if (showConsole) { setShowConsole(false); return; }
-        if (showEvolution) { setShowEvolution(false); return; }
         if (selectedFile) { setSelectedFile(null); return; }
         return;
       }
@@ -431,11 +397,6 @@ function App() {
           setShowShortcuts(prev => !prev);
           return;
         }
-      }
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'E') {
-        e.preventDefault();
-        setShowEvolution(prev => !prev);
-        return;
       }
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'L') {
         e.preventDefault();
@@ -455,7 +416,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showSettings, showConsole, showEvolution, showShortcuts, selectedFile, clearChat, toggleLang, abortAgent]);
+  }, [showSettings, showConsole, showShortcuts, selectedFile, clearChat, toggleLang, abortAgent]);
 
   let circleCls = 'status-circle';
   if (agentStatus === 'thinking' || agentStatus === 'executing_tool') circleCls += ' thinking';
@@ -465,68 +426,62 @@ function App() {
 
   return (
     <div className="hud-root">
-      <div className="scan-line"></div>
-      <div className="scan-beam"></div>
-      <div className="crt-overlay" />
-      <div className="vignette-overlay" />
-      <div className="perspective-grid" />
-
-      {/* Cybernetic hex grid background */}
-      <HexGrid status={agentStatus} />
-      <DataFlow active={agentStatus} />
-
-      {/* Background Matrix Reactor */}
-      <ParticleReactor status={agentStatus} style={{ opacity: 0.2 }} />
-
-      {/* TOP HEADER */}
-      <div className="top-bar data-stream">
+      {/* Sleek top navigation bar */}
+      <div className="top-bar">
         <div className="top-row">
           <div className="logo-container">
             <div className={circleCls}></div>
             <div>
-              <div className="logo">{t("app_title")}</div>
-              <div className="logo-sub">MODULAR AGENTIC RUNTIME SYSTEM FOR INTELLIGENT LABOR</div>
+              <div className="logo" style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: '0.5px' }}>{t("app_title")}</div>
+              <div className="logo-sub" style={{ fontFamily: "'Outfit', sans-serif", letterSpacing: '0.8px', color: 'var(--text-dim)', fontSize: '0.52rem' }}>MODULAR AGENTIC RUNTIME SYSTEM FOR INTELLIGENT LABOR</div>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div className="time-display">{clock}</div>
-            <div style={{ fontSize: '0.6rem', color: 'var(--accent)', letterSpacing: '1px' }}>{dateStr}</div>
+          <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+            <div className="time-display" style={{ fontFamily: "'Share Tech Mono', monospace", letterSpacing: '0.5px' }}>{clock}</div>
+            <div style={{ fontSize: '0.58rem', color: 'var(--accent)', fontFamily: "'Outfit', sans-serif", fontWeight: '600', letterSpacing: '0.5px' }}>{dateStr}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px' }}>
-          <div className="nav-btns">
-            <button className={`nav-btn ${showConsole ? 'active' : ''}`} onClick={() => setShowConsole(prev => !prev)} title="Ctrl+Shift+C"><span className="kbd-hint">⌨</span> CONSOLE</button>
-            <button className={`nav-btn ${showEvolution ? 'active' : ''}`} onClick={() => setShowEvolution(true)} title="Ctrl+Shift+E" style={{ color: 'var(--primary)', borderColor: 'var(--primary)' }}><span className="kbd-hint">⌨</span> EVOLUTION</button>
-            <button className="nav-btn" onClick={() => setShowSettings(true)} title="Ctrl+Shift+S"><span className="kbd-hint">⌨</span> SETTINGS</button>
-            <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} title={voiceEnabled ? 'Mute Voice' : 'Unmute Voice'} style={{ color: voiceEnabled ? (handsFreeMode ? '#00ffd5' : 'var(--accent)') : 'var(--text-dim)' }}>
-              VOICE: {voiceEnabled ? (handsFreeMode ? 'HANDS-FREE' : 'ACTIVE') : 'MUTED'}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '14px' }}>
+          <div className="nav-btns" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <button className={`nav-btn ${showConsole ? 'active' : ''}`} onClick={() => setShowConsole(prev => !prev)} title="Ctrl+Shift+C" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <TerminalIcon size={12} />
+              <span>CONSOLE</span>
             </button>
-            <button className="nav-btn" onClick={toggleLang} title="Ctrl+Shift+L">LANG</button>
-            <button className="nav-btn" onClick={abortAgent} title="Ctrl+Shift+X" style={{ color: '#ff5555' }}>{t("emergency_stop")}</button>
+            <button className="nav-btn" onClick={() => setShowSettings(true)} title="Ctrl+Shift+S" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Settings size={12} />
+              <span>SETTINGS</span>
+            </button>
+            <button className={`nav-btn ${voiceEnabled ? 'active' : ''}`} onClick={toggleVoice} title={voiceEnabled ? 'Mute Voice' : 'Unmute Voice'} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: voiceEnabled ? (handsFreeMode ? 'var(--accent)' : 'var(--text)') : 'var(--text-dim)' }}>
+              {voiceEnabled ? <Volume2 size={12} /> : <VolumeX size={12} />}
+              <span>VOICE: {voiceEnabled ? (handsFreeMode ? 'HANDS-FREE' : 'ACTIVE') : 'MUTED'}</span>
+            </button>
+            <button className="nav-btn" onClick={toggleLang} title="Ctrl+Shift+L" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Globe size={12} />
+              <span>LANG</span>
+            </button>
+            <button className="nav-btn" onClick={abortAgent} title="Ctrl+Shift+X" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.2)', background: 'rgba(239, 68, 68, 0.02)' }}>
+              <XOctagon size={12} />
+              <span>{t("emergency_stop")}</span>
+            </button>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <DiagDot label="WS" ok={isConnected} sub={isConnected && wsLatency != null ? `${wsLatency}ms` : null} />
             <DiagDot label="API" ok={diagState.keyValid} />
             <DiagDot label="CLD" ok={diagState.claudeAvailable} />
             <DiagDot label="PRX" ok={diagState.proxyRunning} />
-            <NetworkQuality latency={wsLatency} />
           </div>
         </div>
       </div>
 
-      {/* ═══ CYBERNETIC IDE 3-COLUMN LAYOUT CONTAINER ═══ */}
+      {/* ═══ IDE 3-COLUMN LAYOUT CONTAINER ═══ */}
       <div className="ide-layout-container" dir="ltr">
         
         {/* ── COLUMN 1: LEFT SIDEBAR (File Manager & System details) ── */}
         <div className="ide-column ide-left-col">
           
           {/* Left Top Pane: Workspace Files */}
-          <div className="tech-panel ide-panel left-top-pane">
-            <div className="panel-scan" />
-            <span className="corner-tr" /><span className="corner-bl" />
-            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
-            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
-            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
+          {/* Left Top Pane: Workspace Files */}
+          <div className="workspace-panel left-top-pane">
             <div className="tech-panel-header">
               <span className="tech-header-brackets">📁 {t("workspace").toUpperCase()}</span>
               <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>D:\IRON MAN</span>
@@ -543,12 +498,7 @@ function App() {
           </div>
 
           {/* Left Bottom Pane: System Engine Diagnostics */}
-          <div className="tech-panel ide-panel left-bottom-pane">
-            <div className="panel-scan" />
-            <span className="corner-tr" /><span className="corner-bl" />
-            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
-            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
-            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
+          <div className="workspace-panel left-bottom-pane">
             <div className="tech-panel-header">
               <span className="tech-header-brackets">⌂ {t("system_engine")}</span>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -578,176 +528,77 @@ function App() {
         <div className="ide-column ide-mid-col">
           
           {/* Middle Top Pane: The Code Editor or central landing core */}
-          <div className="tech-panel ide-panel mid-top-pane" style={{ padding: 0 }}>
-            <div className="panel-scan" />
-            <span className="corner-tr" /><span className="corner-bl" />
-            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
-            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
-            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
+          {/* Middle Top Pane: The Code Editor or central landing core */}
+          <div className="workspace-panel mid-top-pane" style={{ padding: 0 }}>
             {selectedFile ? (
               <CodeEditor filePath={selectedFile} onClose={() => setSelectedFile(null)} />
             ) : (
               <div className="reactor-editor-fallback">
                 <div style={{
-                  position: 'absolute', top: '16px', left: '16px',
-                  fontFamily: 'Orbitron', fontSize: '0.6rem', color: 'rgba(0, 162, 255, 0.6)',
-                  letterSpacing: '2px', display: 'flex', alignItems: 'center', gap: '8px'
+                  position: 'absolute', top: '20px', left: '20px',
+                  fontFamily: 'Outfit, sans-serif', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.4)',
+                  letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px'
                 }}>
-                  <span className="cursor-blink">▶</span> SYSTEM REACTOR CORE
-                  <span className="tech-panel-badge" style={{ marginLeft: '8px' }}>[ACTIVE]</span>
+                  <span>▶</span> WORKSPACE CONSOLE
+                  <span className="tech-panel-badge" style={{ marginLeft: '8px' }}>[READY]</span>
                 </div>
               </div>
             )}
           </div>
 
           {/* Middle Bottom Pane: The Live Terminal (Always Open) */}
-          <div className="tech-panel ide-panel mid-bottom-pane" style={{ padding: 0 }}>
-            <div className="panel-scan" />
-            <span className="corner-tr" /><span className="corner-bl" />
-            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
-            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
-            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
+          <div className="workspace-panel mid-bottom-pane" style={{ padding: 0 }}>
             <Terminal output={termOutput || []} />
           </div>
         </div>
 
-        {/* ── COLUMN 3: RIGHT PANEL (Spectrometer & Conversation Chat) ── */}
+        {/* ── COLUMN 3: RIGHT PANEL (Unified Sleek Chat Sidebar) ── */}
         <div className="ide-column ide-right-col">
           
-          {/* Right Top Pane: Spectrometer, Circular gauges and Token flows */}
-          <div className="tech-panel ide-panel" style={{ flex: 1.1, minHeight: 0 }}>
-            <div className="panel-scan" />
-            <span className="corner-tr" /><span className="corner-bl" />
-            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
-            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
-            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
-            <div className="tech-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span className="tech-header-brackets">⌁ TELEMETRY</span>
-              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <span className="tech-bracket-status active">LIVE</span>
-                <span className="tech-bracket-status" style={{ border: '1px solid rgba(0,255,213,0.15)', color: 'var(--accent)', background: 'transparent' }}>UPTIME {uptime}</span>
-                <button onClick={clearTokens} style={{
-                  background: 'transparent', border: 'none', color: 'var(--accent)',
-                  fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace'
-                }}>{t("clear") || "CLEAR"}</button>
-              </div>
-            </div>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', flex: 1, marginTop: '6px', fontSize: '0.55rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
-                <AudioVisualizer
-                  isListening={isListening}
-                  isSpeaking={isSpeaking}
-                  agentStatus={agentStatus}
-                  size={75}
-                />
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <CircularGauge label="CPU" value={metrics.cpu || 0} color="#00a2ff" size={54} />
-                  <CircularGauge label="RAM" value={metrics.ram || 0} color="#00ffd5" size={54} />
-                </div>
-              </div>
-
-              {/* Live CPU & RAM Sparklines */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '4px' }}>
-                <div className="sparkline-container">
-                  <div className="sparkline-header">
-                    <span>CPU LOAD</span>
-                    <span className="sparkline-value">{metrics.cpu || 0}%</span>
-                  </div>
-                  <SparklineChart data={cpuHistory} color="#00a2ff" height={28} maxDataPoints={40} />
-                </div>
-                <div className="sparkline-container">
-                  <div className="sparkline-header">
-                    <span>RAM USAGE</span>
-                    <span className="sparkline-value">{metrics.ram || 0}%</span>
-                  </div>
-                  <SparklineChart data={ramHistory} color="#00ffd5" height={28} maxDataPoints={40} />
-                </div>
-              </div>
-
-              {/* Token counts & Cost info */}
-              <div style={{ borderTop: '1px solid rgba(0,255,213,0.1)', paddingTop: '6px' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '4px' }}>
-                  <div className="tech-cell enhanced">
-                    <span className="tech-cell-label">TOKENS IN</span>
-                    <span className="tech-cell-value">{(tokenData.tokensIn || 0).toLocaleString()}</span>
-                  </div>
-                  <div className="tech-cell enhanced">
-                    <span className="tech-cell-label">TOKENS OUT</span>
-                    <span className="tech-cell-value">{(tokenData.tokensOut || 0).toLocaleString()}</span>
-                  </div>
-                </div>
-
-                {tokenHistory.length > 1 && (
-                  <div style={{ marginTop: '6px', marginBottom: '6px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                      <span className="tech-header-brackets" style={{ fontSize: '0.38rem', letterSpacing: '0.5px' }}>TOKEN FLOW SPARKLINE</span>
-                      <span style={{ fontSize: '0.38rem', color: 'var(--accent)' }}>{(tokenData.totalTokens || 0).toLocaleString()} TOTAL</span>
-                    </div>
-                    <div style={{ height: '24px', display: 'flex', alignItems: 'flex-end', gap: '1px', position: 'relative' }}>
-                      {/* Background grid lines */}
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', pointerEvents: 'none' }}>
-                        <div style={{ borderTop: '1px solid rgba(0,162,255,0.04)', height: '0' }}></div>
-                        <div style={{ borderTop: '1px solid rgba(0,162,255,0.04)', height: '0' }}></div>
-                        <div style={{ borderTop: '1px solid rgba(0,162,255,0.04)', height: '0' }}></div>
-                      </div>
-                      {(() => {
-                        const max = Math.max(...tokenHistory, 1);
-                        return tokenHistory.slice(-30).map((val, i) => {
-                          const h = Math.max(2, (val / max) * 22);
-                          return (
-                            <div key={i} style={{
-                              flex: 1, height: `${h}px`,
-                              background: `linear-gradient(to top, rgba(0,162,255,0.5), rgba(0,255,213,0.85))`,
-                              borderRadius: '1px 1px 0 0',
-                              transition: 'height 0.2s ease',
-                              opacity: 0.5 + (val / max) * 0.5,
-                            }} />
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                )}
-                
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px', borderTop: '1px solid rgba(0,255,213,0.08)', paddingTop: '4px' }}>
-                  <span style={{ color: 'var(--accent)', fontSize: '0.4rem', letterSpacing: '0.5px' }}>ESTIMATED COST</span>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 'bold', color: 'var(--primary)' }}>
-                    ${estimateCost(sysConfig.model, tokenData.tokensIn, tokenData.tokensOut).toFixed(5)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
           {/* Right Bottom Pane: Conversational Chat Panel */}
-          <div className="tech-panel ide-panel right-chat-pane" style={{ flex: 1.9, minHeight: 0 }}>
-            <div className="panel-scan" />
-            <span className="corner-tr" /><span className="corner-bl" />
-            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
-            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
-            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px', marginBottom: '6px', cursor: 'default' }}>
-              <span className="tech-header-brackets" style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
+          <div className="workspace-panel right-chat-pane" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '8px', cursor: 'default' }}>
+              <span className="tech-header-brackets" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--primary)' }}>◉ {t("directives")}</span>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span className="tech-panel-badge" style={{ animation: agentStatus !== 'idle' ? 'badgePulse 1s ease-in-out infinite' : 'none' }}>{agentStatus === 'idle' ? '[STANDBY]' : agentStatus === 'thinking' ? '[PROCESSING]' : agentStatus === 'executing_tool' ? '[EXECUTING]' : '[ACTIVE]'}</span>
+                <span className="tech-panel-badge">{agentStatus === 'idle' ? '[STANDBY]' : agentStatus === 'thinking' ? '[PROCESSING]' : agentStatus === 'executing_tool' ? '[EXECUTING]' : '[ACTIVE]'}</span>
                 {chatHistory.length > 0 && (
-                  <button onClick={clearChat} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace' }}>{t("clear") || "CLEAR"}</button>
+                  <button onClick={clearChat} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '0.55rem', cursor: 'pointer', fontFamily: 'monospace' }}>{t("clear") || "CLEAR"}</button>
                 )}
               </div>
             </div>
 
             <div className="chat-msgs" style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
               {chatHistory.length === 0 && (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.52rem', letterSpacing: '1px' }}>{t("placeholder_command")}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', letterSpacing: '0.5px', padding: '10px 0' }}>{t("placeholder_command")}</div>
               )}
               {chatHistory.map((msg, i) => (
                 <div key={i} className={`chat-msg ${msg.role === 'user' ? 'user' : 'agent'}${msg.isStreaming ? ' streaming' : ''}`}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                     <div className="chat-tag">{msg.role === 'user' ? t("you") : t("ironman")}</div>
-                    {msg.ts && <span style={{ fontSize: '0.4rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{new Date(msg.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>}
+                    {msg.ts && <span style={{ fontSize: '0.5rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{new Date(msg.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>}
                   </div>
-                  <div style={{ wordBreak: 'break-word', marginTop: '2px', textAlign: 'initial' }} dir="auto">{msg.content}{msg.isStreaming && <span className="cursor-blink">▊</span>}</div>
+                  <div style={{ wordBreak: 'break-word', marginTop: '2px', textAlign: 'initial' }} dir="auto">
+                    {msg.content}
+                    {msg.isStreaming && <span className="cursor-blink">▊</span>}
+                  </div>
+                  {msg.duration && (
+                    <div style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      gap: '8px',
+                      fontSize: '0.5rem',
+                      color: 'var(--accent)',
+                      fontFamily: 'monospace',
+                      marginTop: '8px',
+                      borderTop: '1px dashed rgba(255,255,255,0.08)',
+                      paddingTop: '6px',
+                      opacity: 0.85
+                    }}>
+                      <span>[⏱ {t("started") || "STARTED"}: {new Date(msg.startedAt).toLocaleTimeString('en-US', { hour12: false })}]</span>
+                      <span>[✓ {t("finished") || "FINISHED"}: {new Date(msg.finishedAt).toLocaleTimeString('en-US', { hour12: false })}]</span>
+                      <span style={{ color: '#ffffff', fontWeight: 'bold' }}>[{t("duration") || "DURATION"}: {msg.duration}s]</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -794,13 +645,7 @@ function App() {
           <SettingsModal onClose={() => setShowSettings(false)} />
         )}
       </AnimatePresence>
-      <AnimatePresence>
-        {showEvolution && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }}>
-            <EvolutionModal onClose={() => setShowEvolution(false)} sendCommand={sendCommand} agentStatus={agentStatus} termOutput={termOutput} />
-          </motion.div>
-        )}
-      </AnimatePresence>
+
 
       <StatusBar
         connectionStatus={connectionStatus}

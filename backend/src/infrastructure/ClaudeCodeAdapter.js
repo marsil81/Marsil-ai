@@ -97,17 +97,28 @@ class ClaudeCodeAdapter {
         if (!this.ws || this.ws.readyState !== 1) return;
         const key = type;
         if (this._throttleTimers[key]) {
-            this._throttleTimers[key].pending = data;
+            if (type === 'chat_delta') {
+                if (!this._throttleTimers[key].pending) {
+                    this._throttleTimers[key].pending = { text: data.text };
+                } else {
+                    this._throttleTimers[key].pending.text += data.text;
+                }
+            } else {
+                this._throttleTimers[key].pending = data;
+            }
             return;
         }
         this.ws.send(JSON.stringify({ type, ...data }));
-        this._throttleTimers[key] = setTimeout(() => {
-            const pending = this._throttleTimers[key]?.pending;
-            delete this._throttleTimers[key];
-            if (pending) {
-                this.ws.send(JSON.stringify({ type, ...pending }));
-            }
-        }, 50);
+        this._throttleTimers[key] = {
+            timeout: setTimeout(() => {
+                const pending = this._throttleTimers[key]?.pending;
+                delete this._throttleTimers[key];
+                if (pending) {
+                    this.ws.send(JSON.stringify({ type, ...pending }));
+                }
+            }, 50),
+            pending: null
+        };
     }
 
     /**

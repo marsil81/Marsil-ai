@@ -34,7 +34,10 @@ const resources = {
       "link": "DIAG.LINK",
       "workspace": "WORKSPACE",
       "total_comp": "TOTAL COMPUTATION TOKENS",
-      "est_usage": "ESTIMATED USAGE STATUS"
+      "est_usage": "ESTIMATED USAGE STATUS",
+      "started": "STARTED",
+      "finished": "FINISHED",
+      "duration": "DURATION"
     }
   },
   ar: {
@@ -69,7 +72,10 @@ const resources = {
       "link": "رابط الاتصال",
       "workspace": "مجلد العمل النشط",
       "total_comp": "إجمالي التوكنز الحاسوبية المعالجة",
-      "est_usage": "تقدير تكلفة الموارد الحالية"
+      "est_usage": "تقدير تكلفة الموارد الحالية",
+      "started": "بدأ العمل",
+      "finished": "تم الانتهاء",
+      "duration": "المدة الزمنية"
     }
   }
 };
