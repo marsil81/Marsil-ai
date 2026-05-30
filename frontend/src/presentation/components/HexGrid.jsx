@@ -61,6 +61,7 @@ export function HexGrid({ status, style }) {
       const driftX = Math.sin(time * 0.01) * 15;
       const driftY = Math.cos(time * 0.008) * 12;
 
+      // ── Main hex grid ──
       for (let row = 0; row < rows; row++) {
         for (let col = 0; col < cols; col++) {
           const offsetX = (row % 2 === 0) ? 0 : hexSize * 0.75;
@@ -79,6 +80,35 @@ export function HexGrid({ status, style }) {
 
           drawHex(cx, cy, hexSize * (0.8 + distFactor * 0.2), rotation + dist * 0.001, alpha);
         }
+      }
+
+      // ── Secondary smaller grid layer (counter-rotating for depth illusion) ──
+      const smallHexSize = hexSize * 0.35;
+      const smallRotation = -rotation * 0.7;
+      const smallAlpha = isActive ? 0.015 + pulse * 0.01 : 0.01;
+      for (let row = 0; row < rows * 1.5; row++) {
+        for (let col = 0; col < cols * 1.5; col++) {
+          const offsetX = (row % 2 === 0) ? 0 : smallHexSize * 0.75;
+          const cx = col * smallHexSize * 1.5 + offsetX - driftX * 0.5 + 20;
+          const cy = row * (smallHexSize * Math.sqrt(3)) * 0.5 - driftY * 0.5 + 10;
+          const dx = cx - w / 2;
+          const dy = cy - h / 2;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const maxDist = Math.max(w, h) * 0.8;
+          const distFactor = Math.max(0, 1 - dist / maxDist);
+          const alpha = smallAlpha * distFactor;
+          if (alpha < 0.002) continue;
+          drawHex(cx, cy, smallHexSize * (0.7 + distFactor * 0.3), smallRotation + dist * 0.0005, alpha);
+        }
+      }
+
+      // ── Center glow pulse ──
+      if (isActive) {
+        const centerGlow = Math.sin(time * 2) * 0.3 + 0.7;
+        ctx.fillStyle = `rgba(0, 162, 255, ${0.01 * centerGlow})`;
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2, 60 + Math.sin(time) * 10, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       animId = requestAnimationFrame(draw);

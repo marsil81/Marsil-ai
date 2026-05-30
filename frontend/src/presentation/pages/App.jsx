@@ -16,6 +16,7 @@ import { HexGrid } from '../components/HexGrid';
 import { PerfMonitor } from '../components/PerfMonitor';
 import { DataFlow } from '../components/DataFlow';
 import { AudioVisualizer } from '../components/AudioVisualizer';
+import { SparklineChart } from '../components/SparklineChart';
 import { useAgentConnection } from '../../application/useAgentConnection';
 import { useSoundEffects } from '../hooks/useSoundEffects';
 import { useVoiceSystem } from '../hooks/useVoiceSystem';
@@ -148,6 +149,11 @@ function App() {
   // Token history for sparkline (last 20 data points)
   const [tokenHistory, setTokenHistory] = useState([]);
   const tokenHistoryRef = useRef([]);
+  // CPU & RAM history for sparklines
+  const [cpuHistory, setCpuHistory] = useState([]);
+  const [ramHistory, setRamHistory] = useState([]);
+  const cpuHistoryRef = useRef([]);
+  const ramHistoryRef = useRef([]);
 
   const fetchConfig = () => {
     fetch('http://localhost:3001/api/config')
@@ -271,6 +277,15 @@ function App() {
               String(mins).padStart(2, '0') + ':' +
               String(secs).padStart(2, '0')
             );
+          }
+          // Track CPU & RAM history for sparklines
+          if (data.cpu != null) {
+            cpuHistoryRef.current = [...cpuHistoryRef.current.slice(-39), data.cpu];
+            setCpuHistory(cpuHistoryRef.current);
+          }
+          if (data.ram != null) {
+            ramHistoryRef.current = [...ramHistoryRef.current.slice(-39), data.ram];
+            setRamHistory(ramHistoryRef.current);
           }
         })
         .catch(() => {});
@@ -510,14 +525,17 @@ function App() {
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
             <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
+            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
+            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
             <div className="tech-panel-header">
               <span className="tech-header-brackets">📁 {t("workspace").toUpperCase()}</span>
               <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>D:\IRON MAN</span>
             </div>
             <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
-              <span className="tech-panel-badge">[SECURE LINK]</span>
-              <span className="tech-panel-badge">[READ-ONLY]</span>
-              <span className="tech-panel-badge" style={{ borderColor: 'rgba(139,92,246,0.3)', color: '#8b5cf6' }}>[GIT]</span>
+              <span className="tech-bracket-status active">SECURE LINK</span>
+              <span className="tech-bracket-status info">READ-ONLY</span>
+              <span className="tech-bracket-status" style={{ border: '1px solid rgba(139,92,246,0.3)', color: '#8b5cf6', background: 'rgba(139,92,246,0.05)' }}>GIT</span>
+              <span className={`tech-bracket-status ${isConnected ? 'active' : 'danger'}`}>{isConnected ? 'ONLINE' : 'OFFLINE'}</span>
             </div>
             <div style={{ flex: 1, overflowY: 'auto' }}>
               <FileTreeHUD onFileSelect={setSelectedFile} />
@@ -529,19 +547,26 @@ function App() {
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
             <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
+            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
+            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
             <div className="tech-panel-header">
               <span className="tech-header-brackets">⌂ {t("system_engine")}</span>
-              <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("sec")}</span>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                <span className="status-dot-bracket">
+                  <span className={`dot ${isConnected ? 'online' : 'offline'}`}></span>
+                </span>
+                <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("sec")}</span>
+              </div>
             </div>
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px', overflowY: 'auto', marginTop: '6px', fontSize: '0.55rem' }}>
               {!panelsLoaded ? <SkeletonPanel lines={6} /> : (
                 <>
-                  <div className="tech-telem-row"><span className="telem-key">SIGNAL CORE</span><span className="telem-val">{agentStatus.toUpperCase()}</span></div>
+                  <div className="tech-telem-row"><span className="telem-key">SIGNAL CORE</span><span className={`telem-val ${agentStatus !== 'idle' ? 'thinking' : ''}`} style={{ color: agentStatus !== 'idle' ? 'var(--accent)' : 'var(--text-dim)' }}>{agentStatus.toUpperCase()}</span></div>
                   <div className="tech-telem-row"><span className="telem-key">{t("mem_usage")}</span><span className="telem-val">{metrics.ram || 0}%</span></div>
                   <div className="tech-telem-row"><span className="telem-key">{t("cpu_load")}</span><span className="telem-val">{metrics.cpu || 0}%</span></div>
                   <div className="tech-telem-row"><span className="telem-key">UPTIME</span><span className="telem-val">{uptime}</span></div>
                   <div className="tech-telem-row"><span className="telem-key">{t("temp")}</span><span className="telem-val">54.8 °C</span></div>
-                  <div className="tech-telem-row"><span className="telem-key">{t("link")}</span><span className="telem-val">STABLE</span></div>
+                  <div className="tech-telem-row"><span className="telem-key">{t("link")}</span><span className="telem-val">{isConnected ? 'STABLE' : 'DOWN'}</span></div>
                   <div className="tech-telem-row"><span className="telem-key">LATENCY</span><span className="telem-val">{wsLatency != null ? `${wsLatency}ms` : '--'}</span></div>
                 </>
               )}
@@ -557,6 +582,8 @@ function App() {
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
             <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
+            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
+            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
             {selectedFile ? (
               <CodeEditor filePath={selectedFile} onClose={() => setSelectedFile(null)} />
             ) : (
@@ -578,6 +605,8 @@ function App() {
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
             <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
+            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
+            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
             <Terminal output={termOutput || []} />
           </div>
         </div>
@@ -590,10 +619,13 @@ function App() {
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
             <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
+            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
+            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
             <div className="tech-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="tech-header-brackets">⌁ TELEMETRY</span>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                <span className="tech-panel-badge">[LIVE]</span>
+                <span className="tech-bracket-status active">LIVE</span>
+                <span className="tech-bracket-status" style={{ border: '1px solid rgba(0,255,213,0.15)', color: 'var(--accent)', background: 'transparent' }}>UPTIME {uptime}</span>
                 <button onClick={clearTokens} style={{
                   background: 'transparent', border: 'none', color: 'var(--accent)',
                   fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace'
@@ -615,14 +647,32 @@ function App() {
                 </div>
               </div>
 
-              {/* Sparkline & Cost info */}
+              {/* Live CPU & RAM Sparklines */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '4px' }}>
+                <div className="sparkline-container">
+                  <div className="sparkline-header">
+                    <span>CPU LOAD</span>
+                    <span className="sparkline-value">{metrics.cpu || 0}%</span>
+                  </div>
+                  <SparklineChart data={cpuHistory} color="#00a2ff" height={28} maxDataPoints={40} />
+                </div>
+                <div className="sparkline-container">
+                  <div className="sparkline-header">
+                    <span>RAM USAGE</span>
+                    <span className="sparkline-value">{metrics.ram || 0}%</span>
+                  </div>
+                  <SparklineChart data={ramHistory} color="#00ffd5" height={28} maxDataPoints={40} />
+                </div>
+              </div>
+
+              {/* Token counts & Cost info */}
               <div style={{ borderTop: '1px solid rgba(0,255,213,0.1)', paddingTop: '6px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', marginBottom: '4px' }}>
-                  <div className="tech-cell">
+                  <div className="tech-cell enhanced">
                     <span className="tech-cell-label">TOKENS IN</span>
                     <span className="tech-cell-value">{(tokenData.tokensIn || 0).toLocaleString()}</span>
                   </div>
-                  <div className="tech-cell">
+                  <div className="tech-cell enhanced">
                     <span className="tech-cell-label">TOKENS OUT</span>
                     <span className="tech-cell-value">{(tokenData.tokensOut || 0).toLocaleString()}</span>
                   </div>
@@ -675,6 +725,8 @@ function App() {
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
             <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
+            <span className="corner-bracket-ext cbe-tl" /><span className="corner-bracket-ext cbe-tr" />
+            <span className="corner-bracket-ext cbe-bl" /><span className="corner-bracket-ext cbe-br" />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px', marginBottom: '6px', cursor: 'default' }}>
               <span className="tech-header-brackets" style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>

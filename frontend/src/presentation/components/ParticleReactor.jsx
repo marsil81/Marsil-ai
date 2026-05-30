@@ -53,6 +53,14 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       { label: 'ERR', value: '0', angle: Math.PI * 1.625, distance: 2.15 },
     ];
 
+    // Orbiting mini-ring parameters for enhanced Jarvis-style depth
+    const orbitRings = [
+      { radius: 0.5, speed: 0.002, dash: [3, 6], width: 1.5, alpha: 0.12 },
+      { radius: 0.7, speed: -0.0015, dash: [8, 12], width: 1, alpha: 0.08 },
+      { radius: 1.25, speed: 0.001, dash: [15, 20], width: 2, alpha: 0.1 },
+      { radius: 1.5, speed: -0.0008, dash: [5, 15], width: 1.2, alpha: 0.06 },
+    ];
+
     function resize() {
       dpr = window.devicePixelRatio || 1;
       const w = window.innerWidth;
@@ -265,6 +273,18 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       ctx.arc(centerX, centerY, baseRadius * 0.4, 0, Math.PI * 2);
       ctx.stroke();
 
+      // ═══ ORBITING MINI-RINGS (Jarvis-style depth layers) ═══
+      for (const orbit of orbitRings) {
+        const orbitRadius = baseRadius * orbit.radius;
+        const orbitOffset = Date.now() * orbit.speed;
+        ctx.setLineDash(orbit.dash);
+        ctx.lineDashOffset = orbitOffset * 60;
+        ctx.strokeStyle = `rgba(0, 210, 255, ${orbit.alpha * (1 + amplitude * 0.5)})`;
+        ctx.lineWidth = orbit.width;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, orbitRadius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
       ctx.setLineDash([]);
 
       // ═══ JARVIS-STYLE REACTOR CORE — Enhanced with multi-layered glow ═══
@@ -332,7 +352,7 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // ═══ FLOATING STATS READOUTS (Jarvis-style) — Enhanced with bracket decorations ═══
+      // ═══ FLOATING STATS READOUTS (Jarvis-style) — Enhanced with animated bracket decorations ═══
       const floatPhase = now * 0.0008;
       for (const stat of statsReadouts) {
         const drift = Math.sin(floatPhase + stat.angle) * 6;
@@ -342,11 +362,11 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
         // Background pill for readability
         const labelWidth = ctx.measureText(stat.label).width || 20;
         const valWidth = ctx.measureText(stat.value).width || 20;
-        const pillW = Math.max(labelWidth, valWidth) + 16;
-        const pillH = 28;
-        ctx.fillStyle = `rgba(0, 5, 15, ${0.3 + amplitude * 0.2})`;
-        ctx.strokeStyle = `rgba(0, 210, 255, ${0.1 + amplitude * 0.1})`;
-        ctx.lineWidth = 0.5;
+        const pillW = Math.max(labelWidth, valWidth) + 18;
+        const pillH = 30;
+        ctx.fillStyle = `rgba(0, 5, 15, ${0.35 + amplitude * 0.25})`;
+        ctx.strokeStyle = `rgba(0, 210, 255, ${0.12 + amplitude * 0.12})`;
+        ctx.lineWidth = 0.8;
         const rx = sx - pillW / 2;
         const ry = sy - pillH / 2 + 2;
         // Rounded rect
@@ -364,18 +384,21 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
         ctx.fill();
         ctx.stroke();
 
-        // Bracket decoration left
-        ctx.font = '6px monospace';
-        ctx.fillStyle = `rgba(0, 210, 255, ${0.2 + amplitude * 0.15})`;
+        // Animated bracket decorations — left
+        ctx.font = '7px monospace';
+        ctx.fillStyle = `rgba(0, 210, 255, ${0.25 + amplitude * 0.2 + Math.sin(now * 0.003 + stat.angle) * 0.1})`;
         ctx.textAlign = 'center';
-        ctx.fillText('[', rx - 1, sy + 3);
+        ctx.shadowColor = 'rgba(0, 210, 255, 0.2)';
+        ctx.shadowBlur = 3;
+        ctx.fillText('┃', rx - 1, sy + 3);
 
         // Bracket decoration right
-        ctx.fillText(']', rx + pillW + 1, sy + 3);
+        ctx.fillText('┃', rx + pillW + 1, sy + 3);
+        ctx.shadowBlur = 0;
 
         // Label
         ctx.font = 'bold 8px Orbitron, monospace';
-        ctx.fillStyle = `rgba(0, 210, 255, ${0.5 + amplitude * 0.3})`;
+        ctx.fillStyle = `rgba(0, 210, 255, ${0.55 + amplitude * 0.3})`;
         ctx.shadowColor = 'rgba(0, 210, 255, 0.3)';
         ctx.shadowBlur = 4;
         ctx.textAlign = 'center';

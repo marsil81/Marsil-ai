@@ -30,14 +30,6 @@
 
 ## Next Evolution Waves
 
-### Wave 2 — Advanced Reactivity & Data Visualization
-- [ ] Real-time CPU/memory history charts with auto-scaling axes
-- [ ] Network bandwidth monitor with live throughput graph
-- [ ] Agent response time histogram
-- [ ] Token usage trend chart with cost projection
-- [ ] Animated radar sweep in SystemStatus component
-- [ ] File tree with syntax-highlighted preview and git status colors
-
 ### Wave 3 — Immersive Cybernetic Experience
 - [ ] Cybernetic sound effects on all interactions (hover, click, toggle)
 - [ ] Screen shake effect on errors or critical events
@@ -45,6 +37,9 @@
 - [ ] Animated holographic projection effect for modals
 - [ ] 3D perspective tilt on mouse movement (parallax HUD)
 - [ ] Ambient neon glow particles floating across the screen
+- [ ] Network bandwidth monitor with live throughput graph
+- [ ] Agent response time histogram
+- [ ] Token usage trend chart with cost projection
 
 ### Wave 4 — Smart Agent Integration
 - [ ] Real-time agent thought process display with streaming JSON parser
@@ -53,6 +48,7 @@
 - [ ] Git branch visualization with commit graph
 - [ ] Agent memory usage and context window monitor
 - [ ] Multi-agent conversation view with split-screen support
+- [ ] File tree with syntax-highlighted preview and git status colors
 
 ### Wave 5 — Performance & Polish
 - [ ] Canvas rendering optimization (off-screen caching, dirty rect tracking)
