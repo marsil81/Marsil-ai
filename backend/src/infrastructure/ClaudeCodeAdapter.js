@@ -196,9 +196,13 @@ class ClaudeCodeAdapter {
                 '--verbose',
                 '--output-format', 'stream-json',
                 '--no-session-persistence',
-                '--dangerously-skip-permissions',
                 '--model', this.config.model
             ];
+
+            // Make --dangerously-skip-permissions conditional for security hardening
+            if (process.env.MARSIL_SKIP_PERMISSIONS !== 'false' && this.config.skipPermissions !== false) {
+                args.push('--dangerously-skip-permissions');
+            }
 
             const isWin = process.platform === 'win32';
             const command = isWin ? 'claude.cmd' : 'claude';

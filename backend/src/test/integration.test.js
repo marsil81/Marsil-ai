@@ -1,8 +1,8 @@
 /**
  * 🌐 MARSIL AI - API REST Integration Test Suite
  * ====================================================
- * Automatically spins up a secure test server instance, 
- * hits primary API endpoints, and validates JSON schemas.
+ * Automatically spins up the real secure Express server instance,
+ * hits primary API endpoints, and validates live JSON schemas.
  * 
  * Run with:
  *   node src/test/integration.test.js
@@ -10,8 +10,7 @@
 
 const assert = require('assert');
 const http = require('http');
-const express = require('express');
-const { safePath } = require('../utils/PathSafety');
+const { app, loadConfig } = require('../presentation/Server');
 
 // ANSI Colors
 const COLORS = {
@@ -40,64 +39,57 @@ console.log(`${COLORS.cyan}${COLORS.bright}=====================================
 console.log(`   🌐  MARSIL AI - API INTEGRATION TEST SUITE`);
 console.log(`===================================================${COLORS.reset}\n`);
 
-// Create a simulated Express environment for testing routes
-const app = express();
-app.use(express.json());
-
-// Set up mock routes mirroring Server.js
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', uptime: 120, ready: true });
-});
-
-app.get('/api/status', (req, res) => {
-  res.json({ claudeAvailable: true, provider: 'anthropic', ready: true });
-});
-
-app.get('/api/metrics', (req, res) => {
-  res.json({ cpu: '2.5', ram: '45.2', uptime: 120 });
-});
-
-// Run a dummy server on high port 3099
+// Run the real server on high port 3099 for testing
 const TEST_PORT = 3099;
 const testServer = http.createServer(app);
 
-testServer.listen(TEST_PORT, () => {
-  // We use Node's native http module to make real local requests for validation!
+testServer.listen(TEST_PORT, async () => {
+  // Initialize real config before running requests
+  await loadConfig();
   
   const get = (path) => {
     return new Promise((resolve, reject) => {
       http.get(`http://localhost:${TEST_PORT}${path}`, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
-        res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(data) }));
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, body: JSON.parse(data) });
+          } catch (e) {
+            reject(new Error(`Failed to parse JSON response from ${path}: ${data}`));
+          }
+        });
       }).on('error', reject);
     });
   };
 
   async function runSuite() {
     try {
-      // Test 1: Health Endpoint Check
+      // Test 1: Real Health Endpoint Check
       const healthRes = await get('/api/health');
-      test('GET /api/health should return status 200 and ok', () => {
+      test('GET /api/health should return status 200 and real app payload', () => {
         assert.strictEqual(healthRes.status, 200);
         assert.strictEqual(healthRes.body.status, 'ok');
-        assert.strictEqual(healthRes.body.ready, true);
+        assert.ok(typeof healthRes.body.uptime === 'number');
+        assert.ok(healthRes.body.timestamp > 0);
       });
 
-      // Test 2: Engine Status Check
-      const statusRes = await get('/api/status');
-      test('GET /api/status should report active provider status', () => {
-        assert.strictEqual(statusRes.status, 200);
-        assert.strictEqual(statusRes.body.provider, 'anthropic');
-        assert.strictEqual(statusRes.body.claudeAvailable, true);
+      // Test 2: Real Engine Proxy Status Check
+      const proxyStatusRes = await get('/api/proxy/status');
+      test('GET /api/proxy/status should report live target model and port config', () => {
+        assert.strictEqual(proxyStatusRes.status, 200);
+        assert.strictEqual(proxyStatusRes.body.proxyPort, 3002);
+        assert.ok(typeof proxyStatusRes.body.provider === 'string');
+        assert.ok(typeof proxyStatusRes.body.model === 'string');
       });
 
-      // Test 3: System Metrics Feed
+      // Test 3: Real System Metrics Feed
       const metricsRes = await get('/api/metrics');
-      test('GET /api/metrics should supply CPU and RAM percentages', () => {
+      test('GET /api/metrics should supply live CPU and RAM percentages', () => {
         assert.strictEqual(metricsRes.status, 200);
-        assert.ok(parseFloat(metricsRes.body.cpu) > 0);
-        assert.ok(parseFloat(metricsRes.body.ram) > 0);
+        assert.ok(parseFloat(metricsRes.body.cpu) >= 0);
+        assert.ok(parseFloat(metricsRes.body.ram) >= 0);
+        assert.ok(typeof metricsRes.body.uptime === 'number');
       });
 
     } catch (e) {

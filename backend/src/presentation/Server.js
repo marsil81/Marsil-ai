@@ -431,18 +431,22 @@ process.on('unhandledRejection', (reason) => {
     logger.error('Unhandled rejection', { message: reason?.message || String(reason) });
 });
 
-// ── Start ────────────────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, async () => {
-    await loadConfig();
-    try {
-        await anthropicProxy.start(3002);
-    } catch (err) {
-        logger.error('Failed to start local Anthropic-to-OpenAI proxy on port 3002', { message: err.message });
-    }
-    const status = claudeCode.isAvailable()
-        ? `Claude Code ${claudeCode.version} ✓`
-        : `Claude Code NOT FOUND — install with: npm i -g @anthropic-ai/claude-code`;
-    logger.info(`Marsil Backend → http://localhost:${PORT}`);
-    logger.info(`Engine: ${status}`);
-});
+// ── Start & Exports ──────────────────────────────────────────────────────────
+if (require.main === module) {
+    const PORT = process.env.PORT || 3001;
+    server.listen(PORT, async () => {
+        await loadConfig();
+        try {
+            await anthropicProxy.start(3002);
+        } catch (err) {
+            logger.error('Failed to start local Anthropic-to-OpenAI proxy on port 3002', { message: err.message });
+        }
+        const status = claudeCode.isAvailable()
+            ? `Claude Code ${claudeCode.version} ✓`
+            : `Claude Code NOT FOUND — install with: npm i -g @anthropic-ai/claude-code`;
+        logger.info(`Marsil Backend → http://localhost:${PORT}`);
+        logger.info(`Engine: ${status}`);
+    });
+}
+
+module.exports = { app, server, loadConfig };
