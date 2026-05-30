@@ -509,6 +509,7 @@ function App() {
           <div className="tech-panel ide-panel left-top-pane">
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
+            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
             <div className="tech-panel-header">
               <span className="tech-header-brackets">📁 {t("workspace").toUpperCase()}</span>
               <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>D:\IRON MAN</span>
@@ -516,6 +517,7 @@ function App() {
             <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
               <span className="tech-panel-badge">[SECURE LINK]</span>
               <span className="tech-panel-badge">[READ-ONLY]</span>
+              <span className="tech-panel-badge" style={{ borderColor: 'rgba(139,92,246,0.3)', color: '#8b5cf6' }}>[GIT]</span>
             </div>
             <div style={{ flex: 1, overflowY: 'auto' }}>
               <FileTreeHUD onFileSelect={setSelectedFile} />
@@ -526,6 +528,7 @@ function App() {
           <div className="tech-panel ide-panel left-bottom-pane">
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
+            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
             <div className="tech-panel-header">
               <span className="tech-header-brackets">⌂ {t("system_engine")}</span>
               <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("sec")}</span>
@@ -539,6 +542,7 @@ function App() {
                   <div className="tech-telem-row"><span className="telem-key">UPTIME</span><span className="telem-val">{uptime}</span></div>
                   <div className="tech-telem-row"><span className="telem-key">{t("temp")}</span><span className="telem-val">54.8 °C</span></div>
                   <div className="tech-telem-row"><span className="telem-key">{t("link")}</span><span className="telem-val">STABLE</span></div>
+                  <div className="tech-telem-row"><span className="telem-key">LATENCY</span><span className="telem-val">{wsLatency != null ? `${wsLatency}ms` : '--'}</span></div>
                 </>
               )}
             </div>
@@ -552,6 +556,7 @@ function App() {
           <div className="tech-panel ide-panel mid-top-pane" style={{ padding: 0 }}>
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
+            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
             {selectedFile ? (
               <CodeEditor filePath={selectedFile} onClose={() => setSelectedFile(null)} />
             ) : (
@@ -572,6 +577,7 @@ function App() {
           <div className="tech-panel ide-panel mid-bottom-pane" style={{ padding: 0 }}>
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
+            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
             <Terminal output={termOutput || []} />
           </div>
         </div>
@@ -583,6 +589,7 @@ function App() {
           <div className="tech-panel ide-panel" style={{ flex: 1.1, minHeight: 0 }}>
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
+            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
             <div className="tech-panel-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span className="tech-header-brackets">⌁ TELEMETRY</span>
               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -624,7 +631,7 @@ function App() {
                 {tokenHistory.length > 1 && (
                   <div style={{ marginTop: '6px', marginBottom: '6px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                      <span style={{ fontSize: '0.38rem', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>TOKEN FLOW SPARKLINE</span>
+                      <span className="tech-header-brackets" style={{ fontSize: '0.38rem', letterSpacing: '0.5px' }}>TOKEN FLOW SPARKLINE</span>
                       <span style={{ fontSize: '0.38rem', color: 'var(--accent)' }}>{(tokenData.totalTokens || 0).toLocaleString()} TOTAL</span>
                     </div>
                     <div style={{ height: '24px', display: 'flex', alignItems: 'flex-end', gap: '1px', position: 'relative' }}>
@@ -667,10 +674,11 @@ function App() {
           <div className="tech-panel ide-panel right-chat-pane" style={{ flex: 1.9, minHeight: 0 }}>
             <div className="panel-scan" />
             <span className="corner-tr" /><span className="corner-bl" />
+            <div className="arwes-frame"><span className="af-line af-t"></span><span className="af-line af-r"></span><span className="af-line af-b"></span><span className="af-line af-l"></span></div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '4px', marginBottom: '6px', cursor: 'default' }}>
               <span className="tech-header-brackets" style={{ fontFamily: 'Orbitron', fontSize: '0.58rem', letterSpacing: '1.5px', color: 'var(--primary)' }}>◉ {t("directives")}</span>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <span className="tech-panel-badge">{agentStatus === 'idle' ? '[STANDBY]' : '[ACTIVE]'}</span>
+                <span className="tech-panel-badge" style={{ animation: agentStatus !== 'idle' ? 'badgePulse 1s ease-in-out infinite' : 'none' }}>{agentStatus === 'idle' ? '[STANDBY]' : agentStatus === 'thinking' ? '[PROCESSING]' : agentStatus === 'executing_tool' ? '[EXECUTING]' : '[ACTIVE]'}</span>
                 {chatHistory.length > 0 && (
                   <button onClick={clearChat} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '0.45rem', cursor: 'pointer', fontFamily: 'monospace' }}>{t("clear") || "CLEAR"}</button>
                 )}

@@ -1139,6 +1139,138 @@ body { background: var(--bg); color: var(--text); font-family: 'Share Tech Mono'
   );
 }
 
+/* ═══ ENHANCED ARWES-STYLE DIAGONAL CORNER FRAME ANIMATIONS ═══ */
+/* Self-drawing animated corner brackets that trace the panel border on hover */
+.tech-panel .arwes-frame {
+  position: absolute; inset: -1px; pointer-events: none; z-index: 3;
+  opacity: 0; transition: opacity 0.4s ease;
+}
+.tech-panel:hover .arwes-frame { opacity: 1; }
+
+.tech-panel .arwes-frame .af-line {
+  position: absolute;
+  background: linear-gradient(90deg, var(--accent), transparent);
+  transition: all 0.6s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+.tech-panel .arwes-frame .af-t {
+  top: -1px; left: 0; height: 1px; width: 0;
+}
+.tech-panel:hover .arwes-frame .af-t {
+  width: 100%; transition-delay: 0s;
+}
+.tech-panel .arwes-frame .af-r {
+  top: 0; right: -1px; width: 1px; height: 0;
+  background: linear-gradient(180deg, var(--accent), transparent);
+}
+.tech-panel:hover .arwes-frame .af-r {
+  height: 100%; transition-delay: 0.15s;
+}
+.tech-panel .arwes-frame .af-b {
+  bottom: -1px; right: 0; height: 1px; width: 0;
+  background: linear-gradient(270deg, var(--accent), transparent);
+}
+.tech-panel:hover .arwes-frame .af-b {
+  width: 100%; transition-delay: 0.3s;
+}
+.tech-panel .arwes-frame .af-l {
+  top: 0; left: -1px; width: 1px; height: 0;
+  background: linear-gradient(0deg, var(--accent), transparent);
+}
+.tech-panel:hover .arwes-frame .af-l {
+  height: 100%; transition-delay: 0.45s;
+}
+
+/* ═══ ENHANCED CYBERNETIC GLOW PULSE ON ACTIVE ELEMENTS ═══ */
+@keyframes glowPulseIntense {
+  0%, 100% { box-shadow: 0 0 5px var(--primary-glow), 0 0 10px var(--primary-glow); }
+  50% { box-shadow: 0 0 15px var(--primary-intense), 0 0 30px var(--primary-glow), 0 0 60px rgba(0,162,255,0.15); }
+}
+.glow-pulse-intense {
+  animation: glowPulseIntense 2s ease-in-out infinite;
+}
+
+/* ═══ CYBERNETIC DATA SCROLLER — animated scrolling text for telemetry ═══ */
+@keyframes dataScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+.data-scroller {
+  overflow: hidden;
+  white-space: nowrap;
+  position: relative;
+}
+.data-scroller-inner {
+  display: inline-block;
+  animation: dataScroll 20s linear infinite;
+  padding-right: 0;
+}
+.data-scroller-inner::after {
+  content: attr(data-content);
+  margin-left: 0;
+}
+
+/* ═══ HOLOGRAPHIC PROJECTION EFFECT for modals ═══ */
+@keyframes hologramFlicker {
+  0%, 100% { opacity: 1; }
+  2% { opacity: 0.85; }
+  4% { opacity: 1; }
+  19% { opacity: 1; }
+  20% { opacity: 0.9; }
+  21% { opacity: 1; }
+  60% { opacity: 1; }
+  61% { opacity: 0.92; }
+  62% { opacity: 1; }
+  63% { opacity: 0.95; }
+  64% { opacity: 1; }
+}
+.hologram {
+  animation: hologramFlicker 8s infinite;
+}
+
+/* ═══ NEON BORDER GRADIENT ANIMATION for premium panels ═══ */
+@keyframes borderGradientShift {
+  0% { border-color: rgba(0, 162, 255, 0.3); }
+  25% { border-color: rgba(0, 255, 213, 0.25); }
+  50% { border-color: rgba(139, 92, 246, 0.2); }
+  75% { border-color: rgba(0, 255, 213, 0.25); }
+  100% { border-color: rgba(0, 162, 255, 0.3); }
+}
+.border-shift {
+  animation: borderGradientShift 6s ease-in-out infinite;
+}
+
+/* ═══ MATRIX RAIN EFFECT for terminal background ═══ */
+.matrix-bg {
+  position: relative;
+  overflow: hidden;
+}
+.matrix-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 213, 0.008) 2px,
+    rgba(0, 255, 213, 0.008) 3px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ═══ ENHANCED SPIN ANIMATION for loading states ═══ */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.spin-animation {
+  animation: spin 1s linear infinite;
+}
+.spin-slow {
+  animation: spin 3s linear infinite;
+}
+
 /* ═══ CYBERNETIC IDE 3-COLUMN GRID LAYOUT ═══ */
 .ide-layout-container {
   display: flex;

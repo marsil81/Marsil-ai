@@ -103,7 +103,7 @@ export function AudioVisualizer({ isListening, isSpeaking, agentStatus, size = 9
       ctx.stroke();
 
       if (isListening) {
-        // ── USER SPEAKING (12-bar circular spectrogram) ──
+        // ── USER SPEAKING (12-bar circular spectrogram with enhanced glow) ──
         if (analyserRef.current) {
           analyserRef.current.getByteFrequencyData(freqArray);
           for (let i = 0; i < 12; i++) {
@@ -114,6 +114,20 @@ export function AudioVisualizer({ isListening, isSpeaking, agentStatus, size = 9
             levels[i] = 0.15 + Math.sin(phase + i) * Math.cos(phase * 0.7 + i) * 0.4;
           }
         }
+
+        // Draw outer glow ring
+        let avgLevel = 0;
+        for (let i = 0; i < 12; i++) avgLevel += levels[i];
+        avgLevel /= 12;
+
+        ctx.shadowColor = 'rgba(0, 255, 213, 0.15)';
+        ctx.shadowBlur = 8;
+        ctx.strokeStyle = `rgba(0, 255, 213, ${0.05 + avgLevel * 0.15})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(cx, cy, size * 0.47, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
 
         // Draw bars with gradient glow
         for (let i = 0; i < 12; i++) {
@@ -144,10 +158,6 @@ export function AudioVisualizer({ isListening, isSpeaking, agentStatus, size = 9
         ctx.shadowBlur = 0;
 
         // Central glowing core
-        let avgLevel = 0;
-        for (let i = 0; i < 12; i++) avgLevel += levels[i];
-        avgLevel /= 12;
-
         const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, size * 0.2);
         grad.addColorStop(0, `rgba(0, 255, 213, ${0.4 + avgLevel * 0.5})`);
         grad.addColorStop(0.5, `rgba(0, 200, 200, ${0.15 + avgLevel * 0.2})`);
@@ -158,11 +168,13 @@ export function AudioVisualizer({ isListening, isSpeaking, agentStatus, size = 9
         ctx.fill();
 
       } else if (isSpeaking) {
-        // ── AI SPEAKING (multi-frequency Siri-style waves) ──
+        // ── AI SPEAKING (multi-frequency Siri-style waves with enhanced spectrum) ──
         const waves = [
           { freq: 0.2, amp: size * 0.16, color: 'rgba(0, 184, 255, 0.7)', speed: 1.5 },
           { freq: 0.35, amp: size * 0.09, color: 'rgba(0, 255, 213, 0.6)', speed: 2.5 },
           { freq: 0.15, amp: size * 0.2, color: 'rgba(138, 43, 226, 0.4)', speed: 1.0 },
+          { freq: 0.5, amp: size * 0.05, color: 'rgba(255, 51, 85, 0.25)', speed: 3.0 },
+          { freq: 0.08, amp: size * 0.12, color: 'rgba(0, 162, 255, 0.3)', speed: 0.8 },
         ];
 
         for (const w of waves) {

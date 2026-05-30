@@ -47,6 +47,10 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       { label: 'VLT', value: '11.9V', angle: Math.PI * 0.75, distance: 1.9 },
       { label: 'TKN', value: '0', angle: Math.PI * 1.25, distance: 1.9 },
       { label: 'MEM', value: '64%', angle: Math.PI * 1.75, distance: 1.9 },
+      { label: 'FPS', value: '60', angle: Math.PI * 0.125, distance: 2.15 },
+      { label: 'UP', value: '00:00', angle: Math.PI * 0.625, distance: 2.15 },
+      { label: 'REQ', value: '0', angle: Math.PI * 1.125, distance: 2.15 },
+      { label: 'ERR', value: '0', angle: Math.PI * 1.625, distance: 2.15 },
     ];
 
     function resize() {
@@ -110,12 +114,14 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       offCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
       offCtx.clearRect(0, 0, w / dpr, h / dpr);
 
-      // Enhanced concentric rings — more rings for a richer Jarvis-style reactor
+      // Enhanced concentric rings — 9 rings for a richer Jarvis-style reactor
       const ringRadii = [
-        baseRadius * 1.45, baseRadius * 1.35, baseRadius * 1.15,
-        baseRadius * 0.95, baseRadius * 0.85, baseRadius * 0.6, baseRadius * 0.4
+        baseRadius * 1.55, baseRadius * 1.45, baseRadius * 1.35, baseRadius * 1.15,
+        baseRadius * 0.95, baseRadius * 0.85, baseRadius * 0.6, baseRadius * 0.4,
+        baseRadius * 0.25
       ];
       const ringStyles = [
+        { w: 0.8, a: 0.06 },
         { w: 1.5, a: 0.12 },
         { w: 3, a: 0.28 },
         { w: 4, a: 0.38 },
@@ -123,6 +129,7 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
         { w: 2.5, a: 0.22 },
         { w: 2, a: 0.2 },
         { w: 1.5, a: 0.15 },
+        { w: 1, a: 0.1 },
       ];
       for (let i = 0; i < ringRadii.length; i++) {
         const r = ringRadii[i];
@@ -134,16 +141,16 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
         offCtx.stroke();
       }
 
-      // Enhanced tick marks — two rings of ticks for richer HUD aesthetic
-      for (let ring = 0; ring < 2; ring++) {
-        const tickRadius = ring === 0 ? baseRadius * 1.35 : baseRadius * 0.95;
-        const tickCount = ring === 0 ? 72 : 36;
-        const majorEvery = ring === 0 ? 6 : 4;
+      // Enhanced tick marks — three rings of ticks for richer HUD aesthetic
+      for (let ring = 0; ring < 3; ring++) {
+        const tickRadius = ring === 0 ? baseRadius * 1.35 : ring === 1 ? baseRadius * 0.95 : baseRadius * 0.6;
+        const tickCount = ring === 0 ? 72 : ring === 1 ? 36 : 24;
+        const majorEvery = ring === 0 ? 6 : ring === 1 ? 4 : 3;
         for (let i = 0; i < tickCount; i++) {
           const a = (Math.PI * 2 * i) / tickCount;
           const isMaj = i % majorEvery === 0;
           const r1 = tickRadius;
-          const r2 = isMaj ? tickRadius + (ring === 0 ? 10 : 7) : tickRadius + (ring === 0 ? 5 : 3);
+          const r2 = isMaj ? tickRadius + (ring === 0 ? 10 : ring === 1 ? 7 : 5) : tickRadius + (ring === 0 ? 5 : ring === 1 ? 3 : 2);
           offCtx.beginPath();
           offCtx.moveTo(centerX + Math.cos(a) * r1, centerY + Math.sin(a) * r1);
           offCtx.lineTo(centerX + Math.cos(a) * r2, centerY + Math.sin(a) * r2);
@@ -151,6 +158,20 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
           offCtx.lineWidth = isMaj ? 2 : 0.8;
           offCtx.stroke();
         }
+      }
+
+      // Draw cardinal direction labels (N, S, E, W)
+      const cardLabels = ['N', 'S', 'E', 'W'];
+      const cardAngles = [-Math.PI / 2, Math.PI / 2, 0, Math.PI];
+      for (let c = 0; c < cardLabels.length; c++) {
+        const ca = cardAngles[c];
+        const lx = centerX + Math.cos(ca) * (baseRadius * 1.55 + 16);
+        const ly = centerY + Math.sin(ca) * (baseRadius * 1.55 + 16);
+        offCtx.font = 'bold 7px Orbitron, monospace';
+        offCtx.fillStyle = 'rgba(0, 210, 255, 0.12)';
+        offCtx.textAlign = 'center';
+        offCtx.textBaseline = 'middle';
+        offCtx.fillText(cardLabels[c], lx, ly);
       }
 
       offscreenDirty = false;
@@ -194,11 +215,13 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       const spinAngle2 = -(Date.now() * 0.001);
       const spinAngle3 = (Date.now() * 0.0004);
       const spinAngle4 = -(Date.now() * 0.0008);
+      const spinAngle5 = (Date.now() * 0.0003);
       const arcStyles = [
         { r: baseRadius * 1.15, w: 4, a: 0.38, start: spinAngle1, end: spinAngle1 + Math.PI * 1.6 },
         { r: baseRadius * 0.6, w: 2, a: 0.2, start: spinAngle2, end: spinAngle2 + Math.PI * 0.9 },
         { r: baseRadius * 1.45, w: 2, a: 0.15, start: spinAngle3, end: spinAngle3 + Math.PI * 0.7 },
         { r: baseRadius * 0.4, w: 1.5, a: 0.18, start: spinAngle4, end: spinAngle4 + Math.PI * 1.2 },
+        { r: baseRadius * 0.85, w: 1.5, a: 0.12, start: spinAngle5, end: spinAngle5 + Math.PI * 0.6 },
       ];
       for (const s of arcStyles) {
         ctx.beginPath();
@@ -231,6 +254,15 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(centerX, centerY, baseRadius * 1.45, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Extra dashed ring — innermost
+      ctx.setLineDash([5, 10]);
+      ctx.lineDashOffset = spinAngle4 * 40;
+      ctx.strokeStyle = `rgba(0, 210, 255, 0.08)`;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, baseRadius * 0.4, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.setLineDash([]);
@@ -273,6 +305,14 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
       ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(centerX, centerY, accentRingRadius, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // Tertiary glow ring — cyan
+      const tertiaryRingRadius = innerRadius * 2.4;
+      ctx.strokeStyle = `rgba(0, 210, 255, ${0.05 + amplitude * 0.04})`;
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, tertiaryRingRadius, 0, Math.PI * 2);
       ctx.stroke();
 
       // Central white dot with enhanced glow
@@ -323,6 +363,15 @@ export function ParticleReactor({ status, onVisualizerRef, style }) {
         ctx.closePath();
         ctx.fill();
         ctx.stroke();
+
+        // Bracket decoration left
+        ctx.font = '6px monospace';
+        ctx.fillStyle = `rgba(0, 210, 255, ${0.2 + amplitude * 0.15})`;
+        ctx.textAlign = 'center';
+        ctx.fillText('[', rx - 1, sy + 3);
+
+        // Bracket decoration right
+        ctx.fillText(']', rx + pillW + 1, sy + 3);
 
         // Label
         ctx.font = 'bold 8px Orbitron, monospace';
