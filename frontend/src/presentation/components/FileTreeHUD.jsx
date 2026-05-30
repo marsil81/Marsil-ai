@@ -61,14 +61,14 @@ function GitBranchSelector() {
     <div style={{
       marginBottom: '8px',
       padding: '6px 8px',
-      background: 'rgba(0,162,255,0.04)',
-      border: '1px solid rgba(0,162,255,0.12)',
+      background: 'rgba(255, 255, 255, 0.02)',
+      border: '1px solid var(--border)',
       borderRadius: '4px',
       position: 'relative',
-      transition: 'border-color 0.3s ease',
+      transition: 'border-color 0.2s ease, background-color 0.2s ease',
     }}
-      onMouseEnter={(e) => e.currentTarget.style.borderColor = 'rgba(0,255,213,0.25)'}
-      onMouseLeave={(e) => e.currentTarget.style.borderColor = 'rgba(0,162,255,0.12)'}
+      onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.16)'; e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.03)'; }}
+      onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.02)'; }}
     >
       <div style={{
         display: 'flex', alignItems: 'center', gap: '6px',
@@ -76,8 +76,8 @@ function GitBranchSelector() {
       }}>
         <GitBranch size={10} style={{ color: 'var(--accent)' }} />
         <span style={{
-          fontSize: '0.45rem', color: 'var(--text-dim)',
-          letterSpacing: '1px', flex: 1,
+          fontSize: '0.48rem', color: 'var(--text-dim)',
+          letterSpacing: '0.5px', flex: 1, fontFamily: "'Outfit', sans-serif", fontWeight: '700'
         }}>
           BRANCH
         </span>
@@ -96,16 +96,19 @@ function GitBranchSelector() {
         disabled={loading}
         style={{
           width: '100%',
-          background: 'rgba(0,0,0,0.4)',
-          border: '1px solid rgba(0,255,213,0.15)',
+          background: 'rgba(15, 23, 42, 0.65)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           color: 'var(--text)',
-          fontFamily: "'Share Tech Mono', monospace",
-          fontSize: '0.55rem',
-          padding: '3px 4px',
+          fontFamily: "'Outfit', sans-serif",
+          fontSize: '0.6rem',
+          padding: '4px 6px',
           borderRadius: '3px',
           outline: 'none',
           cursor: 'pointer',
+          transition: 'border-color 0.2s',
         }}
+        onFocus={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)'}
+        onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
       >
         {branches.map(b => (
           <option key={b.name} value={b.name}>
@@ -131,9 +134,10 @@ function GitBranchSelector() {
         }} title="Delete current branch"
           style={{
             background: 'transparent', border: 'none',
-            color: '#ef4444', cursor: 'pointer',
-            padding: '1px', display: 'flex', marginTop: '3px',
-            fontSize: '0.45rem', gap: '3px', alignItems: 'center',
+            color: 'var(--danger)', cursor: 'pointer',
+            padding: '1px', display: 'flex', marginTop: '4px',
+            fontSize: '0.48rem', gap: '3px', alignItems: 'center',
+            fontFamily: "'Outfit', sans-serif", fontWeight: '600',
           }}>
           <Trash2 size={8} /> DELETE BRANCH
         </button>
@@ -246,16 +250,16 @@ export function FileTreeHUD({ onFileSelect }) {
             onContextMenu={(e) => handleContextMenu(e, node)}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
-              fontSize: '0.65rem', color: 'var(--text)', padding: '3px 0',
-              fontFamily: 'monospace', transition: 'color 0.15s, background 0.2s',
-              borderRadius: '3px', paddingLeft: '4px',
+              fontSize: '0.65rem', color: 'var(--text)', padding: '4px 6px',
+              fontFamily: "'Outfit', sans-serif", fontWeight: '500', transition: 'color 0.15s, background 0.2s',
+              borderRadius: '4px',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--accent)'; e.currentTarget.style.background = 'rgba(0,255,213,0.04)'; }}
+            onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'transparent'; }}
           >
-            {isExp ? <ChevronDown size={11} style={{color: 'var(--accent)'}} /> : <ChevronRight size={11} style={{color: 'var(--accent)'}} />}
-            {isExp ? <FolderOpen size={12} style={{ color: 'var(--primary)' }} /> : <FolderClosed size={12} style={{ color: 'var(--primary)' }} />}
-            <span>{node.name.toUpperCase()}</span>
+            {isExp ? <ChevronDown size={11} style={{color: 'rgba(255,255,255,0.4)'}} /> : <ChevronRight size={11} style={{color: 'rgba(255,255,255,0.4)'}} />}
+            {isExp ? <FolderOpen size={12} style={{ color: 'var(--accent)' }} /> : <FolderClosed size={12} style={{ color: 'var(--accent)' }} />}
+            <span>{node.name}</span>
           </div>
           {isExp && node.children && node.children.map(child => renderNode(child))}
         </div>
@@ -268,15 +272,15 @@ export function FileTreeHUD({ onFileSelect }) {
           onContextMenu={(e) => handleContextMenu(e, node)}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '22px',
-            fontSize: '0.6rem', color: 'var(--text-dim)', padding: '2px 4px',
-            cursor: 'pointer', fontFamily: 'monospace',
+            fontSize: '0.62rem', color: 'var(--text-dim)', padding: '4px 6px',
+            cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
             transition: 'color 0.2s ease, background 0.2s',
-            borderRadius: '3px',
+            borderRadius: '4px',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--primary)'; e.currentTarget.style.background = 'rgba(0,162,255,0.04)'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
         >
-          <FileText size={10} style={{ color: 'rgba(0, 255, 213, 0.5)' }} />
+          <FileText size={10} style={{ color: 'rgba(255, 255, 255, 0.3)' }} />
           <span>{node.name}</span>
         </div>
       );
@@ -296,26 +300,26 @@ export function FileTreeHUD({ onFileSelect }) {
           placeholder="Search files..."
           style={{
             width: '100%',
-            background: 'rgba(0,100,250,0.05)',
-            border: '1px solid rgba(0,162,255,0.15)',
+            background: 'rgba(15, 23, 42, 0.65)',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
             color: 'var(--text)',
-            fontFamily: "'Share Tech Mono', monospace",
-            fontSize: '0.5rem',
-            padding: '3px 6px',
-            borderRadius: '3px',
+            fontFamily: "'Outfit', sans-serif",
+            fontSize: '0.62rem',
+            padding: '5px 8px',
+            borderRadius: '4px',
             outline: 'none',
             transition: 'border-color 0.2s',
           }}
-          onFocus={(e) => { e.target.style.borderColor = 'var(--accent)'; e.target.style.boxShadow = '0 0 8px rgba(0,255,213,0.15)'; }}
-          onBlur={(e) => { e.target.style.borderColor = 'rgba(0,162,255,0.15)'; e.target.style.boxShadow = 'none'; }}
+          onFocus={(e) => { e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)'; }}
+          onBlur={(e) => { e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'; }}
         />
         {filter && (
           <button
             onClick={() => setFilter('')}
             style={{
-              position: 'absolute', right: '4px', top: '50%', transform: 'translateY(-50%)',
+              position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)',
               background: 'transparent', border: 'none', color: 'var(--text-dim)',
-              cursor: 'pointer', fontSize: '0.45rem', padding: '2px',
+              cursor: 'pointer', fontSize: '0.55rem', padding: '2px',
             }}
           >
             ✕
@@ -324,14 +328,15 @@ export function FileTreeHUD({ onFileSelect }) {
       </div>
 
       {/* New File Button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '4px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '6px' }}>
         <button onClick={handleNewFile} style={{
-          background: 'transparent', border: '1px solid var(--accent)', color: 'var(--accent)',
-          fontSize: '0.45rem', padding: '2px 6px', borderRadius: '3px', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: '2px', transition: 'all 0.2s',
+          background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border)', color: 'var(--text)',
+          fontSize: '0.55rem', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', gap: '3px', transition: 'all 0.2s',
+          fontFamily: "'Outfit', sans-serif", fontWeight: '600',
         }}
-          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(0,255,213,0.08)'; }}
-          onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
         >
           <Plus size={8} /> NEW FILE
         </button>
@@ -374,12 +379,12 @@ export function FileTreeHUD({ onFileSelect }) {
           top: contextMenu.y,
           left: contextMenu.x,
           zIndex: 9999,
-          background: 'rgba(5,10,25,0.95)',
-          backdropFilter: 'blur(12px)',
-          border: '1px solid rgba(0,255,213,0.2)',
+          background: 'rgba(15, 23, 42, 0.98)',
+          backdropFilter: 'blur(16px)',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
           borderRadius: '6px',
           padding: '4px',
-          boxShadow: '0 0 20px rgba(0,0,0,0.5)',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
           minWidth: '140px',
         }}>
           {!contextMenu.node.isDirectory && (
@@ -394,14 +399,14 @@ export function FileTreeHUD({ onFileSelect }) {
               </div>
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '2px 0' }} />
               <div onClick={() => { handleDeleteFile(contextMenu.node.path); setContextMenu(null); }}
-                style={{ ...contextItemStyle, color: '#ef4444' }}>
+                style={{ ...contextItemStyle, color: 'var(--danger)' }}>
                 <Trash2 size={10} /> DELETE
               </div>
             </>
           )}
           {contextMenu.node.isDirectory && (
             <div style={{ ...contextItemStyle, color: 'var(--text-dim)', cursor: 'default' }}>
-              {contextMenu.node.name.toUpperCase()}
+              {contextMenu.node.name}
             </div>
           )}
         </div>
@@ -412,6 +417,7 @@ export function FileTreeHUD({ onFileSelect }) {
 
 const contextItemStyle = {
   display: 'flex', alignItems: 'center', gap: '8px',
-  padding: '6px 10px', fontSize: '0.6rem', color: 'var(--text-dim)',
-  cursor: 'pointer', borderRadius: '4px', fontFamily: "'Share Tech Mono', monospace",
+  padding: '6px 10px', fontSize: '0.62rem', color: 'var(--text-dim)',
+  cursor: 'pointer', borderRadius: '4px', fontFamily: "'Outfit', sans-serif",
+  fontWeight: '500',
 };

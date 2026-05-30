@@ -81,7 +81,7 @@ const resources = {
 };
 
 i18n.use(initReactI18next).init({
-  resources, lng: "ar", fallbackLng: "ar",
+  resources, lng: "en", fallbackLng: "en",
   interpolation: { escapeValue: false }
 });
 
