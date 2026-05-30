@@ -78,6 +78,17 @@ This ensures perfect typographic connection, supreme visual flow, and a premium 
 
 ---
 
+## ⚡ Playground Demo Mode (Offline Testing)
+
+To enable developers to test and experience the Marsil AI interface completely offline and without incurring any API token costs, MARSIL AI features a built-in, high-fidelity **Playground Demo Mode**.
+
+### What does it do?
+- **Zero Token Cost:** Bypasses real Claude Code CLI/DeepSeek executions and routes queries through a state-of-the-art simulator (`DemoAdapter`).
+- **Rich Interactive Telemetry:** Simulates real-time tool logs, deep-thinking animations, shell executions, and detailed developer dialogues.
+- **Toggle via UI Settings:** Open the **Settings Modal** (⚙ AI PROVIDER SETTINGS) and switch the `PLAYGROUND DEMO MODE` toggle. Saving instantly enables or disables the offline simulation environment.
+
+---
+
 ## 📂 Core Technical Blueprint Reference
 
 For rapid inspection of our clean architecture, security policies, and production deployment assets, navigate the repository through these direct links:
