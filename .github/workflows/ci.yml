@@ -1,0 +1,47 @@
+# =======================================================
+# 🛡️ MARSIL AI - Continuous Integration (CI) Workflow
+# =======================================================
+
+name: Security & Verification CI
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install Monorepo Root Dependencies
+        run: npm ci
+
+      - name: Install Backend Modules
+        run: |
+          cd backend
+          npm ci
+
+      - name: Run Automated Security Test Suite
+        run: |
+          cd backend
+          npm test
+
+      - name: Verify Backend Compilation & Lint
+        run: |
+          cd backend
+          npm run lint:check
