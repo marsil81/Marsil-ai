@@ -1,13 +1,14 @@
 {
-  "name": "marsil-assistant",
+  "name": "marsil-ai",
   "version": "1.0.0-beta.1",
-  "description": "Marsil AI Desktop Coding Assistant powered by DeepSeek",
+  "description": "Marsil AI Desktop Coding & Development Assistant",
   "main": "main.js",
   "scripts": {
     "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "start:backend": "cd backend && npm start",
     "start:frontend": "cd frontend && npm run dev",
     "desktop": "electron .",
+    "stop": "node stop.js",
     "test": "npm run test:backend",
     "test:backend": "cd backend && npm test",
     "typecheck": "cd backend && npm run typecheck",

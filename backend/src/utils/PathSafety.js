@@ -1,9 +1,10 @@
 const path = require('path');
+const fs = require('fs');
 
 const WORKSPACE_ROOT = path.resolve(__dirname, '../../..');
 
 /**
- * Validates and sanitizes a relative path to prevent directory traversal attacks.
+ * Validates and sanitizes a relative path to prevent directory traversal and symlink attacks.
  * Denies any paths resolving outside of the workspace directory.
  * 
  * @param {string} relativePath 
@@ -13,13 +14,39 @@ function safePath(relativePath) {
     if (!relativePath || typeof relativePath !== 'string') {
         throw new Error('Invalid path: must be a non-empty string');
     }
-    const resolved = path.resolve(WORKSPACE_ROOT, relativePath);
-    const resolvedLower = resolved.toLowerCase();
-    const workspaceLower = WORKSPACE_ROOT.toLowerCase();
     
-    if (!resolvedLower.startsWith(workspaceLower)) {
+    // 1. Resolve standard absolute path
+    const resolved = path.resolve(WORKSPACE_ROOT, relativePath);
+    
+    // 2. Resolve the real path of the workspace root (unveiling symbolic links)
+    const realWorkspaceRoot = fs.existsSync(WORKSPACE_ROOT) 
+        ? fs.realpathSync(WORKSPACE_ROOT) 
+        : WORKSPACE_ROOT;
+        
+    // 3. Resolve the real path of the target or its closest existing parent directory
+    let realTarget = resolved;
+    if (fs.existsSync(resolved)) {
+        realTarget = fs.realpathSync(resolved);
+    } else {
+        let current = path.dirname(resolved);
+        while (current && current !== path.dirname(current)) {
+            if (fs.existsSync(current)) {
+                const realParent = fs.realpathSync(current);
+                realTarget = path.join(realParent, path.relative(current, resolved));
+                break;
+            }
+            current = path.dirname(current);
+        }
+    }
+    
+    // 4. Enforce strict prefix checking on real paths
+    const targetLower = realTarget.toLowerCase();
+    const workspaceLower = realWorkspaceRoot.toLowerCase();
+    
+    if (!targetLower.startsWith(workspaceLower)) {
         throw new Error('Path traversal outside workspace denied');
     }
+    
     return resolved;
 }
 

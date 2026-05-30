@@ -1,6 +1,13 @@
-# 🌌 MARSIL AI — Sleek Desktop Coding & Development Assistant
+# 🌌 MARSIL AI — Sleek Local Coding & Development Assistant
 
-MARSIL AI is an enterprise-grade, high-comfort desktop coding companion and automated development assistant. Built for maximum developer productivity, it merges a spacious, widescreen GitHub-style user experience with smart dynamic AI reasoning, real-time workspace telemetries, and secure local terminal simulation.
+> 💡 **Welcome to Marsil AI!**
+> 1. **What is it?** A premium, local web-and-desktop user interface designed to pilot **Claude Code CLI** and major LLMs (DeepSeek, OpenAI, Ollama) on your local machine.
+> 2. **Desktop or Web?** Marsil AI runs as a highly responsive local web application (Vite + Express) and contains an optional native Electron desktop shell wrapper for a distraction-free widescreen experience.
+> 3. **Quick Run:** Clone the repository, run `npm run install-all`, and launch with `npm start` to get up and running in under 3 minutes!
+
+---
+
+MARSIL AI is an enterprise-grade, high-comfort coding companion and automated development assistant. Built for maximum developer productivity, it merges a spacious, widescreen GitHub-style user experience with smart dynamic AI reasoning, real-time workspace telemetries, and secure local terminal simulation.
 
 Moving completely away from complex sci-fi overlays, MARSIL AI features a **sleek, high-legibility layout** designed to minimize distraction, enhance dialogues, and let you write code and execute commands at lightning speed.
 
@@ -40,6 +47,10 @@ graph TD
 ### Standard Native Start (100% Safe)
 To initialize the servers and install all dependencies:
 ```bash
+# Clone the repository
+git clone https://github.com/marsil81/Marsil-ai.git
+cd Marsil-ai
+
 # Install root, frontend, and backend packages concurrently
 npm run install-all
 
@@ -116,7 +127,8 @@ To enable developers to test and experience the Marsil AI interface completely o
 MARSIL AI is engineered from the ground up for developers and enterprises working on highly sensitive or proprietary algorithms where code leakage is completely unacceptable.
 
 - **Zero-Data Leakage Guarantee:** Fully supports local offline LLM providers like **Ollama**. When connected locally, 100% of your source code, system directories, and chat interactions remain within your physical loopback interface (`localhost`), with absolutely no external telemetry or cloud exposures.
-- **AES-256 Credential Sealing:** All third-party provider API keys are dynamically encrypted using a high-security AES-256-CBC engine with a locally generated unique machine salt (`.server_secret`). Config files written to disk are completely sealed, preventing unauthorized memory or storage snooping.
+- **AES-256-GCM Credential Sealing:** All third-party provider API keys are dynamically encrypted using a high-security AES-256-GCM (Authenticated Encryption with Associated Data) engine, preventing unauthorized storage snooping and ensuring full integrity.
+- **Isolated Machine Secret Storage:** The server encryption secret key (`.server_secret`) is securely stored inside OS-level local AppData directories (`%APPDATA%/Marsil` or `~/.config/marsil`), separating active keys from source code directories to prevent accidental repository commits.
 - **Sandboxed IPC Boundary:** The Electron application shell employs context-isolated preload scripts to bridge communication between the UI and system APIs, enforcing a strict boundary that neutralizes common web-app attack vectors.
 
 ---
@@ -131,4 +143,3 @@ For rapid inspection of our clean architecture, security policies, and productio
 * **🐳 Production Deployment:** [Dockerfile](./Dockerfile) & [docker-compose.yml](./docker-compose.yml)
 * **🤖 CI Automation:** [GitHub Actions Workflow (.github/workflows/ci.yml)](./.github/workflows/ci.yml)
 * **🧪 Regression & Integration Verification:** [Automated Test Suite (backend/src/test/)](./backend/src/test/)
-

@@ -15,6 +15,7 @@ const anthropicProxy = require('../infrastructure/AnthropicProxy');
 const logger = require('../infrastructure/Logger');
 const { safePath, WORKSPACE_ROOT } = require('../utils/PathSafety');
 const cryptoHelper = require('../utils/CryptoHelper');
+const validation = require('../utils/Validation');
 
 // ── Standardized Error Helper ─────────────────────────────────────────────────────
 function apiError(res, status, code, message) {
@@ -154,28 +155,26 @@ app.get('/api/config', async (req, res) => {
 app.post('/api/config', async (req, res) => {
     const body = req.body || {};
     
-    // ── Input Validation ──────────────────────────────────────────────────────────
-    if (body.provider && !['anthropic', 'openai', 'deepseek', 'gemini', 'ollama'].includes(body.provider)) {
+    // ── Centralized Input Validation & SSRF Prevention ─────────────────────────────
+    if (body.provider && !validation.isValidProvider(body.provider)) {
         return res.status(400).json({ error: { code: 'INVALID_PROVIDER', message: `Invalid provider: "${body.provider}". Supported: anthropic, openai, deepseek, gemini, ollama` } });
     }
-    if (body.budget !== undefined && (typeof body.budget !== 'number' || body.budget < 0)) {
+    if (body.budget !== undefined && !validation.isValidBudget(body.budget)) {
         return res.status(400).json({ error: { code: 'INVALID_BUDGET', message: 'Budget must be a non-negative number' } });
     }
     if (body.baseUrl) {
-        try {
-            const parsedUrl = new URL(body.baseUrl);
-            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-                return res.status(400).json({ error: { code: 'INVALID_BASE_URL', message: 'Base URL protocol must be http or https' } });
-            }
-        } catch {
-            return res.status(400).json({ error: { code: 'INVALID_BASE_URL', message: 'Base URL must be a valid absolute URL (e.g. https://api.anthropic.com)' } });
+        if (!validation.isValidBaseUrl(body.baseUrl)) {
+            return res.status(400).json({ error: { code: 'INVALID_BASE_URL', message: 'Base URL must be a valid absolute URL (http/https)' } });
+        }
+        
+        // Strict SSRF Mitigation: Block AWS/Google cloud metadata endpoints
+        const urlObj = new URL(body.baseUrl);
+        if (urlObj.hostname === '169.254.169.254') {
+            return res.status(400).json({ error: { code: 'SSRF_BLOCKED', message: 'Access to cloud metadata endpoints is strictly forbidden' } });
         }
     }
-    if (body.model) {
-        const modelRegex = /^[a-zA-Z0-9.:\-_/]+$/;
-        if (!modelRegex.test(body.model)) {
-            return res.status(400).json({ error: { code: 'INVALID_MODEL', message: 'Model name contains invalid or unsafe characters' } });
-        }
+    if (body.model && !validation.isValidModelName(body.model)) {
+        return res.status(400).json({ error: { code: 'INVALID_MODEL', message: 'Model name contains invalid or unsafe characters' } });
     }
 
     const existing = await loadConfig();
@@ -411,6 +410,15 @@ async function shutdown(signal) {
         client.close(1001, 'Server shutting down');
     });
     anthropicProxy.stop();
+    
+    try {
+        const fsSync = require('fs');
+        const pidPath = path.join(__dirname, '../../.marsil.pid');
+        if (fsSync.existsSync(pidPath)) {
+            fsSync.unlinkSync(pidPath);
+        }
+    } catch {}
+
     server.close(() => {
         logger.info('Server closed.');
         process.exit(0);
@@ -436,6 +444,15 @@ if (require.main === module) {
     const PORT = process.env.PORT || 3001;
     server.listen(PORT, async () => {
         await loadConfig();
+        
+        // Write surgical PID file to avoid generic port-killing issues
+        try {
+            const pidPath = path.join(__dirname, '../../.marsil.pid');
+            await fs.writeFile(pidPath, String(process.pid));
+        } catch (err) {
+            logger.error('Failed to write PID file:', { message: err.message });
+        }
+
         try {
             await anthropicProxy.start(3002);
         } catch (err) {
