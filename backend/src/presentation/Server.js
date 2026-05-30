@@ -442,7 +442,8 @@ process.on('unhandledRejection', (reason) => {
 // ── Start & Exports ──────────────────────────────────────────────────────────
 if (require.main === module) {
     const PORT = process.env.PORT || 3001;
-    server.listen(PORT, async () => {
+    const HOST = process.env.HOST || '127.0.0.1'; // Enforce loopback binding for security hardening (5.2)
+    server.listen(PORT, HOST, async () => {
         await loadConfig();
         
         // Write surgical PID file to avoid generic port-killing issues
@@ -461,7 +462,7 @@ if (require.main === module) {
         const status = claudeCode.isAvailable()
             ? `Claude Code ${claudeCode.version} ✓`
             : `Claude Code NOT FOUND — install with: npm i -g @anthropic-ai/claude-code`;
-        logger.info(`Marsil Backend → http://localhost:${PORT}`);
+        logger.info(`Marsil Backend → http://${HOST}:${PORT}`);
         logger.info(`Engine: ${status}`);
     });
 }
