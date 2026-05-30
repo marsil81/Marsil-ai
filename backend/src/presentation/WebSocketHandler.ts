@@ -1,46 +1,72 @@
-const os = require('os');
-const agentService = require('../application/AgentService');
-const logger = require('../infrastructure/Logger');
+/**
+ * ⚡ MARSIL AI - Secure TypeScript WebSocket Connection Handler
+ * =============================================================
+ * Handles real-time telemetry streaming, keepalive checks, and
+ * shields the agent service with strict input sanitization.
+ */
 
-// ── Input Validation ────────────────────────────────────────────────────────────
+import os from 'os';
+import WebSocket from 'ws';
+import agentService from '../application/AgentService';
+import logger from '../infrastructure/Logger';
+import { ClientMessage } from '../types/WebSocket';
+
 const MAX_MESSAGE_SIZE = 1024 * 100; // 100KB max per WebSocket message
 const MAX_TEXT_LENGTH = 10000;       // 10K chars max for chat text (enhanced rate-limiting security)
-const ALLOWED_TYPES = ['chat', 'abort', 'pong'];
+const ALLOWED_TYPES: string[] = ['chat', 'abort', 'pong'];
 
-function validateMessage(msg) {
-    if (!msg || typeof msg !== 'object') return { valid: false, error: 'Message must be a JSON object' };
-    if (!msg.type || !ALLOWED_TYPES.includes(msg.type)) return { valid: false, error: `Invalid message type: "${msg.type}"` };
+interface ValidationResult {
+    valid: boolean;
+    error?: string;
+}
+
+export function validateMessage(msg: any): ValidationResult {
+    if (!msg || typeof msg !== 'object') {
+        return { valid: false, error: 'Message must be a JSON object' };
+    }
+    if (!msg.type || !ALLOWED_TYPES.includes(msg.type)) {
+        return { valid: false, error: `Invalid message type: "${msg.type}"` };
+    }
     if (msg.type === 'chat') {
-        if (typeof msg.text !== 'string') return { valid: false, error: 'Chat text must be a string' };
-        if (msg.text.length > MAX_TEXT_LENGTH) return { valid: false, error: `Chat text exceeds ${MAX_TEXT_LENGTH} characters` };
+        if (typeof msg.text !== 'string') {
+            return { valid: false, error: 'Chat text must be a string' };
+        }
+        if (msg.text.length > MAX_TEXT_LENGTH) {
+            return { valid: false, error: `Chat text exceeds ${MAX_TEXT_LENGTH} characters` };
+        }
     }
     return { valid: true };
 }
 
-class WebSocketHandler {
-    handleConnection(ws) {
+export class WebSocketHandler {
+    public handleConnection(ws: WebSocket): void {
         agentService.setWebSocketClient(ws);
         let isAlive = true;
 
-        ws.on('message', async (message) => {
+        ws.on('message', async (message: WebSocket.Data) => {
+            const messageStr = message.toString();
+
             // Enforce message size limit
-            if (Buffer.byteLength(message, 'utf-8') > MAX_MESSAGE_SIZE) {
+            if (Buffer.byteLength(messageStr, 'utf-8') > MAX_MESSAGE_SIZE) {
                 ws.send(JSON.stringify({ type: 'error', message: `Message exceeds ${MAX_MESSAGE_SIZE / 1024}KB limit` }));
                 return;
             }
+
             try {
-                const msg = JSON.parse(message);
+                const msg = JSON.parse(messageStr) as ClientMessage;
                 const validation = validateMessage(msg);
                 if (!validation.valid) {
                     ws.send(JSON.stringify({ type: 'error', message: validation.error }));
                     return;
                 }
+
                 if (msg.type === 'pong') {
                     isAlive = true;
                     return;
                 }
+
                 if (msg.type === 'chat') {
-                    const reply = await agentService.processUserMessage(msg.text, false, msg.lang || 'en');
+                    const reply = await agentService.processUserMessage(msg.text || '', false, msg.lang || 'en');
                     if (reply) {
                         ws.send(JSON.stringify({ type: 'chat_reply', text: reply }));
                     }
@@ -97,4 +123,4 @@ class WebSocketHandler {
     }
 }
 
-module.exports = new WebSocketHandler();
+export default new WebSocketHandler();

@@ -134,6 +134,7 @@ export function SettingsModal({ onClose }) {
   const [customUrl,   setCustomUrl]   = useState('');
   const [customModel, setCustomModel] = useState('');
   const [budget,      setBudget]      = useState(0);
+  const [demoMode,    setDemoMode]    = useState(false);
   const [showKey,     setShowKey]     = useState(false);
   const [saved,       setSaved]       = useState(false);
   const [hasKey,      setHasKey]      = useState(false);
@@ -152,6 +153,7 @@ export function SettingsModal({ onClose }) {
         setModel(c.model || '');
         setHasKey(c.hasKey || false);
         setBudget(c.budget || 0);
+        setDemoMode(c.demoMode || false);
         setClaudeAvailable(c.claudeAvailable || false);
         setClaudeVersion(c.claudeVersion || null);
         if (prov === 'custom') setCustomUrl(c.baseUrl || '');
@@ -178,6 +180,7 @@ export function SettingsModal({ onClose }) {
       provider,
       model: provider === 'custom' ? customModel : model,
       budget: Number(budget) || 0,
+      demoMode: !!demoMode,
       baseUrl: provider === 'custom' ? customUrl : (providerDef.baseUrl || null),
     };
     if (apiKey.trim()) body.apiKey = apiKey;
@@ -386,6 +389,45 @@ export function SettingsModal({ onClose }) {
             💰 Pricing: ${COST_PER_M_IN[model]}/M input tokens · ${COST_PER_M_OUT[model]}/M output tokens
           </div>
         )}
+
+        {/* Playground Demo Mode */}
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '12px 14px', borderRadius: '8px', marginBottom: '20px',
+          background: 'rgba(0,255,213,0.03)',
+          border: '1px solid rgba(0,255,213,0.15)',
+        }}>
+          <div>
+            <div style={{ fontFamily: 'Orbitron', fontSize: '0.7rem', color: 'var(--primary)', letterSpacing: '1px' }}>
+              ⚡ PLAYGROUND DEMO MODE
+            </div>
+            <div style={{ fontSize: '0.55rem', color: 'var(--text-dim)', marginTop: '3px' }}>
+              Simulates Claude Code offline streaming logs without consuming real API tokens
+            </div>
+          </div>
+          <label style={{
+            position: 'relative', display: 'inline-block', width: '36px', height: '20px', cursor: 'pointer'
+          }}>
+            <input
+              type="checkbox"
+              checked={demoMode}
+              onChange={e => setDemoMode(e.target.checked)}
+              style={{ opacity: 0, width: 0, height: 0 }}
+            />
+            <span style={{
+              position: 'absolute', cursor: 'pointer', inset: 0,
+              background: demoMode ? 'var(--primary)' : 'rgba(255,255,255,0.15)',
+              borderRadius: '20px', transition: 'all 0.3s ease',
+              boxShadow: demoMode ? '0 0 10px rgba(0,255,213,0.5)' : 'none'
+            }}>
+              <span style={{
+                position: 'absolute', content: '""', height: '14px', width: '14px',
+                left: demoMode ? '18px' : '4px', bottom: '3px',
+                background: '#ffffff', borderRadius: '50%', transition: 'all 0.3s ease'
+              }} />
+            </span>
+          </label>
+        </div>
 
         {/* Budget Limit */}
         <div style={{ fontSize: '0.6rem', color: 'var(--text-dim)', marginBottom: '6px', letterSpacing: '1.5px' }}>
