@@ -2,15 +2,18 @@
   "name": "marsil-assistant",
   "version": "1.0.0-beta.1",
   "description": "Marsil AI Desktop Coding Assistant powered by DeepSeek",
+  "main": "main.js",
   "scripts": {
     "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
     "start:backend": "cd backend && npm start",
     "start:frontend": "cd frontend && npm run dev",
+    "desktop": "electron .",
     "test": "npm run test:backend",
     "test:backend": "cd backend && npm test",
     "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "electron": "^30.0.0"
   }
 }

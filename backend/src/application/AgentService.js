@@ -89,7 +89,7 @@ class AgentService {
             this.isWorking = true;
             await git.checkpoint('Auto-checkpoint before agent action');
 
-            if (!claudeCode.isAvailable()) {
+            if (!claudeCode.isAvailable() && !claudeCode.config.demoMode) {
                 this.isWorking = false;
                 this._send('agent_status', { status: 'error' });
                 this._send('log', { message: '❌ Claude Code not installed.' });
@@ -123,7 +123,13 @@ Always build clean, fully functional components with beautiful interactive glass
                 ? `${userMessage}\n\n${hudInspiration}\n\n${langInstruction}`
                 : `${MARSIL_CORE_DIRECTIVES}\n\n${hudInspiration}\n\n${langInstruction}\n\nUSER REQUEST:\n${userMessage}`;
 
-            const response = await claudeCode.run(injectedMessage, process.cwd(), this.wsClient, isAutonomous);
+            let response;
+            if (claudeCode.config.demoMode) {
+                const demoAdapter = require('../infrastructure/DemoAdapter');
+                response = await demoAdapter.run(injectedMessage, process.cwd(), this.wsClient, isAutonomous);
+            } else {
+                response = await claudeCode.run(injectedMessage, process.cwd(), this.wsClient, isAutonomous);
+            }
             this._send('agent_status', { status: 'idle' });
             this.isWorking = false;
 
@@ -212,7 +218,12 @@ Do not stop until you have successfully deployed a suite of tangible, high-quali
      * @returns {string} Abort confirmation message
      */
     abortCurrentTask() {
-        claudeCode.abort();
+        if (claudeCode.config.demoMode) {
+            const demoAdapter = require('../infrastructure/DemoAdapter');
+            demoAdapter.abort();
+        } else {
+            claudeCode.abort();
+        }
         this._send('agent_status', { status: 'idle' });
         this._send('log', { message: '🛑 Task aborted by user.' });
         return 'Task aborted.';

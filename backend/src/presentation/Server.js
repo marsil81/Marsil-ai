@@ -91,7 +91,8 @@ const DEFAULT_CONFIG = {
     apiKey:   '',
     model:    'claude-opus-4-5',
     baseUrl:  null,
-    budget:   0  // max USD budget per session (0 = unlimited)
+    budget:   0,  // max USD budget per session (0 = unlimited)
+    demoMode: false
 };
 
 async function loadConfig() {
@@ -122,6 +123,7 @@ app.get('/api/config', async (req, res) => {
         model:          config.model,
         baseUrl:        config.baseUrl,
         budget:         config.budget,
+        demoMode:       !!config.demoMode,
         hasKey:         !!config.apiKey,
         maskedKey:      config.apiKey ? '••••••••' + config.apiKey.slice(-4) : '',
         keyPrefix:      config.apiKey ? config.apiKey.slice(0, 3) + '•••' : '',
@@ -145,14 +147,15 @@ app.post('/api/config', async (req, res) => {
         apiKey:   body.apiKey   || existing.apiKey   || '',
         model:    body.model    || existing.model    || 'claude-opus-4-5',
         baseUrl:  body.baseUrl  !== undefined ? body.baseUrl : existing.baseUrl,
-        budget:   body.budget   !== undefined ? body.budget  : existing.budget || 0
+        budget:   body.budget   !== undefined ? body.budget  : existing.budget || 0,
+        demoMode: body.demoMode !== undefined ? !!body.demoMode : existing.demoMode || false
     };
     const tmpPath = `${CONFIG_PATH}.tmp`;
     await fs.writeFile(tmpPath, JSON.stringify(newConfig, null, 2));
     await fs.rename(tmpPath, CONFIG_PATH);
     claudeCode.setProviderConfig(newConfig);
     anthropicProxy.setTarget(newConfig.baseUrl, newConfig.apiKey, newConfig.model);
-    logger.info('Configuration updated', { provider: newConfig.provider, model: newConfig.model });
+    logger.info('Configuration updated', { provider: newConfig.provider, model: newConfig.model, demoMode: newConfig.demoMode });
     res.json({ success: true });
 });
 
@@ -160,11 +163,12 @@ app.post('/api/config', async (req, res) => {
 app.get('/api/status', async (req, res) => {
     const config = await loadConfig();
     res.json({
-        claudeAvailable: claudeCode.isAvailable(),
-        claudeVersion:   claudeCode.version || null,
+        claudeAvailable: claudeCode.isAvailable() || config.demoMode,
+        claudeVersion:   claudeCode.version || "marsil-demo-v1.0.0",
         provider:        config.provider,
         model:           config.model,
-        ready:           claudeCode.isAvailable() && !!config.apiKey
+        demoMode:        config.demoMode,
+        ready:           (claudeCode.isAvailable() && !!config.apiKey) || config.demoMode
     });
 });
 

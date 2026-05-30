@@ -71,12 +71,13 @@ class ClaudeCodeAdapter {
      * Update provider configuration.
      * This is called whenever the user saves settings in the UI.
      */
-    setProviderConfig({ provider, apiKey, model, baseUrl }) {
+    setProviderConfig({ provider, apiKey, model, baseUrl, demoMode }) {
         this.config = {
             provider: provider || 'anthropic',
             apiKey:   apiKey   || '',
             model:    model    || 'claude-opus-4-5',
             baseUrl:  baseUrl  || PROVIDER_URLS[provider] || null,
+            demoMode: !!demoMode
         };
     }
 
