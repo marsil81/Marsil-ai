@@ -41,6 +41,11 @@ jobs:
           cd backend
           npm test
 
+      - name: Verify TypeScript Type Safety
+        run: |
+          cd backend
+          npm run typecheck
+
       - name: Verify Backend Compilation & Lint
         run: |
           cd backend
