@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { SendHorizontal, Mic, MicOff, Volume2, VolumeX, Radio, X, Terminal as TerminalIcon, Settings, Globe, XOctagon } from 'lucide-react';
+import { SendHorizontal, Mic, MicOff, Volume2, VolumeX, Radio, X, Terminal as TerminalIcon, Settings, Globe, XOctagon, Copy } from 'lucide-react';
 import '../styles/App.css';
 import { SettingsModal } from '../components/SettingsModal';
 import { FileTreeHUD } from '../components/FileTreeHUD';
@@ -21,7 +21,7 @@ function DiagDot({ label, ok, sub }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '5px',
-      fontSize: '0.52rem',
+      fontSize: '0.68rem',
       fontWeight: '600',
       color: ok ? 'var(--text)' : 'var(--text-dim)',
       fontFamily: "'Outfit', sans-serif",
@@ -31,7 +31,7 @@ function DiagDot({ label, ok, sub }) {
       borderRadius: '4px',
     }}>
       <span style={{
-        width: '5px', height: '5px', borderRadius: '50%',
+        width: '6px', height: '6px', borderRadius: '50%',
         background: ok ? 'var(--success)' : 'var(--danger)',
         boxShadow: ok ? '0 0 6px var(--success)' : 'none',
         display: 'inline-block',
@@ -73,12 +73,12 @@ function NetworkQuality({ latency }) {
   return (
     <span style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',
-      fontSize: '0.45rem', color: 'rgba(255,255,255,0.2)',
-      fontFamily: "'Share Tech Mono', monospace",
+      fontSize: '0.65rem', color: 'rgba(255,255,255,0.25)',
+      fontFamily: "'Outfit', sans-serif",
       marginLeft: '4px',
     }}>
       <span style={{
-        width: '5px', height: '5px', borderRadius: '50%',
+        width: '6px', height: '6px', borderRadius: '50%',
         background: color,
         boxShadow: `0 0 6px ${color}`,
         display: 'inline-block',
@@ -194,15 +194,34 @@ function App() {
   const chatInputRef = useRef(chatInput);
   useEffect(() => { chatInputRef.current = chatInput; }, [chatInput]);
 
+  // Detect if text contains Arabic characters
+  const containsArabic = (text) => /[؀-ۿݐ-ݿࢠ-ࣿﭐ-﷿ﹰ-﻿]/.test(text);
+
   const handleSend = useCallback((textOverride) => {
     const textToSend = typeof textOverride === 'string' ? textOverride : chatInputRef.current;
     if (textToSend.trim()) {
       playChirp(1300, 0.08);
       if (stopListeningRef.current) stopListeningRef.current(); // SECURITY GATING
-      sendCommand(textToSend, i18n.language);
+      // Auto-detect Arabic text and switch language accordingly
+      const detectedLang = containsArabic(textToSend) ? 'ar' : 'en';
+      if (detectedLang !== i18n.language) {
+        i18n.changeLanguage(detectedLang);
+      }
+      sendCommand(textToSend, detectedLang);
       setChatInput('');
     }
   }, [playChirp, sendCommand, i18n.language]);
+  const copyConversation = useCallback(() => {
+    if (chatHistory.length === 0) return;
+    const fullText = chatHistory.map(msg => {
+      const roleName = msg.role === 'user' ? 'YOU' : 'MARSIL';
+      const time = msg.ts ? ` [${new Date(msg.ts).toLocaleTimeString('en-US', { hour12: false })}]` : '';
+      return `[${roleName}]${time}:\n${msg.content}\n`;
+    }).join('\n---\n\n');
+    navigator.clipboard.writeText(fullText);
+    addToast('Conversation copied to clipboard!', 'success', 2000);
+  }, [chatHistory, addToast]);
+
   // eslint-disable-next-line react-hooks/immutability
   useEffect(() => { handleSendRef.current = handleSend; }, [handleSend]);
 
@@ -478,13 +497,11 @@ function App() {
         
         {/* ── COLUMN 1: LEFT SIDEBAR (File Manager & System details) ── */}
         <div className="ide-column ide-left-col">
-          
-          {/* Left Top Pane: Workspace Files */}
           {/* Left Top Pane: Workspace Files */}
           <div className="workspace-panel left-top-pane">
             <div className="tech-panel-header">
               <span className="tech-header-brackets">📁 {t("workspace").toUpperCase()}</span>
-              <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>D:\IRON MAN</span>
+              <span style={{ fontSize: '0.68rem', color: 'var(--accent)' }}>D:\IRON MAN</span>
             </div>
             <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
               <span className="tech-bracket-status active">SECURE LINK</span>
@@ -505,10 +522,10 @@ function App() {
                 <span className="status-dot-bracket">
                   <span className={`dot ${isConnected ? 'online' : 'offline'}`}></span>
                 </span>
-                <span style={{ fontSize: '0.45rem', color: 'var(--accent)' }}>{t("sec")}</span>
+                <span style={{ fontSize: '0.68rem', color: 'var(--accent)' }}>{t("sec")}</span>
               </div>
             </div>
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '3px', overflowY: 'auto', marginTop: '6px', fontSize: '0.55rem' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px', overflowY: 'auto', marginTop: '6px', fontSize: '0.78rem' }}>
               {!panelsLoaded ? <SkeletonPanel lines={6} /> : (
                 <>
                   <div className="tech-telem-row"><span className="telem-key">SIGNAL CORE</span><span className={`telem-val ${agentStatus !== 'idle' ? 'thinking' : ''}`} style={{ color: agentStatus !== 'idle' ? 'var(--accent)' : 'var(--text-dim)' }}>{agentStatus.toUpperCase()}</span></div>
@@ -528,7 +545,6 @@ function App() {
         <div className="ide-column ide-mid-col">
           
           {/* Middle Top Pane: The Code Editor or central landing core */}
-          {/* Middle Top Pane: The Code Editor or central landing core */}
           <div className="workspace-panel mid-top-pane" style={{ padding: 0 }}>
             {selectedFile ? (
               <CodeEditor filePath={selectedFile} onClose={() => setSelectedFile(null)} />
@@ -536,7 +552,7 @@ function App() {
               <div className="reactor-editor-fallback">
                 <div style={{
                   position: 'absolute', top: '20px', left: '20px',
-                  fontFamily: 'Outfit, sans-serif', fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.4)',
+                  fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', color: 'rgba(255, 255, 255, 0.4)',
                   letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px'
                 }}>
                   <span>▶</span> WORKSPACE CONSOLE
@@ -558,24 +574,35 @@ function App() {
           {/* Right Bottom Pane: Conversational Chat Panel */}
           <div className="workspace-panel right-chat-pane" style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px', marginBottom: '8px', cursor: 'default' }}>
-              <span className="tech-header-brackets" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--primary)' }}>◉ {t("directives")}</span>
+              <span className="tech-header-brackets" style={{ fontFamily: 'Outfit, sans-serif', fontSize: '0.88rem', fontWeight: 'bold', color: 'var(--primary)' }}>◉ {t("directives")}</span>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {agentStatus !== 'idle' && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', color: 'var(--danger)', fontWeight: 'bold', letterSpacing: '0.5px', fontFamily: "'Outfit', sans-serif" }}>
+                    <span className="glow-pulse-intense" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--danger)', display: 'inline-block' }}></span>
+                    WORKING
+                  </span>
+                )}
                 <span className="tech-panel-badge">{agentStatus === 'idle' ? '[STANDBY]' : agentStatus === 'thinking' ? '[PROCESSING]' : agentStatus === 'executing_tool' ? '[EXECUTING]' : '[ACTIVE]'}</span>
                 {chatHistory.length > 0 && (
-                  <button onClick={clearChat} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '0.55rem', cursor: 'pointer', fontFamily: 'monospace' }}>{t("clear") || "CLEAR"}</button>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button onClick={copyConversation} style={{ display: 'flex', alignItems: 'center', gap: '3px', background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '0.68rem', cursor: 'pointer', fontFamily: 'monospace' }} title="Copy conversation text">
+                      <Copy size={11} /> COPY
+                    </button>
+                    <button onClick={clearChat} style={{ background: 'transparent', border: 'none', color: 'var(--text-dim)', fontSize: '0.68rem', cursor: 'pointer', fontFamily: 'monospace' }}>{t("clear") || "CLEAR"}</button>
+                  </div>
                 )}
               </div>
             </div>
 
             <div className="chat-msgs" style={{ flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
               {chatHistory.length === 0 && (
-                <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', letterSpacing: '0.5px', padding: '10px 0' }}>{t("placeholder_command")}</div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', letterSpacing: '0.5px', padding: '10px 0' }}>{t("placeholder_command")}</div>
               )}
               {chatHistory.map((msg, i) => (
                 <div key={i} className={`chat-msg ${msg.role === 'user' ? 'user' : 'agent'}${msg.isStreaming ? ' streaming' : ''}`}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                     <div className="chat-tag">{msg.role === 'user' ? t("you") : t("ironman")}</div>
-                    {msg.ts && <span style={{ fontSize: '0.5rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{new Date(msg.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>}
+                    {msg.ts && <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>{new Date(msg.ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>}
                   </div>
                   <div style={{ wordBreak: 'break-word', marginTop: '2px', textAlign: 'initial' }} dir="auto">
                     {msg.content}
@@ -586,7 +613,7 @@ function App() {
                       display: 'flex',
                       flexWrap: 'wrap',
                       gap: '8px',
-                      fontSize: '0.5rem',
+                      fontSize: '0.65rem',
                       color: 'var(--accent)',
                       fontFamily: 'monospace',
                       marginTop: '8px',
@@ -633,7 +660,13 @@ function App() {
                 style={{ flex: 1 }}
                 dir="auto" />
 
-              <button className="hud-btn hud-btn-icon" onClick={handleSend}><SendHorizontal size={11} /></button>
+              {agentStatus !== 'idle' ? (
+                <button className="hud-btn hud-btn-icon" onClick={abortAgent} style={{ color: 'var(--danger)', borderColor: 'rgba(239, 68, 68, 0.3)', background: 'rgba(239, 68, 68, 0.08)' }} title="Abort System/Agent">
+                  <XOctagon size={11} className="glow-pulse-intense" />
+                </button>
+              ) : (
+                <button className="hud-btn hud-btn-icon" onClick={handleSend}><SendHorizontal size={11} /></button>
+              )}
             </div>
           </div>
         </div>

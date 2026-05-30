@@ -74,9 +74,9 @@ function GitBranchSelector() {
         display: 'flex', alignItems: 'center', gap: '6px',
         marginBottom: '4px',
       }}>
-        <GitBranch size={10} style={{ color: 'var(--accent)' }} />
+        <GitBranch size={12} style={{ color: 'var(--accent)' }} />
         <span style={{
-          fontSize: '0.48rem', color: 'var(--text-dim)',
+          fontSize: '0.72rem', color: 'var(--text-dim)',
           letterSpacing: '0.5px', flex: 1, fontFamily: "'Outfit', sans-serif", fontWeight: '700'
         }}>
           BRANCH
@@ -87,7 +87,7 @@ function GitBranchSelector() {
             color: 'var(--accent)', cursor: 'pointer',
             padding: '1px', display: 'flex',
           }}>
-          <Plus size={9} />
+          <Plus size={11} />
         </button>
       </div>
       <select
@@ -100,8 +100,8 @@ function GitBranchSelector() {
           border: '1px solid rgba(255, 255, 255, 0.08)',
           color: 'var(--text)',
           fontFamily: "'Outfit', sans-serif",
-          fontSize: '0.6rem',
-          padding: '4px 6px',
+          fontSize: '0.8rem',
+          padding: '6px 10px',
           borderRadius: '3px',
           outline: 'none',
           cursor: 'pointer',
@@ -136,10 +136,10 @@ function GitBranchSelector() {
             background: 'transparent', border: 'none',
             color: 'var(--danger)', cursor: 'pointer',
             padding: '1px', display: 'flex', marginTop: '4px',
-            fontSize: '0.48rem', gap: '3px', alignItems: 'center',
+            fontSize: '0.65rem', gap: '3px', alignItems: 'center',
             fontFamily: "'Outfit', sans-serif", fontWeight: '600',
           }}>
-          <Trash2 size={8} /> DELETE BRANCH
+          <Trash2 size={10} /> DELETE BRANCH
         </button>
       )}
     </div>
@@ -250,15 +250,15 @@ export function FileTreeHUD({ onFileSelect }) {
             onContextMenu={(e) => handleContextMenu(e, node)}
             style={{
               display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer',
-              fontSize: '0.65rem', color: 'var(--text)', padding: '4px 6px',
+              fontSize: '0.85rem', color: 'var(--text)', padding: '5px 8px',
               fontFamily: "'Outfit', sans-serif", fontWeight: '500', transition: 'color 0.15s, background 0.2s',
               borderRadius: '4px',
             }}
             onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'; }}
             onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'transparent'; }}
           >
-            {isExp ? <ChevronDown size={11} style={{color: 'rgba(255,255,255,0.4)'}} /> : <ChevronRight size={11} style={{color: 'rgba(255,255,255,0.4)'}} />}
-            {isExp ? <FolderOpen size={12} style={{ color: 'var(--accent)' }} /> : <FolderClosed size={12} style={{ color: 'var(--accent)' }} />}
+            {isExp ? <ChevronDown size={14} style={{color: 'rgba(255,255,255,0.4)'}} /> : <ChevronRight size={14} style={{color: 'rgba(255,255,255,0.4)'}} />}
+            {isExp ? <FolderOpen size={15} style={{ color: 'var(--accent)' }} /> : <FolderClosed size={15} style={{ color: 'var(--accent)' }} />}
             <span>{node.name}</span>
           </div>
           {isExp && node.children && node.children.map(child => renderNode(child))}
@@ -272,7 +272,7 @@ export function FileTreeHUD({ onFileSelect }) {
           onContextMenu={(e) => handleContextMenu(e, node)}
           style={{
             display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '22px',
-            fontSize: '0.62rem', color: 'var(--text-dim)', padding: '4px 6px',
+            fontSize: '0.85rem', color: 'var(--text-dim)', padding: '5px 8px',
             cursor: 'pointer', fontFamily: "'Outfit', sans-serif",
             transition: 'color 0.2s ease, background 0.2s',
             borderRadius: '4px',
@@ -280,7 +280,7 @@ export function FileTreeHUD({ onFileSelect }) {
           onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--text)'; e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--text-dim)'; e.currentTarget.style.background = 'transparent'; }}
         >
-          <FileText size={10} style={{ color: 'rgba(255, 255, 255, 0.3)' }} />
+          <FileText size={14} style={{ color: 'rgba(255, 255, 255, 0.3)' }} />
           <span>{node.name}</span>
         </div>
       );
@@ -288,7 +288,7 @@ export function FileTreeHUD({ onFileSelect }) {
   };
 
   return (
-    <div style={{ maxHeight: '250px', overflowY: 'auto', paddingRight: '4px' }}>
+    <div style={{ maxHeight: '280px', overflowY: 'auto', paddingRight: '4px' }}>
       {/* Git Branch Selector */}
       <GitBranchSelector />
 
@@ -304,8 +304,8 @@ export function FileTreeHUD({ onFileSelect }) {
             border: '1px solid rgba(255, 255, 255, 0.08)',
             color: 'var(--text)',
             fontFamily: "'Outfit', sans-serif",
-            fontSize: '0.62rem',
-            padding: '5px 8px',
+            fontSize: '0.85rem',
+            padding: '6px 10px',
             borderRadius: '4px',
             outline: 'none',
             transition: 'border-color 0.2s',
@@ -319,7 +319,7 @@ export function FileTreeHUD({ onFileSelect }) {
             style={{
               position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)',
               background: 'transparent', border: 'none', color: 'var(--text-dim)',
-              cursor: 'pointer', fontSize: '0.55rem', padding: '2px',
+              cursor: 'pointer', fontSize: '0.75rem', padding: '2px',
             }}
           >
             ✕
@@ -331,14 +331,14 @@ export function FileTreeHUD({ onFileSelect }) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '6px' }}>
         <button onClick={handleNewFile} style={{
           background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--border)', color: 'var(--text)',
-          fontSize: '0.55rem', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer',
+          fontSize: '0.68rem', padding: '4px 10px', borderRadius: '4px', cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: '3px', transition: 'all 0.2s',
           fontFamily: "'Outfit', sans-serif", fontWeight: '600',
         }}
           onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'; e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'; }}
           onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)'; e.currentTarget.style.borderColor = 'var(--border)'; }}
         >
-          <Plus size={8} /> NEW FILE
+          <Plus size={11} /> NEW FILE
         </button>
       </div>
 
@@ -367,7 +367,7 @@ export function FileTreeHUD({ onFileSelect }) {
       {/* Tree */}
       {!loading && filteredTree.map(node => renderNode(node))}
       {!loading && filter && filteredTree.length === 0 && (
-        <div style={{ fontSize: '0.5rem', color: 'var(--text-dim)', padding: '8px 4px', textAlign: 'center' }}>
+        <div style={{ fontSize: '0.78rem', color: 'var(--text-dim)', padding: '8px 4px', textAlign: 'center' }}>
           No files matching "{filter}"
         </div>
       )}
@@ -391,16 +391,16 @@ export function FileTreeHUD({ onFileSelect }) {
             <>
               <div onClick={() => { onFileSelect(contextMenu.node.path); setContextMenu(null); }}
                 style={contextItemStyle}>
-                <FileText size={10} /> OPEN
+                <FileText size={12} /> OPEN
               </div>
               <div onClick={() => { handleRenameFile(contextMenu.node.path); setContextMenu(null); }}
                 style={contextItemStyle}>
-                <Edit3 size={10} /> RENAME
+                <Edit3 size={12} /> RENAME
               </div>
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', margin: '2px 0' }} />
               <div onClick={() => { handleDeleteFile(contextMenu.node.path); setContextMenu(null); }}
                 style={{ ...contextItemStyle, color: 'var(--danger)' }}>
-                <Trash2 size={10} /> DELETE
+                <Trash2 size={12} /> DELETE
               </div>
             </>
           )}
@@ -417,7 +417,7 @@ export function FileTreeHUD({ onFileSelect }) {
 
 const contextItemStyle = {
   display: 'flex', alignItems: 'center', gap: '8px',
-  padding: '6px 10px', fontSize: '0.62rem', color: 'var(--text-dim)',
+  padding: '6px 10px', fontSize: '0.82rem', color: 'var(--text-dim)',
   cursor: 'pointer', borderRadius: '4px', fontFamily: "'Outfit', sans-serif",
   fontWeight: '500',
 };

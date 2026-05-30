@@ -1,63 +1,77 @@
-# Marsil AI Desktop Coding Assistant
+# 🌌 MARSIL AI — Sleek Desktop Coding & Quant Assistant
 
-Marsil Assistant is a powerful desktop coding assistant powered by **DeepSeek** and **Claude Code**. It provides an integrated and seamless coding experience, offering file management, direct code editing, and intelligent problem-solving features directly from your browser.
+MARSIL AI is an enterprise-grade, high-comfort desktop coding companion and quantitative trading assistant. Built for maximum developer productivity, it merges a spacious, widescreen GitHub-style user experience with smart dynamic AI reasoning, real-time workspace telemetries, and secure local terminal simulation.
 
-## Features
+Moving completely away from complex sci-fi overlays, MARSIL AI features a **sleek, high-legibility layout** designed to minimize distraction, enhance dialogues, and let you write code and execute strategies at lightning speed.
 
-- **Agent Integration**: Seamlessly interact with DeepSeek or Claude Code.
-- **Project File Tree**: Navigate your project files easily with the built-in file tree.
-- **Code Editor**: View and modify code directly in the app.
-- **Terminal Simulator**: Keep track of commands and their outputs.
+---
 
-## Prerequisites
+## ✨ Key Features & New Identity
 
-- Node.js (v16+)
-- DeepSeek API key or Claude Code installed on your system.
+| Feature | Description | Sleek UI Implementation |
+| :--- | :--- | :--- |
+| **Widescreen Dev Comfort** | Claims massive empty margin space with a compact Top Bar and custom sidebar column widths (`430px`) for optimal dialogue legibility. | High-comfort slate translucent workspace panels. |
+| **Dynamic Bilingual Dialogue** | Seamlessly default to English interface text, while auto-detecting Arabic input to respond with beautifully rendered, disconnected-proof HSL Cairo typography. | Auto-switch direction, `Cairo` font integration. |
+| **Instant Pausing & Abort** | A glowing red pausing/abort option when active, turning the submit button into an instant command cancelation. | Glow-pulse warning status light + Abort hook. |
+| **Workspace Copy Thread** | One-click button above the dialog box to copy the entire conversation thread history instantly to your clipboard. | Compact inline `<Copy />` clipboard interface. |
+| **System Engine HUD** | Live rolling CPU and Memory sparkline charts embedded inside a compact connection status bar. | Mini-sparkline hover tooltips and latency telemetry. |
+| **Integrated IDE Panel** | Navigate files with high-readability folder nodes, filter code, and edit in-app with custom font-scale selections. | Clear file tree list items (`0.85rem` sizing). |
 
-## Installation
+---
 
-1. Clone this repository:
-   ```bash
-   git clone https://github.com/your-username/marsil-assistant.git
-   cd marsil-assistant
-   ```
+## 🛠️ Architecture Overview
 
-2. Install dependencies for the root, frontend, and backend all at once:
-   ```bash
-   npm run install-all
-   ```
+```mermaid
+graph TD
+  A["[Vite Frontend]"] <-->|Secure WebSockets| B["[Node.js Express Backend]"]
+  B <-->|Workspace File System| C["[Local Project Directory]"]
+  B <-->|Direct subprocess hooks| D["[DeepSeek / Claude Code Agent]"]
+  B <-->|System Diagnostics| E["[CPU & RAM telemetry]"]
+```
 
-3. Setup Configuration:
-   - Create a `config.json` file in the root of the project (or in the `backend` folder) based on `backend/config.example.json` to store your API keys. This file is ignored by Git to keep your keys secure.
+---
 
-## Running the Application
+## 🚀 Getting Started
 
-## Running the Application
+### Prerequisites
+- **Node.js** (v18 or higher recommended)
+- A **DeepSeek API Key** or local **Claude Code** installed.
 
-### Method A: The Standard Developer Way (Recommended & 100% Safe)
-To completely bypass Windows SmartScreen/Defender notifications and run the application natively:
-1. Initialize the servers and install all dependencies:
-   ```bash
-   npm run install-all
-   ```
-2. Start both the frontend and backend concurrently:
-   ```bash
-   npm start
-   ```
+### Standard Native Start (100% Safe)
+To initialize the servers and install all dependencies:
+```bash
+# Install root, frontend, and backend packages concurrently
+npm run install-all
 
-### Method B: Using Quick-Start Scripts (Windows Only)
-- Double-click `start.bat` to automatically install dependencies and run both servers.
-- Double-click `stop.bat` to surgically close the running servers.
+# Launch both frontend and backend dev servers
+npm start
+```
+*Standard terminal commands bypass Windows SmartScreen/Defender notifications and are 100% safe on all environments.*
+
+### Quick-Start Scripts (Windows Only)
+- **`start.bat`**: Double-click to automatically install dependencies and run both servers in parallel.
+- **`stop.bat`**: Double-click to surgically terminate all running backend and frontend processes.
 
 ---
 
 ## 🛡️ SmartScreen & Antivirus False Positives
 
-Since Marsil AI is a local developer tool that handles background terminal tasks (like managing ports, launching subprocesses, and git checkpoints), some antivirus systems or **Windows SmartScreen** may trigger a false positive warning (e.g., "Unknown Publisher" or "Unsafe Script") when running the `.bat` files directly after downloading the ZIP.
+Since MARSIL AI is a local development automation tool that runs local terminal commands, handles background ports, and makes git checkpoints, some antivirus programs or **Windows SmartScreen** may trigger a false positive alert when downloading and running `.bat` scripts directly.
 
 ### How to resolve:
-1. **Unblock the downloaded ZIP:** 
-   Right-click the downloaded `.zip` file -> Select **Properties** -> Check the **Unblock** box at the bottom -> Click **Apply** -> Extract the files.
-2. **Use Method A (Standard Terminal Commands):**
-   Simply run `npm run install-all` and `npm start` in your command line. Standard npm terminal commands do **not** trigger any security warnings and are 100% safe on all operating systems!
+1. **Unblock the ZIP**: Right-click the downloaded `.zip` file -> Select **Properties** -> Check the **Unblock** box at the bottom -> Click **Apply** -> Extract the files.
+2. **Use Standard Terminal Commands**: Simply run `npm run install-all` followed by `npm start` in your shell of choice. Standard npm terminal scripts do **not** trigger any security flags and run natively.
 
+---
+
+## 🎨 Design Systems & Custom Cairo Styling
+
+Arabic characters rendered in modern web browsers sometimes suffer from disconnecting letter-spacing glitches. MARSIL AI enforces:
+```css
+:lang(ar), [dir="rtl"] {
+  font-family: 'Cairo', 'Tajawal', sans-serif !important;
+  letter-spacing: normal !important;
+  word-spacing: normal !important;
+}
+```
+This ensures perfect typographic connection, supreme visual flow, and a premium reading layout matching professional quantitative software standards.

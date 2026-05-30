@@ -52,13 +52,13 @@ export function KeyboardShortcuts({ onClose }) {
         }}>
           <div>
             <div style={{
-              fontFamily: 'Orbitron', fontSize: '0.85rem',
-              color: 'var(--primary)', letterSpacing: '2px',
+              fontFamily: 'Outfit, sans-serif', fontSize: '0.95rem',
+              color: 'var(--primary)', letterSpacing: '0.5px', fontWeight: 'bold',
               display: 'flex', alignItems: 'center', gap: '8px',
             }}>
-              <HelpCircle size={14} /> KEYBOARD SHORTCUTS
+              <HelpCircle size={15} /> KEYBOARD SHORTCUTS
             </div>
-            <div style={{ fontSize: '0.5rem', color: 'var(--text-dim)', marginTop: '4px' }}>
+            <div style={{ fontSize: '0.65rem', color: 'var(--text-dim)', marginTop: '4px', letterSpacing: '0.5px' }}>
               SYSTEM NAVIGATION &amp; CONTROL COMMANDS
             </div>
           </div>
@@ -82,9 +82,9 @@ export function KeyboardShortcuts({ onClose }) {
                 borderRadius: '6px',
                 transition: 'background 0.15s',
               }}>
-                <Icon size={12} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                <Icon size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                 <span style={{
-                  flex: 1, fontSize: '0.6rem', color: 'var(--text-dim)',
+                  flex: 1, fontSize: '0.8rem', color: 'var(--text-dim)',
                   letterSpacing: '0.5px',
                 }}>
                   {s.desc}
@@ -93,12 +93,12 @@ export function KeyboardShortcuts({ onClose }) {
                   {s.keys.map((key, ki) => (
                     <span key={ki} style={{
                       display: 'inline-block',
-                      padding: '2px 8px',
+                      padding: '3px 9px',
                       background: 'rgba(0,255,213,0.08)',
                       border: '1px solid rgba(0,255,213,0.2)',
                       borderRadius: '4px',
                       fontFamily: "'Share Tech Mono', monospace",
-                      fontSize: '0.55rem',
+                      fontSize: '0.72rem',
                       color: 'var(--accent)',
                     }}>
                       {key}
@@ -115,7 +115,7 @@ export function KeyboardShortcuts({ onClose }) {
           marginTop: '16px', paddingTop: '12px',
           borderTop: '1px solid rgba(0,255,213,0.08)',
           textAlign: 'center',
-          fontSize: '0.45rem', color: 'rgba(0,184,255,0.3)',
+          fontSize: '0.65rem', color: 'rgba(0,184,255,0.3)',
           letterSpacing: '1px',
         }}>
           PRESS ? OR ESC TO CLOSE

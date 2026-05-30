@@ -105,7 +105,7 @@ export function Terminal({ output }) {
             <span></span><span></span><span></span>
           </div>
           <span style={{ fontWeight: 'bold' }}>marsil-cmd</span>
-          <span style={{ color: 'var(--accent)', animation: 'pulse 1.5s infinite', fontSize: '0.45rem', opacity: 0.8 }}>● active</span>
+          <span style={{ color: 'var(--accent)', animation: 'pulse 1.5s infinite', fontSize: '0.78rem', opacity: 0.8 }}>● active</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -117,12 +117,12 @@ export function Terminal({ output }) {
               background: 'transparent',
               border: `1px solid ${autoScroll ? 'var(--accent)' : 'rgba(0, 162, 255, 0.25)'}`,
               color: autoScroll ? 'var(--accent)' : 'var(--text-dim)',
-              fontSize: '0.45rem',
-              padding: '2px 6px',
+              fontSize: '0.78rem',
+              padding: '3px 8px',
               borderRadius: '3px',
               cursor: 'pointer',
               fontFamily: "'Share Tech Mono', monospace",
-              letterSpacing: '1px',
+              letterSpacing: '0.5px',
               transition: 'all 0.2s',
               display: 'flex',
               alignItems: 'center',
@@ -147,8 +147,8 @@ export function Terminal({ output }) {
               background: 'transparent',
               border: `1px solid ${showSearch ? 'var(--accent)' : 'rgba(0, 162, 255, 0.25)'}`,
               color: showSearch ? 'var(--accent)' : 'var(--text-dim)',
-              fontSize: '0.45rem',
-              padding: '2px 6px',
+              fontSize: '0.78rem',
+              padding: '3px 8px',
               borderRadius: '3px',
               cursor: 'pointer',
               fontFamily: "'Share Tech Mono', monospace",
@@ -158,7 +158,7 @@ export function Terminal({ output }) {
               transition: 'all 0.2s'
             }}
           >
-            <Search size={8} />
+            <Search size={12} />
             FIND
           </button>
         </div>
@@ -172,7 +172,7 @@ export function Terminal({ output }) {
           background: 'rgba(0,162,255,0.06)',
           borderBottom: '1px solid rgba(0,255,213,0.12)',
         }}>
-          <Search size={10} style={{ color: 'var(--text-dim)' }} />
+          <Search size={12} style={{ color: 'var(--text-dim)' }} />
           <input
             ref={searchInputRef}
             value={searchQuery}
@@ -184,12 +184,12 @@ export function Terminal({ output }) {
               border: 'none',
               color: 'var(--text)',
               fontFamily: "'Share Tech Mono', monospace",
-              fontSize: '0.6rem',
+              fontSize: '0.85rem',
               outline: 'none',
             }}
           />
           {filteredIndices && (
-            <span style={{ fontSize: '0.5rem', color: 'var(--accent)' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--accent)' }}>
               {filteredIndices.length} matches
             </span>
           )}
@@ -197,7 +197,7 @@ export function Terminal({ output }) {
             background: 'none', border: 'none', color: 'var(--text-dim)',
             cursor: 'pointer', padding: '2px', display: 'flex',
           }}>
-            <X size={10} />
+            <X size={12} />
           </button>
         </div>
       )}
@@ -257,7 +257,7 @@ export function Terminal({ output }) {
               position: 'sticky',
               bottom: '4px',
               textAlign: 'center',
-              fontSize: '0.45rem',
+              fontSize: '0.78rem',
               color: 'rgba(0,184,255,0.25)',
               cursor: 'pointer',
               padding: '2px',
