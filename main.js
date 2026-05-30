@@ -26,13 +26,13 @@ function startBackend() {
 }
 
 function createWindow() {
-    // Build premium desktop shell window matching количественные Quant standards
+    // Build premium desktop shell window matching high developer standards
     mainWindow = new BrowserWindow({
         width: 1440,
         height: 900,
         minWidth: 1024,
         minHeight: 768,
-        title: "🌌 MARSIL AI — Coding & Quant Assistant",
+        title: "🌌 MARSIL AI — Coding & Development Assistant",
         backgroundColor: '#0f172a', // Premium deep slate fallback
         webPreferences: {
             nodeIntegration: false,

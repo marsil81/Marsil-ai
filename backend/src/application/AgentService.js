@@ -191,7 +191,7 @@ Your singular directive is: DO NOT STOP after performing just one simple task! Y
 The user's UI is now mature and absolutely perfect. Under NO circumstances should you edit or modify any frontend files (including CSS, JSX, index.html, components, assets, etc.). 
 All your evolutionary focus MUST be on backend logic, optimization, and signal processing:
 1. Proxy services, API stability, WebSocket throughput, and security patches.
-2. Quant algorithms, system performance, memory leaks, and core engine heuristics.
+2. Core algorithms, system performance, memory leaks, and core engine heuristics.
 3. Automated test coverage, resolving code review feedback, and code clean-up.
 
 [CRITICAL SAFETY GUARDRAILS - DO NOT VIOLATE]
