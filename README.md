@@ -78,6 +78,28 @@ This ensures perfect typographic connection, supreme visual flow, and a premium 
 
 ---
 
+## 🛡️ Enforcing HTTPS / WSS Locally (Optional)
+
+By default, MARSIL AI runs in standard `http://` / `ws://` mode in development, while strictly enforcing secure `https://` / `wss://` mode in production. If you wish to test SSL/TLS connection paths locally, you can easily generate a self-signed certificate:
+
+1. **Generate Certificates using OpenSSL:**
+   ```bash
+   mkdir ssl
+   openssl req -nodes -new -x509 -keyout ssl/key.pem -out ssl/cert.pem -days 365
+   ```
+2. **Launch in Production Mode:**
+   Set your environment variables to production to trigger strict TLS enforcement:
+   ```bash
+   # On Windows (PowerShell)
+   $env:NODE_ENV="production"; npm start
+   
+   # On POSIX (Linux/macOS)
+   NODE_ENV=production npm start
+   ```
+   The backend server will detect `ssl/key.pem` and `ssl/cert.pem` and boot immediately in HTTPS/WSS mode on port 3001.
+
+---
+
 ## ⚡ Playground Demo Mode (Offline Testing)
 
 To enable developers to test and experience the Marsil AI interface completely offline and without incurring any API token costs, MARSIL AI features a built-in, high-fidelity **Playground Demo Mode**.

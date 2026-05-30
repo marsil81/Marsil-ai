@@ -1,4 +1,4 @@
-const { spawn, execSync } = require('child_process');
+const { spawn } = require('child_process');
 const logger = require('./Logger');
 
 // Provider base URLs for Claude Code compatibility
@@ -41,14 +41,41 @@ class ClaudeCodeAdapter {
         this._throttleTimers = {};
         this._toolCallCount = 0;
 
-        try {
-            const out = execSync('claude --version', { timeout: 5000, encoding: 'utf-8' });
-            this.version = out.trim();
-            this.available = true;
-            logger.info(`Claude Code detected: ${this.version}`);
-        } catch {
-            this.available = false;
-            logger.info('Claude Code not found on PATH');
+        this._detectClaudeCode();
+    }
+
+    /**
+     * Asynchronously detect global Claude Code installation securely without blocking the event loop or using shell.
+     * @private
+     */
+    _detectClaudeCode() {
+        const { exec, execFile } = require('child_process');
+        const isWin = process.platform === 'win32';
+        
+        if (isWin) {
+            exec('claude --version', { timeout: 4000 }, (error, stdout) => {
+                if (error) {
+                    this.available = false;
+                    this.version = null;
+                    logger.info('Claude Code not found on PATH or failed to report version.');
+                } else {
+                    this.version = stdout.trim();
+                    this.available = true;
+                    logger.info(`Claude Code detected: ${this.version}`);
+                }
+            });
+        } else {
+            execFile('claude', ['--version'], { timeout: 4000 }, (error, stdout) => {
+                if (error) {
+                    this.available = false;
+                    this.version = null;
+                    logger.info('Claude Code not found on PATH or failed to report version.');
+                } else {
+                    this.version = stdout.trim();
+                    this.available = true;
+                    logger.info(`Claude Code detected: ${this.version}`);
+                }
+            });
         }
     }
 
