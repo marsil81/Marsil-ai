@@ -75,3 +75,17 @@ Arabic characters rendered in modern web browsers sometimes suffer from disconne
 }
 ```
 This ensures perfect typographic connection, supreme visual flow, and a premium reading layout matching professional quantitative software standards.
+
+---
+
+## 📂 Core Technical Blueprint Reference
+
+For rapid inspection of our clean architecture, security policies, and production deployment assets, navigate the repository through these direct links:
+
+* **📦 Root Configuration:** [package.json](./package.json)
+* **⚙️ Backend Node.js Configuration:** [backend/package.json](./backend/package.json)
+* **🛡️ Express Backend core:** [backend/src/presentation/Server.js](./backend/src/presentation/Server.js)
+* **🐳 Production Deployment:** [Dockerfile](./Dockerfile) & [docker-compose.yml](./docker-compose.yml)
+* **🤖 CI Automation:** [GitHub Actions Workflow (.github/workflows/ci.yml)](./.github/workflows/ci.yml)
+* **🧪 Regression & Integration Verification:** [Automated Test Suite (backend/src/test/)](./backend/src/test/)
+
