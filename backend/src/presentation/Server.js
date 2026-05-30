@@ -58,7 +58,29 @@ app.use((req, res, next) => {
 const PUBLIC_DIR = path.join(__dirname, '../public');
 app.use(express.static(PUBLIC_DIR));
 
-const server = http.createServer(app);
+const fsSync = require('fs');
+const https = require('https');
+
+let server;
+const sslKeyPath = path.join(__dirname, '../../ssl/key.pem');
+const sslCertPath = path.join(__dirname, '../../ssl/cert.pem');
+
+if (fsSync.existsSync(sslKeyPath) && fsSync.existsSync(sslCertPath)) {
+    try {
+        const sslOptions = {
+            key: fsSync.readFileSync(sslKeyPath),
+            cert: fsSync.readFileSync(sslCertPath)
+        };
+        server = https.createServer(sslOptions, app);
+        logger.info('🛡️ SSL Certificate detected. Running in secure HTTPS/WSS mode.');
+    } catch (err) {
+        logger.error('Failed to start secure HTTPS server, falling back to HTTP', { message: err.message });
+        server = http.createServer(app);
+    }
+} else {
+    server = http.createServer(app);
+}
+
 const wss = new WebSocket.Server({ server });
 
 const CONFIG_PATH = path.join(__dirname, '../../config.json');
