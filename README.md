@@ -111,6 +111,16 @@ To enable developers to test and experience the Marsil AI interface completely o
 
 ---
 
+## 🔒 Enterprise Privacy & Intellectual Property (IP) Protection
+
+MARSIL AI is engineered from the ground up for developers and enterprises working on highly sensitive or proprietary algorithms where code leakage is completely unacceptable.
+
+- **Zero-Data Leakage Guarantee:** Fully supports local offline LLM providers like **Ollama**. When connected locally, 100% of your source code, system directories, and chat interactions remain within your physical loopback interface (`localhost`), with absolutely no external telemetry or cloud exposures.
+- **AES-256 Credential Sealing:** All third-party provider API keys are dynamically encrypted using a high-security AES-256-CBC engine with a locally generated unique machine salt (`.server_secret`). Config files written to disk are completely sealed, preventing unauthorized memory or storage snooping.
+- **Sandboxed IPC Boundary:** The Electron application shell employs context-isolated preload scripts to bridge communication between the UI and system APIs, enforcing a strict boundary that neutralizes common web-app attack vectors.
+
+---
+
 ## 📂 Core Technical Blueprint Reference
 
 For rapid inspection of our clean architecture, security policies, and production deployment assets, navigate the repository through these direct links:
