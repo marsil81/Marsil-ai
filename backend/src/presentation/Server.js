@@ -13,6 +13,7 @@ const gitAdapter = require('../infrastructure/GitAdapter');
 const webSocketHandler = require('./WebSocketHandler');
 const anthropicProxy = require('../infrastructure/AnthropicProxy');
 const logger = require('../infrastructure/Logger');
+const { safePath, WORKSPACE_ROOT } = require('../utils/PathSafety');
 
 // ── Standardized Error Helper ─────────────────────────────────────────────────────
 function apiError(res, status, code, message) {
@@ -57,7 +58,6 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 const CONFIG_PATH = path.join(__dirname, '../../config.json');
-const WORKSPACE_ROOT = path.resolve(__dirname, '../../..');
 
 // Default config shape — provider-based, no more "engine" toggle
 const DEFAULT_CONFIG = {
@@ -141,20 +141,6 @@ app.get('/api/status', async (req, res) => {
         ready:           claudeCode.isAvailable() && !!config.apiKey
     });
 });
-
-// ── Path Safety ──────────────────────────────────────────────────────────────
-function safePath(relativePath) {
-    if (!relativePath || typeof relativePath !== 'string') {
-        throw new Error('Invalid path: must be a non-empty string');
-    }
-    const resolved = path.resolve(WORKSPACE_ROOT, relativePath);
-    const resolvedLower = resolved.toLowerCase();
-    const workspaceLower = WORKSPACE_ROOT.toLowerCase();
-    if (!resolvedLower.startsWith(workspaceLower)) {
-        throw new Error('Path traversal outside workspace denied');
-    }
-    return resolved;
-}
 
 // ── File Tree with Caching ─────────────────────────────────────────────────────
 const fileTreeCache = { data: null, timestamp: 0 };
