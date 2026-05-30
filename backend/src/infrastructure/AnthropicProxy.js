@@ -60,7 +60,17 @@ class AnthropicProxy {
     }
 
     setTarget(baseUrl, apiKey, model) {
-        if (baseUrl) this.targetBaseUrl = baseUrl;
+        if (baseUrl) {
+            const validation = require('../utils/Validation');
+            if (!validation.isValidBaseUrl(baseUrl)) {
+                throw new Error('Invalid target base URL protocol or format');
+            }
+            const urlObj = new URL(baseUrl);
+            if (urlObj.hostname === '169.254.169.254') {
+                throw new Error('Access to cloud metadata endpoints is strictly forbidden');
+            }
+            this.targetBaseUrl = baseUrl;
+        }
         if (apiKey) this.targetApiKey = apiKey;
         if (model) this.targetModel = model;
     }
@@ -139,6 +149,17 @@ class AnthropicProxy {
                 };
 
                 let cleanUrl = this.targetBaseUrl || 'https://api.deepseek.com';
+                
+                // Double-Layer SSRF defense check (6.1)
+                const validation = require('../utils/Validation');
+                if (!validation.isValidBaseUrl(cleanUrl)) {
+                    return res.status(400).json({ error: { message: 'Invalid target base URL protocol or format' } });
+                }
+                const checkUrlObj = new URL(cleanUrl);
+                if (checkUrlObj.hostname === '169.254.169.254') {
+                    return res.status(400).json({ error: { message: 'Access to cloud metadata endpoints is strictly forbidden' } });
+                }
+
                 if (cleanUrl.endsWith('/v1')) {
                     cleanUrl = cleanUrl.slice(0, -3);
                 }
