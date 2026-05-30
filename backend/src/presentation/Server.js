@@ -54,6 +54,10 @@ app.use((req, res, next) => {
     next();
 });
 
+// Serve compiled static frontend assets in production if available
+const PUBLIC_DIR = path.join(__dirname, '../public');
+app.use(express.static(PUBLIC_DIR));
+
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 

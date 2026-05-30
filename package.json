@@ -1,6 +1,6 @@
 {
   "name": "marsil-assistant",
-  "version": "1.0.0",
+  "version": "1.0.0-beta.1",
   "description": "Marsil AI Desktop Coding Assistant powered by DeepSeek",
   "scripts": {
     "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
