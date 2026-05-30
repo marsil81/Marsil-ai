@@ -86,11 +86,13 @@ class WebSocketHandler {
         ws.on('close', () => {
             clearInterval(interval);
             isAlive = false;
+            agentService.cleanup();
         });
 
         ws.on('error', () => {
             clearInterval(interval);
             ws.terminate();
+            agentService.cleanup();
         });
     }
 }

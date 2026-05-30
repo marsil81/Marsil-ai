@@ -14,6 +14,7 @@ const webSocketHandler = require('./WebSocketHandler');
 const anthropicProxy = require('../infrastructure/AnthropicProxy');
 const logger = require('../infrastructure/Logger');
 const { safePath, WORKSPACE_ROOT } = require('../utils/PathSafety');
+const cryptoHelper = require('../utils/CryptoHelper');
 
 // ── Standardized Error Helper ─────────────────────────────────────────────────────
 function apiError(res, status, code, message) {
@@ -65,6 +66,8 @@ let server;
 const sslKeyPath = path.join(__dirname, '../../ssl/key.pem');
 const sslCertPath = path.join(__dirname, '../../ssl/cert.pem');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 if (fsSync.existsSync(sslKeyPath) && fsSync.existsSync(sslCertPath)) {
     try {
         const sslOptions = {
@@ -74,11 +77,22 @@ if (fsSync.existsSync(sslKeyPath) && fsSync.existsSync(sslCertPath)) {
         server = https.createServer(sslOptions, app);
         logger.info('🛡️ SSL Certificate detected. Running in secure HTTPS/WSS mode.');
     } catch (err) {
-        logger.error('Failed to start secure HTTPS server, falling back to HTTP', { message: err.message });
-        server = http.createServer(app);
+        if (isProduction) {
+            logger.error('🚨 CRITICAL ERROR: SSL/TLS initialization failed in PRODUCTION mode. Refusing to boot insecurely!', { message: err.message });
+            process.exit(1);
+        } else {
+            logger.error('Failed to start secure HTTPS server, falling back to HTTP in DEVELOPMENT mode', { message: err.message });
+            server = http.createServer(app);
+        }
     }
 } else {
-    server = http.createServer(app);
+    if (isProduction) {
+        logger.error('🚨 CRITICAL ERROR: SSL/TLS certificate files (key.pem, cert.pem) are missing in PRODUCTION. Mandatory wss:// is required. Boot aborted!');
+        process.exit(1);
+    } else {
+        logger.warn('⚠️ Running in INSECURE HTTP mode (development only). Secure wss:// is highly recommended for production.');
+        server = http.createServer(app);
+    }
 }
 
 const wss = new WebSocket.Server({ server });
@@ -98,7 +112,11 @@ const DEFAULT_CONFIG = {
 async function loadConfig() {
     try {
         const data = await fs.readFile(CONFIG_PATH, 'utf-8');
-        const config = { ...DEFAULT_CONFIG, ...JSON.parse(data) };
+        const parsed = JSON.parse(data);
+        if (parsed.apiKey) {
+            parsed.apiKey = cryptoHelper.decrypt(parsed.apiKey);
+        }
+        const config = { ...DEFAULT_CONFIG, ...parsed };
         // Environment variables override config.json (safer for secrets)
         if (process.env.MARSIL_API_KEY) config.apiKey = process.env.MARSIL_API_KEY;
         if (process.env.MARSIL_PROVIDER) config.provider = process.env.MARSIL_PROVIDER;
@@ -135,27 +153,55 @@ app.get('/api/config', async (req, res) => {
 // ── POST /api/config ─────────────────────────────────────────────────────────
 app.post('/api/config', async (req, res) => {
     const body = req.body || {};
+    
+    // ── Input Validation ──────────────────────────────────────────────────────────
     if (body.provider && !['anthropic', 'openai', 'deepseek', 'gemini', 'ollama'].includes(body.provider)) {
         return res.status(400).json({ error: { code: 'INVALID_PROVIDER', message: `Invalid provider: "${body.provider}". Supported: anthropic, openai, deepseek, gemini, ollama` } });
     }
     if (body.budget !== undefined && (typeof body.budget !== 'number' || body.budget < 0)) {
         return res.status(400).json({ error: { code: 'INVALID_BUDGET', message: 'Budget must be a non-negative number' } });
     }
+    if (body.baseUrl) {
+        try {
+            const parsedUrl = new URL(body.baseUrl);
+            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                return res.status(400).json({ error: { code: 'INVALID_BASE_URL', message: 'Base URL protocol must be http or https' } });
+            }
+        } catch {
+            return res.status(400).json({ error: { code: 'INVALID_BASE_URL', message: 'Base URL must be a valid absolute URL (e.g. https://api.anthropic.com)' } });
+        }
+    }
+    if (body.model) {
+        const modelRegex = /^[a-zA-Z0-9.:\-_/]+$/;
+        if (!modelRegex.test(body.model)) {
+            return res.status(400).json({ error: { code: 'INVALID_MODEL', message: 'Model name contains invalid or unsafe characters' } });
+        }
+    }
+
     const existing = await loadConfig();
     const newConfig = {
         provider: body.provider || existing.provider || 'anthropic',
-        apiKey:   body.apiKey   || existing.apiKey   || '',
+        apiKey:   body.apiKey !== undefined ? body.apiKey : existing.apiKey || '',
         model:    body.model    || existing.model    || 'claude-opus-4-5',
         baseUrl:  body.baseUrl  !== undefined ? body.baseUrl : existing.baseUrl,
         budget:   body.budget   !== undefined ? body.budget  : existing.budget || 0,
         demoMode: body.demoMode !== undefined ? !!body.demoMode : existing.demoMode || false
     };
+
+    // Serialize to disk with AES encrypted API key for security hardening
+    const serializedConfig = {
+        ...newConfig,
+        apiKey: newConfig.apiKey ? cryptoHelper.encrypt(newConfig.apiKey) : ''
+    };
+
     const tmpPath = `${CONFIG_PATH}.tmp`;
-    await fs.writeFile(tmpPath, JSON.stringify(newConfig, null, 2));
+    await fs.writeFile(tmpPath, JSON.stringify(serializedConfig, null, 2));
     await fs.rename(tmpPath, CONFIG_PATH);
+
+    // Keep decrypted config in memory for running proxy & adapter threads
     claudeCode.setProviderConfig(newConfig);
     anthropicProxy.setTarget(newConfig.baseUrl, newConfig.apiKey, newConfig.model);
-    logger.info('Configuration updated', { provider: newConfig.provider, model: newConfig.model, demoMode: newConfig.demoMode });
+    logger.info('Configuration updated and saved securely', { provider: newConfig.provider, model: newConfig.model, demoMode: newConfig.demoMode });
     res.json({ success: true });
 });
 

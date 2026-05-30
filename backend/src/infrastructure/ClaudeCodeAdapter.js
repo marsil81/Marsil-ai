@@ -173,9 +173,12 @@ class ClaudeCodeAdapter {
                 '--model', this.config.model
             ];
 
-            const proc = spawn('claude', args, {
+            const isWin = process.platform === 'win32';
+            const command = isWin ? 'claude.cmd' : 'claude';
+
+            const proc = spawn(command, args, {
                 cwd: cwd || process.cwd(),
-                shell: process.platform === 'win32', // Mitigate command injection by avoiding shell execution on POSIX platforms
+                shell: false, // Enforce absolute shell protection with zero command injection vulnerability
                 stdio: ['pipe', 'pipe', 'pipe'],
                 env: this._buildEnv()
             });

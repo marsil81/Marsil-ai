@@ -228,6 +228,19 @@ Do not stop until you have successfully deployed a suite of tangible, high-quali
         this._send('log', { message: '🛑 Task aborted by user.' });
         return 'Task aborted.';
     }
+
+    /**
+     * Clear all active timeouts, intervals, and close resources cleanly to prevent memory leaks.
+     */
+    cleanup() {
+        if (this.evolutionTimer) {
+            clearTimeout(this.evolutionTimer);
+            this.evolutionTimer = null;
+        }
+        this.autoEvolutionEnabled = false;
+        this.isWorking = false;
+        this.wsClient = null;
+    }
 }
 
 module.exports = new AgentService();

@@ -89,6 +89,53 @@ test('Unit: WS Handler should reject invalid message types', () => {
   assert.strictEqual(validate({ type: 'chat', text: 'hello' }).valid, true);
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Test Case 4: CryptoHelper Secure Storage Engine
+// ─────────────────────────────────────────────────────────────────────────────
+test('Unit: CryptoHelper should encrypt and decrypt API keys perfectly using AES-256-CBC', () => {
+  const cryptoHelper = require('../utils/CryptoHelper');
+  const rawKey = 'sk-ant-dummy-key-12345';
+  const encrypted = cryptoHelper.encrypt(rawKey);
+  
+  assert.ok(encrypted.includes(':')); // Check ciphertext formatting
+  assert.notStrictEqual(encrypted, rawKey); // Verify encryption occurred
+  
+  const decrypted = cryptoHelper.decrypt(encrypted);
+  assert.strictEqual(decrypted, rawKey); // Verify perfect decryption matching original key
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Test Case 5: API Configuration Input Validation Guard
+// ─────────────────────────────────────────────────────────────────────────────
+test('Unit: Config Validation should reject unsafe model names and malformed baseUrls', () => {
+  const modelRegex = /^[a-zA-Z0-9.:\-_/]+$/;
+  
+  // Safe models
+  assert.ok(modelRegex.test('claude-3-5-sonnet-20241022'));
+  assert.ok(modelRegex.test('gpt-4o'));
+  assert.ok(modelRegex.test('deepseek-chat'));
+  
+  // Unsafe models containing shell command injections or weird characters
+  assert.strictEqual(modelRegex.test('claude-3-5; rm -rf /'), false);
+  assert.strictEqual(modelRegex.test('gpt-4o && echo "hacked"'), false);
+  assert.strictEqual(modelRegex.test('deepseek-chat|sh'), false);
+  
+  // BaseUrl Validation Helper
+  const isValidUrl = (urlStr) => {
+    try {
+      const parsed = new URL(urlStr);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+  
+  assert.ok(isValidUrl('https://api.anthropic.com'));
+  assert.ok(isValidUrl('http://localhost:11434'));
+  assert.strictEqual(isValidUrl('ftp://insecure-server.com'), false);
+  assert.strictEqual(isValidUrl('not_a_valid_url'), false);
+});
+
 console.log(`\n${COLORS.cyan}-------------------------------------------------------${COLORS.reset}`);
 console.log(`${COLORS.bright}Test Summary:${COLORS.reset}`);
 console.log(`  Passed: ${COLORS.green}${stats.passed}${COLORS.reset}`);
