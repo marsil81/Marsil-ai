@@ -4,7 +4,7 @@ const logger = require('../infrastructure/Logger');
 
 // ── Input Validation ────────────────────────────────────────────────────────────
 const MAX_MESSAGE_SIZE = 1024 * 100; // 100KB max per WebSocket message
-const MAX_TEXT_LENGTH = 50000;       // 50K chars max for chat text
+const MAX_TEXT_LENGTH = 10000;       // 10K chars max for chat text (enhanced rate-limiting security)
 const ALLOWED_TYPES = ['chat', 'abort', 'pong'];
 
 function validateMessage(msg) {

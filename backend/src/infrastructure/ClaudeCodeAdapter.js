@@ -52,8 +52,16 @@ class ClaudeCodeAdapter {
         }
     }
 
+    /**
+     * Determine if the Claude CLI command is detected and available on the local path.
+     * @returns {boolean} True if available
+     */
     isAvailable() { return this.available; }
 
+    /**
+     * Dynamically update the WebSocket instance used to stream terminal outputs to the UI client.
+     * @param {WebSocket} ws - The active client WebSocket connection
+     */
     setWebSocket(ws) {
         this.ws = ws;
         logger.info("WebSocket client dynamically updated in ClaudeCodeAdapter!");
@@ -72,6 +80,12 @@ class ClaudeCodeAdapter {
         };
     }
 
+    /**
+     * Build the operating system subprocess environment variables dynamically.
+     * Integrates API keys and hooks the Anthropic Proxy if deepseek/openai providers are selected.
+     * @private
+     * @returns {object} Combined key/value pair environment variables
+     */
     _buildEnv() {
         const env = { ...process.env };
 
@@ -135,7 +149,13 @@ class ClaudeCodeAdapter {
     }
 
     /**
-     * Run Claude Code in non-interactive print mode with streaming JSON output.
+     * Run Claude Code CLI in non-interactive print mode with streaming JSON output events.
+     * Handles tool intercepting, telemetry streaming, and process abort hooks.
+     * @param {string} prompt - User request instruction
+     * @param {string} cwd - Current active workspace path
+     * @param {WebSocket} wsInput - Active client socket connection
+     * @param {boolean} [isAutonomous=false] - Whether operating in self-evolution loop
+     * @returns {Promise<string>} Structured text result response
      */
     async run(prompt, cwd, wsInput, isAutonomous = false) {
         if (wsInput) {

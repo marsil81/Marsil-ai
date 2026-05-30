@@ -18,17 +18,34 @@ class AgentService {
         this.workingWindowEnd = 0;
     }
 
+    /**
+     * Bind the real-time WebSocket client for direct telemetry stream.
+     * @param {WebSocket} ws - The active client WebSocket connection
+     */
     setWebSocketClient(ws) {
         this.wsClient = ws;
         claudeCode.setWebSocket(ws);
     }
 
+    /**
+     * Send structured JSON packet over the active WebSocket interface.
+     * @private
+     * @param {string} type - Message protocol type
+     * @param {object} data - Payload parameters
+     */
     _send(type, data) {
         if (this.wsClient && this.wsClient.readyState === 1) {
             this.wsClient.send(JSON.stringify({ type, ...data }));
         }
     }
 
+    /**
+     * Primary entrypoint: process incoming instruction, execute checks, stream results.
+     * @param {string} userMessage - Prompt instructions
+     * @param {boolean} [isAutonomous=false] - Whether triggered by auto-evolution loop
+     * @param {string} [userLang='en'] - Interface language code ('en' | 'ar')
+     * @returns {Promise<string>} Streamed reply
+     */
     async processUserMessage(userMessage, isAutonomous = false, userLang = 'en') {
         this.userLang = userLang;
 
@@ -122,6 +139,11 @@ Always build clean, fully functional components with beautiful interactive glass
         }
     }
 
+    /**
+     * Set a delay timer before initiating the next autonomous evolution session.
+     * Handles active development windows and resting periods.
+     * @private
+     */
     _scheduleNextEvolutionCycle() {
         if (!this.autoEvolutionEnabled || this.isWorking) return;
 
@@ -145,6 +167,10 @@ Always build clean, fully functional components with beautiful interactive glass
         }
     }
 
+    /**
+     * Survey codebase, formulate improvement prompts, and run the self-evolution engine loop.
+     * @returns {Promise<void>}
+     */
     async runAutonomousCycle() {
         if (this.isWorking) return;
         this._send('log', { message: '🌌 Initiating Autonomous Evolutionary Cycle...' });
@@ -181,6 +207,10 @@ Do not stop until you have successfully deployed a suite of tangible, high-quali
         await this.processUserMessage(autoPrompt, true, this.userLang);
     }
 
+    /**
+     * Send SIGTERM process interrupt signal to immediately stop active agent execution.
+     * @returns {string} Abort confirmation message
+     */
     abortCurrentTask() {
         claudeCode.abort();
         this._send('agent_status', { status: 'idle' });
