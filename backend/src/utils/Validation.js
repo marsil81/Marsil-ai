@@ -43,6 +43,38 @@ function isValidBaseUrl(urlStr) {
 }
 
 /**
+ * Fix #2: Full SSRF protection — blocks all RFC1918, localhost, link-local, and IPv6 loopback.
+ * Must be called in addition to isValidBaseUrl for any user-supplied baseUrl.
+ * @param {string} urlStr 
+ * @returns {{ safe: boolean, reason?: string }}
+ */
+function checkSsrfSafety(urlStr) {
+    if (!isValidBaseUrl(urlStr)) return { safe: false, reason: 'Invalid URL format' };
+    const hostname = new URL(urlStr).hostname;
+
+    const BLOCKED_PATTERNS = [
+        /^localhost$/i,
+        /^127\./,                          // IPv4 loopback
+        /^::1$/,                           // IPv6 loopback
+        /^0\.0\.0\.0$/,                    // unspecified
+        /^10\./,                           // RFC1918 class A
+        /^172\.(1[6-9]|2\d|3[01])\./,     // RFC1918 class B
+        /^192\.168\./,                     // RFC1918 class C
+        /^169\.254\./,                     // link-local / AWS metadata
+        /^fc00:/i,                         // IPv6 unique local
+        /^fe80:/i,                         // IPv6 link-local
+        /^::ffff:127\./,                   // IPv4-mapped loopback
+    ];
+
+    for (const pattern of BLOCKED_PATTERNS) {
+        if (pattern.test(hostname)) {
+            return { safe: false, reason: `Blocked internal/reserved address: ${hostname}` };
+        }
+    }
+    return { safe: true };
+}
+
+/**
  * Validates rate limit or budget parameter.
  * @param {number} budget 
  * @returns {boolean}
@@ -57,5 +89,6 @@ module.exports = {
     isValidProvider,
     isValidModelName,
     isValidBaseUrl,
+    checkSsrfSafety,
     isValidBudget
 };

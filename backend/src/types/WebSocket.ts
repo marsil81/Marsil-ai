@@ -10,6 +10,7 @@ export interface ClientMessage {
     type: ClientMessageType;
     text?: string;
     lang?: 'en' | 'ar';
+    token?: string; // Fix #4: session token for WebSocket authentication
 }
 
 export interface ServerMessage {

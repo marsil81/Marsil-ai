@@ -50,3 +50,14 @@ jobs:
         run: |
           cd backend
           npm run lint:check
+
+      # Fix #13: Validate frontend builds correctly on every push
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Build Frontend (Verify no compile errors)
+        run: |
+          cd frontend
+          npm run build

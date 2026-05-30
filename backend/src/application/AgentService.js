@@ -97,7 +97,9 @@ class AgentService {
 
             this._send('agent_status', { status: 'thinking' });
 
-            const hudInspiration = `
+            // Fix #16: HUD inspiration only injected for UI/UX related requests to save tokens
+            const isUiRequest = /ui|ux|design|component|css|style|layout|frontend|interface|visual|color|theme|animation|page|panel|dashboard|button|icon|modal/i.test(userMessage);
+            const hudInspiration = isUiRequest ? `
 <hud_inspiration_sources>
 Draw heavy visual and user experience inspiration from the gold standards of futuristic cybernetic sci-fi dashboards:
 1. ARWES (arwes.dev): Use augmented hexagonal and corner-cut clipping frames, subtle neon glows (box-shadows / text-shadows), CRT-style scanline overlays, and responsive animations.
@@ -105,7 +107,8 @@ Draw heavy visual and user experience inspiration from the gold standards of fut
 3. react-cyber-elements: Incorporate technical widgets, gauge trackers, corner-graphics, and high-contrast diagnostic indicators.
 Always build clean, fully functional components with beautiful interactive glassmorphic panels. Do not use ad-hoc styles; use standardized CSS classes.
 </hud_inspiration_sources>
-`;
+` : '';
+
 
             const langInstruction = this.userLang === 'ar'
                 ? `CRITICAL LANGUAGE REQUIREMENT:
@@ -138,9 +141,12 @@ Always build clean, fully functional components with beautiful interactive glass
         } catch (error) {
             this.isWorking = false;
             this._send('agent_status', { status: 'error' });
-            this._send('log', { message: `❌ Error: ${error.message}` });
+            // Fix #9: Log full error internally, send only generic message to client
+            const logger = require('../infrastructure/Logger');
+            logger.error('Agent processUserMessage error', { message: error.message, stack: error.stack });
+            this._send('log', { message: '❌ An error occurred. Please check the server logs.' });
             if (this.autoEvolutionEnabled) this._scheduleNextEvolutionCycle();
-            return `Error: ${error.message}`;
+            return 'An internal error occurred.';
         }
     }
 
@@ -242,4 +248,6 @@ Do not stop until you have successfully deployed a suite of tangible, high-quali
     }
 }
 
-module.exports = new AgentService();
+// Fix #7: Export the AgentService CLASS — not a singleton instance.
+// WebSocketHandler creates a separate instance per connection to prevent session bleed.
+module.exports = AgentService;

@@ -51,7 +51,7 @@ function parseToolInput(tc, choiceContent) {
 class AnthropicProxy {
     constructor() {
         this.app = express();
-        this.app.use(express.json({ limit: '50mb' }));
+        this.app.use(express.json({ limit: '1mb' })); // Fix #6: reduced from 50mb to prevent DoS
         this.targetBaseUrl = 'https://api.deepseek.com';
         this.targetApiKey = '';
         this.targetModel = 'deepseek-chat';
@@ -62,12 +62,10 @@ class AnthropicProxy {
     setTarget(baseUrl, apiKey, model) {
         if (baseUrl) {
             const validation = require('../utils/Validation');
-            if (!validation.isValidBaseUrl(baseUrl)) {
-                throw new Error('Invalid target base URL protocol or format');
-            }
-            const urlObj = new URL(baseUrl);
-            if (urlObj.hostname === '169.254.169.254') {
-                throw new Error('Access to cloud metadata endpoints is strictly forbidden');
+            // Fix #2: Full RFC1918 + loopback SSRF check
+            const ssrf = validation.checkSsrfSafety(baseUrl);
+            if (!ssrf.safe) {
+                throw new Error(`SSRF blocked: ${ssrf.reason}`);
             }
             this.targetBaseUrl = baseUrl;
         }
@@ -149,15 +147,12 @@ class AnthropicProxy {
                 };
 
                 let cleanUrl = this.targetBaseUrl || 'https://api.deepseek.com';
-                
-                // Double-Layer SSRF defense check (6.1)
+
+                // Fix #2: Double-layer full RFC1918 + loopback SSRF defense at request time
                 const validation = require('../utils/Validation');
-                if (!validation.isValidBaseUrl(cleanUrl)) {
-                    return res.status(400).json({ error: { message: 'Invalid target base URL protocol or format' } });
-                }
-                const checkUrlObj = new URL(cleanUrl);
-                if (checkUrlObj.hostname === '169.254.169.254') {
-                    return res.status(400).json({ error: { message: 'Access to cloud metadata endpoints is strictly forbidden' } });
+                const ssrfCheck = validation.checkSsrfSafety(cleanUrl);
+                if (!ssrfCheck.safe) {
+                    return res.status(400).json({ error: { message: `SSRF blocked: ${ssrfCheck.reason}` } });
                 }
 
                 if (cleanUrl.endsWith('/v1')) {
@@ -170,7 +165,7 @@ class AnthropicProxy {
                 while (attempts < maxAttempts) {
                     attempts++;
                     const controller = new AbortController();
-                    const timeoutId = setTimeout(() => controller.abort(), 60000);
+                    const timeoutId = setTimeout(() => controller.abort(), 15000); // Fix #6: 60s→15s timeout
                     try {
                         response = await fetch(`${cleanUrl}/v1/chat/completions`, {
                             method: 'POST',

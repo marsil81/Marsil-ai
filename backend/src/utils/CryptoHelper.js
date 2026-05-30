@@ -66,9 +66,14 @@ function getEncryptionKey() {
             logger.info(`🛡️ Generated new secure encryption key at: ${secretPath}`);
         }
     } catch (err) {
-        logger.error('Failed to access secure encryption key file, falling back to machine-specific hash', { error: err.message });
-        // Fallback to machine-specific salt so it doesn't crash but remains persistent
-        ENCRYPTION_KEY = crypto.scryptSync(process.arch + process.platform + 'marsil-salt-fallback', 'salt', 32);
+        // Fix #11: In production a missing key is a critical security failure — do NOT use a weak fallback.
+        if (process.env.NODE_ENV === 'production') {
+            logger.error('CRITICAL: Cannot load/generate encryption key in production! Refusing to start with a weak fallback. Please ensure write access to the app config directory or set MARSIL_SECRET_KEY env variable.');
+            process.exit(1);
+        }
+        // In development only: fall back to a machine-specific key so dev iteration isn't blocked.
+        logger.warn('DEV MODE: Using machine-specific fallback encryption key. Set MARSIL_SECRET_KEY for a stable dev key.');
+        ENCRYPTION_KEY = crypto.scryptSync(process.arch + process.platform + 'marsil-dev-only-fallback', 'salt', 32);
     }
 
     return ENCRYPTION_KEY;

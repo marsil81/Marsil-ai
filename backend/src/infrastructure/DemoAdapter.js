@@ -3,18 +3,19 @@
  * ====================================================
  * Simulates high-fidelity, streaming agent reasoning, tool execution,
  * and connection diagnostics without requiring active API keys or local Claude CLI.
+ *
+ * Fix #10: abort() now properly clears the streaming interval to prevent memory leaks.
  */
 
 const logger = require('./Logger');
-
-// Helper to strip ANSI codes if needed
-const ANSI_REGEX = /[\x1b\x9b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
 class DemoAdapter {
     constructor() {
         this.available = true;
         this.version = "marsil-demo-v1.0.0";
         this.ws = null;
+        this._interval = null;   // Fix #10: track interval for cleanup
+        this._resolve = null;    // Fix #10: track promise resolver for early exit
     }
 
     isAvailable() {
@@ -41,6 +42,9 @@ class DemoAdapter {
         };
 
         return new Promise((resolve) => {
+            // Fix #10: store resolver so abort() can terminate early
+            this._resolve = resolve;
+
             send('agent_status', { status: 'thinking' });
             send('log', { message: '🌌 Demo Mode: Initiating simulated agent session...' });
 
@@ -74,11 +78,14 @@ class DemoAdapter {
 
             let currentIndex = 0;
             const words = responseText.split(' ');
-            
-            const interval = setInterval(() => {
+
+            // Fix #10: store interval reference in this._interval for abort() cleanup
+            this._interval = setInterval(() => {
                 if (currentIndex >= words.length) {
-                    clearInterval(interval);
-                    
+                    clearInterval(this._interval);
+                    this._interval = null;
+                    this._resolve = null;
+
                     // Final Token Usage Event
                     send('token_usage', {
                         tokensIn: 145,
@@ -87,7 +94,7 @@ class DemoAdapter {
                         provider: 'marsil-demo',
                         model: 'demo-simulation-model'
                     });
-                    
+
                     send('agent_status', { status: 'idle' });
                     send('log', { message: '✓ Demo cycle completed safely.' });
                     resolve(responseText);
@@ -101,9 +108,26 @@ class DemoAdapter {
         });
     }
 
+    /**
+     * Fix #10: Properly stop the streaming interval and close the promise.
+     * Previously abort() left the interval running causing memory leaks.
+     */
     abort() {
-        if (this.ws) {
+        // Stop streaming interval immediately
+        if (this._interval) {
+            clearInterval(this._interval);
+            this._interval = null;
+        }
+
+        // Resolve the pending promise so the caller isn't left hanging
+        if (this._resolve) {
+            this._resolve('');
+            this._resolve = null;
+        }
+
+        if (this.ws && this.ws.readyState === 1) {
             this.ws.send(JSON.stringify({ type: 'log', message: '🛑 Demo task aborted by user.' }));
+            this.ws.send(JSON.stringify({ type: 'agent_status', status: 'idle' }));
         }
     }
 }

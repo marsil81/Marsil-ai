@@ -199,8 +199,10 @@ class ClaudeCodeAdapter {
                 '--model', this.config.model
             ];
 
-            // Make --dangerously-skip-permissions conditional for security hardening
-            if (process.env.MARSIL_SKIP_PERMISSIONS !== 'false' && this.config.skipPermissions !== false) {
+            // Fix #1: --dangerously-skip-permissions is DISABLED by default.
+            // Must be explicitly set to true by the user via config or ENV=true.
+            if (this.config.skipPermissions === true || process.env.MARSIL_SKIP_PERMISSIONS === 'true') {
+                logger.warn('⚠️  --dangerously-skip-permissions is ACTIVE. Only use this in trusted environments.');
                 args.push('--dangerously-skip-permissions');
             }
 
@@ -227,6 +229,7 @@ class ClaudeCodeAdapter {
             let currentToolName = null;
             let currentToolInput = '';
             let jsonPartialBuffer = '';
+            const MAX_PARTIAL_BUFFER = 1024 * 1024; // 1MB cap — prevent memory exhaustion (#15)
 
             const finalizeText = () => {
                 if (isAutonomous && autoBuffer.trim() && this.ws) {
@@ -251,6 +254,11 @@ class ClaudeCodeAdapter {
                     if (!line.trim()) continue;
 
                     // Try to parse with recovery for split JSON chunks
+                    // Fix #15: Guard against buffer growth beyond 1MB cap
+                    if (jsonPartialBuffer.length > MAX_PARTIAL_BUFFER) {
+                        logger.warn('jsonPartialBuffer exceeded 1MB cap — flushing to prevent memory leak');
+                        jsonPartialBuffer = '';
+                    }
                     const event = this._tryParseJsonAccumulated(jsonPartialBuffer, line);
                     jsonPartialBuffer = event ? '' : line;
 

@@ -184,11 +184,10 @@ app.post('/api/config', async (req, res) => {
         if (!validation.isValidBaseUrl(body.baseUrl)) {
             return res.status(400).json({ error: { code: 'INVALID_BASE_URL', message: 'Base URL must be a valid absolute URL (http/https)' } });
         }
-        
-        // Strict SSRF Mitigation: Block AWS/Google cloud metadata endpoints
-        const urlObj = new URL(body.baseUrl);
-        if (urlObj.hostname === '169.254.169.254') {
-            return res.status(400).json({ error: { code: 'SSRF_BLOCKED', message: 'Access to cloud metadata endpoints is strictly forbidden' } });
+        // Fix #2: Full RFC1918 + loopback SSRF protection
+        const ssrf = validation.checkSsrfSafety(body.baseUrl);
+        if (!ssrf.safe) {
+            return res.status(400).json({ error: { code: 'SSRF_BLOCKED', message: `URL blocked: ${ssrf.reason}` } });
         }
     }
     if (body.model && !validation.isValidModelName(body.model)) {
@@ -417,8 +416,8 @@ app.use((err, req, res, _next) => {
 });
 
 // ── WebSocket ────────────────────────────────────────────────────────────────
-wss.on('connection', (ws) => {
-    webSocketHandler.handleConnection(ws);
+wss.on('connection', (ws, req) => {
+    webSocketHandler.handleConnection(ws, req);
 });
 
 // ── Graceful Shutdown ────────────────────────────────────────────────────────

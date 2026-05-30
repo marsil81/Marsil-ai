@@ -1,7 +1,14 @@
 const path = require('path');
 const fs = require('fs');
 
-const WORKSPACE_ROOT = path.resolve(__dirname, '../../..');
+/**
+ * Fix #3: WORKSPACE_ROOT is configurable via MARSIL_WORKSPACE_ROOT env variable.
+ * Falls back to process.cwd() (the directory from which the server is launched)
+ * instead of a fragile relative path from __dirname that breaks if file is moved.
+ */
+const WORKSPACE_ROOT = process.env.MARSIL_WORKSPACE_ROOT
+    ? path.resolve(process.env.MARSIL_WORKSPACE_ROOT)
+    : path.resolve(process.cwd());
 
 /**
  * Validates and sanitizes a relative path to prevent directory traversal and symlink attacks.
