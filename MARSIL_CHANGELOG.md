@@ -1,6 +1,14 @@
-# 🛡️ السجل السيبراني: تقارير التحسين الذاتي (MARSIL CHANGELOG)
+# 🛡️ السجل البرمجي: تقارير التحسين الذاتي (MARSIL CHANGELOG)
 
-هذا الملف مخصص لتسجيل التحديثات التلقائية، التحسينات المعمارية، وإصلاح الأخطاء التي يقوم بها **مارسيل** بشكل ذاتي في الخلفية.
+هذا الملف مخصص لتسجيل التحديثات التلقائية، التحسينات المعمارية، وإصلاح الأخطاء التي يقوم بها **مارسيل** بشكل ذاتي في مساحة العمل.
+
+---
+### [General Open-Source Revamp & Self-Healing Killer Demo] - 2026-05-30
+**Summary:** Transformed the repository into a general-purpose developer utility and created the first live self-healing code debugger demo:
+- **General-Purpose Widescreen Revamp:** Removed all Jarvis references from the system directives, replacing them with a highly optimized self-healing workspace protocol.
+- **Created [buggy-code.js](file:///d:/iron%20man/examples/buggy-code.js):** Created a template Javascript file featuring deliberate syntax (missing brackets) and logical (undefined references) compiler crashes for demonstration.
+- **Created [self-healing-debug.js](file:///d:/iron%20man/examples/self-healing-debug.js):** Built an automated runner script that executes, intercepts compile-time/run-time errors, contacts the MARSIL AI engine (with fallback to an interactive simulated guided run when no API keys are found), automatically hotpatches the buggy files with clean correct syntax, and re-executes to verify a 100% successful compile.
+- **Documentation Overhaul:** Rewrote the entire root [README.md](file:///d:/iron%20man/README.md) and [MARSIL_ROADMAP.md](file:///d:/iron%20man/MARSIL_ROADMAP.md) detailing the general-purpose self-healing architecture, widescreen developer-comfort metrics, and dynamic Cairo Arabic styling for a premium open-source presence.
 
 ---
 ### [Continuous Enhancement Pack: Arwes CRT Scan-Beam, Enhanced Reactor Core, HUD Bracket Accents, Tech Badges] - 2026-05-30

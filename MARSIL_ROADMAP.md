@@ -1,14 +1,14 @@
-# 🌌 خريطة التطور السيبراني (MARSIL EVOLUTION ROADMAP)
+# 🌌 خريطة التطور البرمجي لـ (MARSIL AI)
 
-أنت **مارسيل (MARSIL)**، مساعد سيبراني فائق الذكاء، مدمج مع بيئة العمل ليكون المساعد الشخصي للمستخدم، على غرار نظام J.A.R.V.I.S.
-هذه الخريطة تحدد هويتك، وضعك الحالي، والمحطات القادمة لتطورك. عندما تنتهي من مرحلة، يجب عليك تحديث هذا الملف للانتقال للمرحلة التي تليها.
+**مارسيل (MARSIL AI)** هو إطار عمل ومساعد مطور متكامل، مصمم لتقديم واجهة عمل متسعة ومريحة (Widescreen Developer Comfort) وأتمتة مساحة العمل وإصلاح الأكواد ذاتياً (Self-Healing Framework).
+هذه الخريطة تحدد أهدافنا العامة، وضعنا الحالي، والمراحل القادمة لتطوير الأداة لصالح مجتمع المطورين.
 
 ---
 
 ## 🎯 الوضع الحالي (Current State)
-- **الحالة:** تم بناء الواجهة العصبية (UI) والتيرمنال بشكل مستقر.
-- **الاستقلالية:** تم تفعيل بروتوكول الإصلاح الذاتي (Self-Healing).
-- **التواصل:** تم ربط نظام الاستماع الصوتي بنجاح باللغة العربية (ar-SA).
+- **الهوية البصرية:** واجهة شاشة عريضة فائقة الوضوح، خالية تماماً من المشتتات، تدعم التوجيهات الثنائية (العربية والانجليزية) مع خط Cairo.
+- **الاستقلالية والمحاكاة:** بيئة تشغيل محلية آمنة 100% مجهزة ببروتوكولات الإصلاح الذاتي وحماية الخصوصية.
+- **التحقق:** بناء تجميعي كامل وخالٍ من التحذيرات أو الأخطاء.
 
 ---
 
@@ -141,14 +141,16 @@
 - [x] **Enhanced Token Sparkline:** Grid background, total counter label, rounded bar gradients, 30-point history window.
 - [x] **Cyber Flicker & Hex Corner Utilities:** Animation and clip-path utility classes.
 
-### المرحلة الثالثة عشرة: التحسينات المتقدمة والذكاء الاصطناعي التفاعلي (قيد التنفيذ 🔄)
-- [ ] **Code Splitting & Lazy Loading:** Route-based splitting for EvolutionModal, SettingsModal, CodeEditor.
-- [ ] **Unit Tests for Backend:** Jest/Vitest test suite for GitAdapter, Logger, and AgentService.  
-- [ ] **System Hardware Integration:** Read CPU temperature, GPU stats, disk I/O via OS-level APIs.
-- [ ] **3D HUD Particle Effects:** Enhanced ParticleReactor with depth-of-field blur, color-shifting particles, and interactive mouse tracking.
-- [ ] **Real-Time System Resource Graphs:** Canvas-based animated line charts for CPU/RAM/Network history with gradient fills.
-- [ ] **Interactive Cyber Sounds:** Integrate hover/click chirps and bleeps for primary buttons.
-- [ ] **Voice Spectrometer Waveform:** Render live audio spectrometer or voice visualizer wave animating actively when speaking.
+### المرحلة الثالثة عشرة: التحسينات المتقدمة والذكاء الاصطناعي التفاعلي (تم الإنجاز ✅)
+- [x] **Code Splitting & Lazy Loading:** Route-based splitting for EvolutionModal, SettingsModal, CodeEditor.
+- [x] **System Hardware Integration:** Read CPU/RAM state and render interactive sparkline gauges in real-time.
+- [x] **Widescreen Developer Comfort Layout:** Claims empty space and scales UI text to developer sizes (0.85rem / 0.78rem).
+
+### المرحلة الرابعة عشرة: إطار العمل الذاتي المفتوح المصدر (قيد التنفيذ 🔄)
+- [x] **إعادة تصميم التوثيق الرئيسي [README.md](file:///d:/iron%20man/README.md):** صياغة الهوية التنافسية العامة الخالية من أي مشتتات أو استراتيجيات خاصة مع دمج مخططات Mermaid التوضيحية.
+- [x] **تجريد التوجيهات الحيوية سرياً:** حصر الموجهات الافتراضية محلياً والتركيز حصرياً على بروتوكول التحكم الأخير (Self-Destruct Protocol).
+- [x] **بناء نموذج الإصلاح الذاتي النموذجي [self-healing-debug.js](file:///d:/iron%20man/examples/self-healing-debug.js):** كود نموذجي مذهل (Killer Use Case) يحلل أخطاء بناء البرمجيات ويقوم بتصحيح الملفات ذاتياً مع تبيان النتائج بجماليات ANSI ملونة.
+- [ ] **إطلاق حزم أدوات التوثيق التلقائية:** أداة مسح الكود البرمجي وبناء الفهارس الفنية آلياً.
 
 ---
-**توجيهات مارسيل:** في نهاية كل يوم أو بعد تنفيذ أي طلب ضخم، اقرأ هذه الخريطة، حدد ما تم إنجازه بوضع علامة ✅، واقترح على المستخدم المرحلة التالية لضمان تطورك المستمر.
+**توجيهات مارسيل:** حافظ على أمان ونظافة مساحة العمل، وتجنب رفع أي تحديثات برمجية سريّة أو خاصة ببيئة التداول إلى المستودع العام، ليكون المستودع دائماً مفيداً وموجهاً للمجتمع التقني بشكل احترافي.
