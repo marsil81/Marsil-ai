@@ -1,6 +1,8 @@
 # =======================================================
 # 🛡️ MARSIL AI - Continuous Integration (CI) Workflow
 # =======================================================
+# Node 18.x reached EOL April 2025 — dropped.
+# jest@30 + eslint@10 require Node >= 20.
 
 name: Security & Verification CI
 
@@ -13,10 +15,12 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    fail-fast: false
 
     strategy:
+      fail-fast: false
       matrix:
-        node-version: [18.x, 20.x, 22.x]
+        node-version: [20.x, 22.x]
 
     steps:
       - name: Checkout Repository
@@ -27,6 +31,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
 
       - name: Install Monorepo Root Dependencies
         run: npm ci
@@ -51,7 +59,6 @@ jobs:
           cd backend
           npm run lint:check
 
-      # Fix #13: Validate frontend builds correctly on every push
       - name: Install Frontend Dependencies
         run: |
           cd frontend
