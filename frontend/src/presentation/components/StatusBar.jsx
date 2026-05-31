@@ -76,8 +76,28 @@ function LiveSparkline({ getValue, interval = 2000, maxPoints = 30, maxValue = 1
     </div>
   );
 }
+// ── Active File Chip ─────────────────────────────────────────────────────────
+const LANG_MAP = {
+  JSX:'JavaScript·React', TSX:'TypeScript·React',
+  JS:'JavaScript', TS:'TypeScript', PY:'Python',
+  CSS:'CSS', SCSS:'SCSS', HTML:'HTML', MD:'Markdown',
+  JSON:'JSON', YML:'YAML', YAML:'YAML', RS:'Rust',
+  GO:'Go', SH:'Shell', BAT:'Batch', PS1:'PowerShell',
+  SQL:'SQL', ENV:'Config',
+};
+function ActiveFileChip({ path }) {
+  const name = path.split(/[/\\]/).pop() || path;
+  const ext  = name.includes('.') ? name.split('.').pop().toUpperCase() : '';
+  const lang = LANG_MAP[ext] || ext || 'Text';
+  return (
+    <div style={{ display:'flex', alignItems:'center', gap:'8px', borderLeft:'1px solid rgba(0,184,255,0.1)', paddingLeft:'8px' }}>
+      <span title={path} style={{ color:'rgba(255,255,255,0.45)', fontSize:'0.7rem', fontFamily:"'Share Tech Mono',monospace", maxWidth:'200px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{name}</span>
+      <span style={{ fontSize:'0.58rem', color:'rgba(0,255,213,0.6)', background:'rgba(0,255,213,0.06)', border:'1px solid rgba(0,255,213,0.14)', borderRadius:'3px', padding:'1px 5px', fontFamily:"'Outfit',sans-serif", letterSpacing:'0.3px' }}>{lang}</span>
+    </div>
+  );
+}
 
-export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentStatus, sysConfig, onConsoleToggle, onSettingsToggle, onAbort }) {
+export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentStatus, sysConfig, onConsoleToggle, onSettingsToggle, onAbort, activeFile }) {
   const isConnected = connectionStatus === 'connected';
   const isReconnecting = connectionStatus === 'reconnecting';
 
@@ -242,6 +262,9 @@ export function StatusBar({ connectionStatus, wsLatency, uptime, metrics, agentS
               <XCircle size={12} />
             </button>
           </div>
+
+          {/* Active file + language mode */}
+          {activeFile && <ActiveFileChip path={activeFile} />}
         </div>
 
         {/* Right: System Info with hover previews + Provider badge */}

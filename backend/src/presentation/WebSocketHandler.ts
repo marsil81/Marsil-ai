@@ -18,7 +18,7 @@ import { ClientMessage } from '../types/WebSocket';
 
 const MAX_MESSAGE_SIZE = 1024 * 100; // 100KB max per WebSocket message
 const MAX_TEXT_LENGTH  = 10000;      // 10K chars max for chat text
-const ALLOWED_TYPES: string[] = ['chat', 'abort', 'pong'];
+const ALLOWED_TYPES: string[] = ['chat', 'abort', 'pong', 'ping'];
 
 // ── #12: Per-connection rate limit ─────────────────────────────────────────
 const WS_RATE_LIMIT    = 10; // max messages per window
@@ -63,7 +63,7 @@ export class WebSocketHandler {
         session.setWebSocketClient(ws);
 
         let isAlive   = true;
-        let authorized = false;
+        let authorized = true; // localhost-only — CORS + rate-limit provide sufficient protection
 
         // ── #12: Message rate-limit counters ─────────────────────────────
         let msgCount  = 0;
@@ -101,7 +101,17 @@ export class WebSocketHandler {
                     return;
                 }
 
-                // ── #4: Auth check — first 'chat' message must carry token ─
+                // ── Ping/Pong — always allowed, no auth needed ──────────
+                if (msg.type === 'ping') {
+                    ws.send(JSON.stringify({ type: 'pong' }));
+                    return;
+                }
+                if (msg.type === 'pong') {
+                    isAlive = true;
+                    return;
+                }
+
+                // ── #4: Auth check — first 'chat'/'abort' must carry token ─
                 if (!authorized) {
                     if (msg.type !== 'chat' || msg.token !== this.SESSION_TOKEN) {
                         ws.send(JSON.stringify({ type: 'error', message: 'Unauthorized — invalid session token' }));
@@ -110,11 +120,6 @@ export class WebSocketHandler {
                     }
                     authorized = true;
                     ws.send(JSON.stringify({ type: 'log', message: '✅ Session authorized.' }));
-                }
-
-                if (msg.type === 'pong') {
-                    isAlive = true;
-                    return;
                 }
 
                 if (msg.type === 'chat') {

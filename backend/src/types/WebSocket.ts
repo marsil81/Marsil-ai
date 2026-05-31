@@ -4,7 +4,7 @@
 
 export type AgentStatus = 'idle' | 'executing_tool' | 'thinking' | 'speaking';
 
-export type ClientMessageType = 'chat' | 'abort' | 'pong';
+export type ClientMessageType = 'chat' | 'abort' | 'pong' | 'ping';
 
 export interface ClientMessage {
     type: ClientMessageType;

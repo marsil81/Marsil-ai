@@ -143,7 +143,7 @@ function LineNumbers({ count, scrollTop, visibleHeight, lineHeight }) {
 }
 
 // ── CodeEditor Component ──────────────────────────────────────────────────────
-export function CodeEditor({ filePath, onClose }) {
+export function CodeEditor({ filePath, onClose, tabMode = false, isActive = true }) {
   const [content, setContent] = useState('');
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -231,76 +231,78 @@ export function CodeEditor({ filePath, onClose }) {
       zIndex: 10,
       overflow: 'hidden',
     }}>
-      {/* ── Header ── */}
-      <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        padding: '10px 14px',
-        borderBottom: '1px solid rgba(0, 255, 213, 0.15)',
-        background: 'rgba(0, 255, 213, 0.03)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <FileIcon size={14} color={fileTypeInfo.color} />
-          <span style={{
-            color: 'var(--primary)',
-            fontFamily: 'Orbitron',
-            fontSize: '0.65rem',
-            letterSpacing: '1px',
-            textShadow: '0 0 10px rgba(0,162,255,0.3)',
-          }}>
-            {filePath.toUpperCase()}
-          </span>
-          {ext && (
+      {/* ── Header (hidden in tabMode — EditorTabBar handles this) ── */}
+      {!tabMode && (
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          padding: '10px 14px',
+          borderBottom: '1px solid rgba(0, 255, 213, 0.15)',
+          background: 'rgba(0, 255, 213, 0.03)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <FileIcon size={14} color={fileTypeInfo.color} />
             <span style={{
-              fontSize: '0.45rem',
-              color: 'var(--accent)',
-              background: 'rgba(0,255,213,0.08)',
-              padding: '1px 6px',
-              borderRadius: '3px',
-              border: '1px solid rgba(0,255,213,0.15)',
-            }}>
-              {ext}
-            </span>
-          )}
-          {saving && (
-            <span style={{ color: 'var(--accent)', fontSize: '0.5rem', animation: 'pulse 0.8s infinite' }}>
-              SAVING...
-            </span>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          <button onClick={handleCopy} title="Copy content"
-            style={{
-              background: copied ? 'rgba(34,197,94,0.1)' : 'transparent',
-              border: `1px solid ${copied ? '#22c55e' : 'rgba(255,255,255,0.12)'}`,
-              color: copied ? '#22c55e' : 'var(--text-dim)',
-              padding: '4px 8px', borderRadius: '4px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.55rem',
-              transition: 'all 0.2s',
-            }}>
-            {copied ? <Check size={10} /> : <Copy size={10} />}
-            {copied ? 'COPIED' : 'COPY'}
-          </button>
-          <button onClick={handleSave} title="Save (Ctrl+S)"
-            style={{
-              background: 'rgba(0,162,255,0.06)',
-              border: '1px solid var(--primary)',
               color: 'var(--primary)',
-              padding: '4px 10px', borderRadius: '4px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.55rem',
-              transition: 'all 0.2s',
+              fontFamily: 'Orbitron',
+              fontSize: '0.65rem',
+              letterSpacing: '1px',
+              textShadow: '0 0 10px rgba(0,162,255,0.3)',
             }}>
-            <Save size={10} /> SAVE
-          </button>
-          <button onClick={onClose} title="Close"
-            style={{
-              background: 'transparent', border: 'none',
-              color: 'var(--text-dim)', cursor: 'pointer',
-              padding: '4px',
-            }}>
-            <X size={14} />
-          </button>
+              {filePath.toUpperCase()}
+            </span>
+            {ext && (
+              <span style={{
+                fontSize: '0.45rem',
+                color: 'var(--accent)',
+                background: 'rgba(0,255,213,0.08)',
+                padding: '1px 6px',
+                borderRadius: '3px',
+                border: '1px solid rgba(0,255,213,0.15)',
+              }}>
+                {ext}
+              </span>
+            )}
+            {saving && (
+              <span style={{ color: 'var(--accent)', fontSize: '0.5rem', animation: 'pulse 0.8s infinite' }}>
+                SAVING...
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button onClick={handleCopy} title="Copy content"
+              style={{
+                background: copied ? 'rgba(34,197,94,0.1)' : 'transparent',
+                border: `1px solid ${copied ? '#22c55e' : 'rgba(255,255,255,0.12)'}`,
+                color: copied ? '#22c55e' : 'var(--text-dim)',
+                padding: '4px 8px', borderRadius: '4px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.55rem',
+                transition: 'all 0.2s',
+              }}>
+              {copied ? <Check size={10} /> : <Copy size={10} />}
+              {copied ? 'COPIED' : 'COPY'}
+            </button>
+            <button onClick={handleSave} title="Save (Ctrl+S)"
+              style={{
+                background: 'rgba(0,162,255,0.06)',
+                border: '1px solid var(--primary)',
+                color: 'var(--primary)',
+                padding: '4px 10px', borderRadius: '4px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.55rem',
+                transition: 'all 0.2s',
+              }}>
+              <Save size={10} /> SAVE
+            </button>
+            <button onClick={onClose} title="Close"
+              style={{
+                background: 'transparent', border: 'none',
+                color: 'var(--text-dim)', cursor: 'pointer',
+                padding: '4px',
+              }}>
+              <X size={14} />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Editor Body ── */}
       <div style={{

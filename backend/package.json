@@ -3,7 +3,7 @@
   "version": "1.0.0-beta.1",
   "main": "src/presentation/Server.js",
   "scripts": {
-    "start": "node src/presentation/Server.js",
+    "start": "ts-node src/presentation/Server.js",
     "dev": "ts-node src/presentation/Server.js",
     "test": "ts-node src/test/security.test.js && ts-node src/test/integration.test.js && jest",
     "test:jest": "jest",

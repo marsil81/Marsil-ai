@@ -1,0 +1,80 @@
+/* ═══ REACTOR CORE — Arc-reactor cinematic status indicator ═══ */
+.reactor-core {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rc-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid var(--rc-color);
+  opacity: 0.7;
+  animation: rcSpin linear infinite;
+}
+
+.rc-ring-outer {
+  width: 46px;
+  height: 46px;
+  border-style: dashed;
+  opacity: 0.25;
+}
+
+.rc-ring-mid {
+  width: 34px;
+  height: 34px;
+  border-top-color: transparent;
+  border-right-color: transparent;
+  opacity: 0.55;
+  box-shadow: 0 0 8px var(--rc-glow);
+}
+
+.rc-ring-inner {
+  width: 22px;
+  height: 22px;
+  border-bottom-color: transparent;
+  border-left-color: transparent;
+  opacity: 0.8;
+}
+
+.rc-core-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--rc-color);
+  box-shadow: 0 0 8px var(--rc-glow), 0 0 20px var(--rc-glow);
+  z-index: 2;
+  transition: background 0.4s ease, box-shadow 0.4s ease;
+}
+
+.rc-core-dot.pulsing {
+  animation: rcPulse 0.9s ease-in-out infinite;
+}
+
+.rc-label {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.42rem;
+  letter-spacing: 1px;
+  color: var(--rc-color);
+  white-space: nowrap;
+  opacity: 0.8;
+  text-shadow: 0 0 6px var(--rc-glow);
+}
+
+@keyframes rcSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes rcPulse {
+  0%, 100% { box-shadow: 0 0 8px var(--rc-glow), 0 0 20px var(--rc-glow); transform: scale(1); }
+  50%       { box-shadow: 0 0 16px var(--rc-glow), 0 0 40px var(--rc-glow); transform: scale(1.25); }
+}

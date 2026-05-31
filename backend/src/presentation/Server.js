@@ -10,7 +10,8 @@ const path = require('path');
 const os = require('os');
 const claudeCode = require('../infrastructure/ClaudeCodeAdapter');
 const gitAdapter = require('../infrastructure/GitAdapter');
-const webSocketHandler = require('./WebSocketHandler');
+const webSocketHandlerModule = require('./WebSocketHandler');
+const webSocketHandler = webSocketHandlerModule.default || webSocketHandlerModule;
 const anthropicProxy = require('../infrastructure/AnthropicProxy');
 const logger = require('../infrastructure/Logger');
 const { safePath, WORKSPACE_ROOT } = require('../utils/PathSafety');
@@ -46,8 +47,8 @@ app.use(helmet({
 
 // Restrict CORS origins strictly to loopback interfaces in production for security hardening (3.2)
 const allowedOrigins = isProduction
-    ? ['http://localhost:3001', 'http://127.0.0.1:3001', 'http://localhost:3002', 'http://127.0.0.1:3002']
-    : (process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://localhost:3001', 'http://127.0.0.1:3001']);
+    ? ['http://localhost:3001', 'http://127.0.0.1:3001', 'http://localhost:3002', 'http://127.0.0.1:3002', 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:4173', 'http://127.0.0.1:4173']
+    : (process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://localhost:3001', 'http://127.0.0.1:3001', 'http://localhost:4173']);
 
 app.use(cors({
     origin: allowedOrigins,
@@ -155,6 +156,7 @@ async function loadConfig() {
 // ── GET /api/config ──────────────────────────────────────────────────────────
 app.get('/api/config', async (req, res) => {
     const config = await loadConfig();
+    await claudeCode.waitForDetection();
     res.json({
         provider:       config.provider,
         model:          config.model,
@@ -392,6 +394,8 @@ app.get('/api/metrics', async (req, res) => {
 app.get('/api/proxy/status', async (req, res) => {
     const config = await loadConfig();
     const proxyRunning = anthropicProxy.isRunning ? anthropicProxy.isRunning() : false;
+    // Wait for the initial Claude detection to complete (has a 10s timeout built-in)
+    await claudeCode.waitForDetection();
     res.json({
         proxyRunning,
         proxyPort: 3002,

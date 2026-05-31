@@ -176,23 +176,34 @@ export function SettingsModal({ onClose }) {
   }, [provider]);
 
   const handleSave = async () => {
-    const body = {
-      provider,
-      model: provider === 'custom' ? customModel : model,
-      budget: Number(budget) || 0,
-      demoMode: !!demoMode,
-      baseUrl: provider === 'custom' ? customUrl : (providerDef.baseUrl || null),
-    };
-    if (apiKey.trim()) body.apiKey = apiKey;
+    try {
+      const body = {
+        provider,
+        model: provider === 'custom' ? customModel : model,
+        budget: Number(budget) || 0,
+        demoMode: !!demoMode,
+        baseUrl: provider === 'custom' ? customUrl : (providerDef.baseUrl || null),
+      };
+      if (apiKey.trim()) body.apiKey = apiKey;
 
-    await fetch('http://localhost:3001/api/config', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    setSaved(true);
-    setHasKey(!!apiKey || hasKey);
-    setTimeout(() => { setSaved(false); onClose(); }, 900);
+      const res = await fetch('http://localhost:3001/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        alert(`Error saving config: ${errorData?.error?.message || res.statusText}`);
+        return;
+      }
+
+      setSaved(true);
+      setHasKey(!!apiKey || hasKey);
+      setTimeout(() => { setSaved(false); onClose(); }, 900);
+    } catch (err) {
+      alert(`Network error: ${err.message}. Check backend connection.`);
+    }
   };
 
   return (

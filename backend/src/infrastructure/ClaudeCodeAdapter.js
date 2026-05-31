@@ -40,8 +40,23 @@ class ClaudeCodeAdapter {
         this.ws = null;
         this._throttleTimers = {};
         this._toolCallCount = 0;
+        this._isChecking = false;
+
+        // Create a promise that resolves once the first detection attempt completes
+        this._detectionReady = new Promise((resolve) => {
+            this._resolveDetection = resolve;
+        });
 
         this._detectClaudeCode();
+    }
+
+    /**
+     * Waits for the initial Claude detection to complete.
+     * Safe to call multiple times — resolves immediately after first detection.
+     * @returns {Promise<void>}
+     */
+    waitForDetection() {
+        return this._detectionReady;
     }
 
     /**
@@ -50,30 +65,47 @@ class ClaudeCodeAdapter {
      */
     _detectClaudeCode() {
         const { exec, execFile } = require('child_process');
+        const fs = require('fs');
+        const path = require('path');
         const isWin = process.platform === 'win32';
         
+        const finish = (version, available, msg) => {
+            this.version = version;
+            this.available = available;
+            logger.info(msg);
+            // Resolve the detection promise so waiters get the real result
+            if (this._resolveDetection) {
+                this._resolveDetection();
+                this._resolveDetection = null; // only resolve once
+            }
+        };
+
         if (isWin) {
-            exec('claude --version', { timeout: 4000 }, (error, stdout) => {
+            exec('claude --version', { timeout: 10000 }, (error, stdout) => {
                 if (error) {
-                    this.available = false;
-                    this.version = null;
-                    logger.info('Claude Code not found on PATH or failed to report version.');
+                    // Fallback to explicitly checking npm global path
+                    const appData = process.env.APPDATA;
+                    if (appData) {
+                        const claudePath = path.join(appData, 'npm', 'claude.cmd');
+                        if (fs.existsSync(claudePath)) {
+                            exec(`"${claudePath}" --version`, { timeout: 10000 }, (err2, out2) => {
+                                if (err2) finish(null, false, 'Claude Code found at path but failed to execute.');
+                                else finish(out2.trim(), true, `Claude Code detected (fallback path): ${out2.trim()}`);
+                            });
+                            return;
+                        }
+                    }
+                    finish(null, false, 'Claude Code not found on PATH or failed to report version.');
                 } else {
-                    this.version = stdout.trim();
-                    this.available = true;
-                    logger.info(`Claude Code detected: ${this.version}`);
+                    finish(stdout.trim(), true, `Claude Code detected: ${stdout.trim()}`);
                 }
             });
         } else {
-            execFile('claude', ['--version'], { timeout: 4000 }, (error, stdout) => {
+            execFile('claude', ['--version'], { timeout: 10000 }, (error, stdout) => {
                 if (error) {
-                    this.available = false;
-                    this.version = null;
-                    logger.info('Claude Code not found on PATH or failed to report version.');
+                    finish(null, false, 'Claude Code not found on PATH or failed to report version.');
                 } else {
-                    this.version = stdout.trim();
-                    this.available = true;
-                    logger.info(`Claude Code detected: ${this.version}`);
+                    finish(stdout.trim(), true, `Claude Code detected: ${stdout.trim()}`);
                 }
             });
         }
@@ -81,9 +113,22 @@ class ClaudeCodeAdapter {
 
     /**
      * Determine if the Claude CLI command is detected and available on the local path.
+     * If it is not currently detected, triggers a background retry so it can be found if installed later.
      * @returns {boolean} True if available
      */
-    isAvailable() { return this.available; }
+    isAvailable() { 
+        if (!this.available) {
+            // Trigger a background retry, debounce it slightly by checking if a check is already running
+            if (!this._isChecking) {
+                this._isChecking = true;
+                setTimeout(() => {
+                    this._detectClaudeCode();
+                    this._isChecking = false;
+                }, 1000);
+            }
+        }
+        return this.available; 
+    }
 
     /**
      * Dynamically update the WebSocket instance used to stream terminal outputs to the UI client.
@@ -91,7 +136,7 @@ class ClaudeCodeAdapter {
      */
     setWebSocket(ws) {
         this.ws = ws;
-        logger.info("WebSocket client dynamically updated in ClaudeCodeAdapter!");
+        logger.debug("WebSocket client updated in ClaudeCodeAdapter.");
     }
 
     /**

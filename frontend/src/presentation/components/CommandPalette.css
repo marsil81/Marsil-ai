@@ -1,0 +1,196 @@
+/* ═══ COMMAND PALETTE — Ctrl+K Spotlight Overlay ═══ */
+.cp-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 12, 0.75);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  z-index: 9000;
+}
+
+.cp-box {
+  width: 640px;
+  max-width: 90vw;
+  background: rgba(10, 14, 26, 0.97);
+  border: 1px solid rgba(129, 140, 248, 0.3);
+  border-radius: 14px;
+  box-shadow:
+    0 0 0 1px rgba(129, 140, 248, 0.08),
+    0 24px 80px rgba(0, 0, 0, 0.7),
+    0 0 60px rgba(99, 102, 241, 0.08);
+  overflow: hidden;
+}
+
+/* Search bar */
+.cp-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cp-search-icon {
+  color: rgba(129, 140, 248, 0.6);
+  flex-shrink: 0;
+}
+
+.cp-input {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1rem;
+  color: #f8fafc;
+  letter-spacing: 0.2px;
+}
+
+.cp-input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.cp-clear {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.cp-clear:hover { color: rgba(255, 255, 255, 0.7); }
+
+/* Results list */
+.cp-results {
+  max-height: 360px;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.cp-empty {
+  padding: 28px 20px;
+  text-align: center;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.cp-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.1s ease;
+}
+
+.cp-item.selected,
+.cp-item:hover {
+  background: rgba(129, 140, 248, 0.1);
+}
+
+.cp-item.selected {
+  background: rgba(129, 140, 248, 0.14);
+}
+
+.cp-item-icon {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(129, 140, 248, 0.08);
+  color: rgba(129, 140, 248, 0.8);
+  flex-shrink: 0;
+}
+
+.cp-item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cp-item-label {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cp-item-desc {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.62rem;
+  color: rgba(255, 255, 255, 0.3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cp-item-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.cp-item-category {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  letter-spacing: 0.5px;
+  color: rgba(129, 140, 248, 0.5);
+  text-transform: uppercase;
+}
+
+.cp-item-shortcut {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.52rem;
+  color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Footer */
+.cp-footer {
+  display: flex;
+  gap: 20px;
+  padding: 10px 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.6rem;
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.cp-footer kbd {
+  display: inline-block;
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.55rem;
+  margin-right: 4px;
+}
+
+/* Scrollbar */
+.cp-results::-webkit-scrollbar { width: 3px; }
+.cp-results::-webkit-scrollbar-thumb { background: rgba(129, 140, 248, 0.2); border-radius: 2px; }
